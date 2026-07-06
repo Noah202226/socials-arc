@@ -107,3 +107,41 @@ export const getMyWorkspaces = query({
     return workspaces;
   },
 });
+
+/**
+ * Fetch a workspace by slug, verifying membership for security.
+ */
+export const getBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return null;
+    }
+
+    const userId = identity.subject;
+
+    const workspace = await ctx.db
+      .query("workspaces")
+      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
+      .first();
+
+    if (!workspace) {
+      return null;
+    }
+
+    // Verify user is a member of the workspace
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_and_user", (q) =>
+        q.eq("workspaceId", workspace._id).eq("userId", userId)
+      )
+      .first();
+
+    if (!membership) {
+      return null;
+    }
+
+    return workspace;
+  },
+});

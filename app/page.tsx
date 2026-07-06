@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useConvexAuth, useMutation } from "convex/react";
 import { SignInButton, SignUpButton, UserButton, useUser, SignOutButton } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
@@ -147,9 +148,11 @@ export default function Home() {
                   </div>
                 </div>
 
-                <Button size="lg" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 mt-2">
-                  <LayoutDashboard className="h-4 w-4 mr-2" /> Enter Workspace Dashboard
-                </Button>
+                <Link href={`/${workspace.slug}`} className="w-full">
+                  <Button size="lg" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20 mt-2">
+                    <LayoutDashboard className="h-4 w-4 mr-2" /> Enter Workspace Dashboard
+                  </Button>
+                </Link>
               </>
             )}
 
