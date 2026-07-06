@@ -1,23 +1,23 @@
 # Current Feature
 
-<!-- Feature Name -->
+Workspace creation + Clerk auth wiring
 
 ## Status
 
-<!-- Not Started|In Progress|Completed -->
-
-Not Started
+Completed
 
 ## Goals
 
-<!-- Goals & requirements -->
+1. Wire up Clerk auth (`ClerkProvider`) and Convex with Clerk (`ConvexProviderWithClerk`) on the frontend. (Completed)
+2. Implement auto-creation of a workspace on user's first login. (Completed)
+3. Seed the owner as the first member of the new workspace. (Completed)
 
 ## Notes
 
-<!-- Any extra notes -->
+- Clerk keys configured in `.env.local` and synced to Convex cloud environment.
+- Added dummy fallback domain to `convex/auth.config.ts` to allow compilation during initial CLI setups.
 
 ## History
 
-<!-- Keep this updated. Earliest to latest -->
-
 - Project setup and boilerplate cleanup
+- Workspace creation + Clerk auth wiring
