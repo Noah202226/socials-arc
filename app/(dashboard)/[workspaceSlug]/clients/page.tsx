@@ -270,7 +270,7 @@ export default function ClientsPage() {
         </div>
 
         {/* Channels & campaigns (1 col) */}
-        <div className="flex flex-col gap-8 border-l border-zinc-900 pl-0 lg:pl-8">
+        <div className="flex flex-col gap-8 border-l-0 lg:border-l border-zinc-900 pl-0 lg:pl-8">
           
           {/* Linked Pages */}
           <div className="flex flex-col gap-4">

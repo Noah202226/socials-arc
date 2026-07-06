@@ -162,7 +162,7 @@ export default function TeamPage() {
         </div>
 
         {/* Pending Invites (1 col) */}
-        <div className="flex flex-col gap-6 border-l border-zinc-900 pl-0 lg:pl-8">
+        <div className="flex flex-col gap-6 border-l-0 lg:border-l border-zinc-900 pl-0 lg:pl-8">
           <h3 className="text-sm font-semibold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
             <Clock className="h-4 w-4 text-indigo-400" /> Pending Invites ({pendingInvites.length})
           </h3>

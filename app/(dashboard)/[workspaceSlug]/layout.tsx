@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { useParams, usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { UserButton } from "@clerk/nextjs";
@@ -15,7 +15,9 @@ import {
   Calendar,
   Layers,
   LayoutDashboard,
-  Briefcase
+  Briefcase,
+  Menu,
+  X
 } from "lucide-react";
 import Link from "next/link";
 
@@ -24,6 +26,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const slug = params.workspaceSlug as string;
 
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const workspace = useQuery(api.workspaces.getBySlug, { slug });
 
   if (workspace === undefined) {
@@ -65,16 +68,37 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   const isTasksActive = pathname.startsWith(`/${workspace.slug}/tasks`);
   const isTeamActive = pathname.startsWith(`/${workspace.slug}/team`);
 
+  const closeSidebar = () => setIsMobileSidebarOpen(false);
+
   return (
     <div className="flex h-screen bg-zinc-950 text-zinc-100 font-sans overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-zinc-900 bg-zinc-950 flex flex-col z-20 shrink-0">
-        {/* Brand */}
-        <div className="h-16 flex items-center gap-2 px-6 border-b border-zinc-900">
-          <div className="h-7 w-7 rounded bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
-            S
+      
+      {/* Mobile Sidebar Backdrop Overlay */}
+      {isMobileSidebarOpen && (
+        <div 
+          onClick={closeSidebar} 
+          className="fixed inset-0 bg-black/60 z-40 md:hidden transition-opacity duration-300"
+        />
+      )}
+
+      {/* Sidebar Drawer */}
+      <aside className={`fixed inset-y-0 left-0 w-64 border-r border-zinc-900 bg-zinc-950 flex flex-col z-50 shrink-0 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+        isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
+      }`}>
+        {/* Brand & Mobile Close */}
+        <div className="h-16 flex items-center justify-between px-6 border-b border-zinc-900">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
+              S
+            </div>
+            <span className="font-semibold text-base tracking-tight text-white">Socials Ark</span>
           </div>
-          <span className="font-semibold text-base tracking-tight text-white">Socials Ark</span>
+          <button 
+            onClick={closeSidebar}
+            className="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 md:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Workspace Quick Details */}
@@ -88,6 +112,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         <nav className="flex-1 px-4 py-2 flex flex-col gap-1">
           <Link 
             href={`/${workspace.slug}`} 
+            onClick={closeSidebar}
             className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               isDashboardActive 
                 ? "bg-zinc-900 text-white" 
@@ -100,6 +125,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
           
           <Link 
             href={`/${workspace.slug}/clients`} 
+            onClick={closeSidebar}
             className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               isClientsActive 
                 ? "bg-zinc-900 text-white" 
@@ -112,6 +138,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
           <Link 
             href={`/${workspace.slug}/team`} 
+            onClick={closeSidebar}
             className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               isTeamActive 
                 ? "bg-zinc-900 text-white" 
@@ -124,6 +151,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
           <Link 
             href={`/${workspace.slug}/tasks`} 
+            onClick={closeSidebar}
             className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
               isTasksActive 
                 ? "bg-zinc-900 text-white" 
@@ -140,10 +168,10 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
             <span className="absolute right-3 text-[9px] font-bold bg-zinc-900 text-zinc-655 px-1.5 py-0.5 rounded border border-zinc-900">Soon</span>
           </div>
 
-          <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-zinc-600 cursor-not-allowed group relative">
+          <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-zinc-650 cursor-not-allowed group relative">
             <TrendingUp className="h-4 w-4" />
             <span>Finance P&L</span>
-            <span className="absolute right-3 text-[9px] font-bold bg-zinc-900 text-zinc-600 px-1.5 py-0.5 rounded border border-zinc-900">Soon</span>
+            <span className="absolute right-3 text-[9px] font-bold bg-zinc-900 text-zinc-655 px-1.5 py-0.5 rounded border border-zinc-900">Soon</span>
           </div>
         </nav>
 
@@ -156,7 +184,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
               <span className="text-[10px] text-zinc-500">Settings & Profile</span>
             </div>
           </div>
-          <Link href="/">
+          <Link href="/" onClick={closeSidebar}>
             <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-500 hover:text-red-400 hover:bg-red-500/10">
               <LogOut className="h-4 w-4" />
             </Button>
@@ -170,11 +198,20 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-indigo-900/5 rounded-full blur-[100px] pointer-events-none" />
 
         {/* Header */}
-        <header className="h-16 border-b border-zinc-900 px-8 flex items-center justify-between shrink-0 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-10">
-          <h1 className="text-lg font-semibold text-white">
-            {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : isTasksActive ? "Tasks Board" : isTeamActive ? "Team Members" : "Workspace"}
-          </h1>
-          <div className="flex items-center gap-3 text-xs text-zinc-500">
+        <header className="h-16 border-b border-zinc-900 px-4 md:px-8 flex items-center justify-between shrink-0 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
+              className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-900 md:hidden focus:outline-none"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <h1 className="text-sm md:text-lg font-semibold text-white">
+              {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : isTasksActive ? "Tasks Board" : isTeamActive ? "Team Members" : "Workspace"}
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-3 text-[10px] md:text-xs text-zinc-500">
             <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 font-mono capitalize">
               plan: {workspace.plan}
             </span>
@@ -182,7 +219,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Content Container */}
-        <div className="p-8 flex flex-col gap-8 flex-1 max-w-5xl">
+        <div className="p-4 md:p-8 flex flex-col gap-6 md:gap-8 flex-1 max-w-5xl">
           {children}
         </div>
       </main>

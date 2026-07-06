@@ -47,6 +47,11 @@
 - Tailwind CSS for all styling, shadcn/ui components where applicable
 - No inline styles
 - Dark mode first, light mode as option
+- **Responsiveness**: All features and layouts must be fully responsive across modern device widths (mobile, tablet, desktop).
+  - Use a mobile-first approach where layout defaults are mobile-optimized, and larger displays are targeted via breakpoints (`sm:`, `md:`, `lg:`, `xl:`).
+  - Avoid fixed widths and heights on parent containers; prefer fluid layouts (flexbox, grid, percentages, `max-w-*`).
+  - Sidebars and complex tables must adapt dynamically on smaller screens (e.g., collapsible side menus, overflow scroll containers, or responsive grids).
+  - Dialogs, popups, and modals must fit mobile screens (e.g., full-width or bottom sheets on mobile, centered cards on desktop).
 
 ## File Organization
 
