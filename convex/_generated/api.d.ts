@@ -8,6 +8,9 @@
  * @module
  */
 
+import type * as clients from "../clients.js";
+import type * as projects from "../projects.js";
+import type * as socialPages from "../socialPages.js";
 import type * as workspaces from "../workspaces.js";
 
 import type {
@@ -17,6 +20,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  clients: typeof clients;
+  projects: typeof projects;
+  socialPages: typeof socialPages;
   workspaces: typeof workspaces;
 }>;
 
