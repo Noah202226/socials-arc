@@ -145,3 +145,35 @@ export const getBySlug = query({
     return workspace;
   },
 });
+
+/**
+ * Lists all members in a workspace.
+ */
+export const listMembers = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return [];
+    }
+
+    // Verify calling user is a member of this workspace
+    const callingMember = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_and_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", identity.subject)
+      )
+      .first();
+
+    if (!callingMember) {
+      throw new ConvexError("Unauthorized");
+    }
+
+    return await ctx.db
+      .query("members")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+  },
+});

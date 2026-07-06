@@ -14,7 +14,8 @@ import {
   LogOut,
   Calendar,
   Layers,
-  LayoutDashboard
+  LayoutDashboard,
+  Briefcase
 } from "lucide-react";
 import Link from "next/link";
 
@@ -61,6 +62,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   const isDashboardActive = pathname === `/${workspace.slug}`;
   const isClientsActive = pathname.startsWith(`/${workspace.slug}/clients`);
+  const isTasksActive = pathname.startsWith(`/${workspace.slug}/tasks`);
+  const isTeamActive = pathname.startsWith(`/${workspace.slug}/team`);
 
   return (
     <div className="flex h-screen bg-zinc-950 text-zinc-100 font-sans overflow-hidden">
@@ -103,14 +106,38 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
                 : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
             }`}
           >
-            <Users className={`h-4 w-4 ${isClientsActive ? "text-indigo-400" : ""}`} />
+            <Briefcase className={`h-4 w-4 ${isClientsActive ? "text-indigo-400" : ""}`} />
             <span>Clients & Pages</span>
           </Link>
 
-          <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-zinc-600 cursor-not-allowed group relative">
-            <Calendar className="h-4 w-4" />
+          <Link 
+            href={`/${workspace.slug}/team`} 
+            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              isTeamActive 
+                ? "bg-zinc-900 text-white" 
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
+            }`}
+          >
+            <Users className={`h-4 w-4 ${isTeamActive ? "text-indigo-400" : ""}`} />
+            <span>Team Members</span>
+          </Link>
+
+          <Link 
+            href={`/${workspace.slug}/tasks`} 
+            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              isTasksActive 
+                ? "bg-zinc-900 text-white" 
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
+            }`}
+          >
+            <Calendar className={`h-4 w-4 ${isTasksActive ? "text-indigo-400" : ""}`} />
+            <span>Tasks Board</span>
+          </Link>
+
+          <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-zinc-650 cursor-not-allowed group relative">
+            <Layers className="h-4 w-4" />
             <span>Content Workflow</span>
-            <span className="absolute right-3 text-[9px] font-bold bg-zinc-900 text-zinc-600 px-1.5 py-0.5 rounded border border-zinc-900">Soon</span>
+            <span className="absolute right-3 text-[9px] font-bold bg-zinc-900 text-zinc-655 px-1.5 py-0.5 rounded border border-zinc-900">Soon</span>
           </div>
 
           <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-zinc-600 cursor-not-allowed group relative">
@@ -145,7 +172,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         {/* Header */}
         <header className="h-16 border-b border-zinc-900 px-8 flex items-center justify-between shrink-0 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-10">
           <h1 className="text-lg font-semibold text-white">
-            {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : "Workspace"}
+            {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : isTasksActive ? "Tasks Board" : isTeamActive ? "Team Members" : "Workspace"}
           </h1>
           <div className="flex items-center gap-3 text-xs text-zinc-500">
             <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 font-mono capitalize">

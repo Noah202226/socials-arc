@@ -9,8 +9,10 @@
  */
 
 import type * as clients from "../clients.js";
+import type * as members from "../members.js";
 import type * as projects from "../projects.js";
 import type * as socialPages from "../socialPages.js";
+import type * as tasks from "../tasks.js";
 import type * as workspaces from "../workspaces.js";
 
 import type {
@@ -21,8 +23,10 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   clients: typeof clients;
+  members: typeof members;
   projects: typeof projects;
   socialPages: typeof socialPages;
+  tasks: typeof tasks;
   workspaces: typeof workspaces;
 }>;
 
