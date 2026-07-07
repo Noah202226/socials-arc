@@ -4,15 +4,15 @@ Financial Tracking (P&L Ledger)
 
 ## Status
 
-In Progress
+Completed
 
 ## Goals
 
-1. Create category specifications in `lib/finance-categories.ts` as the single source of truth for income and expense classifications.
-2. Implement Convex mutations and queries for `transactions` in `convex/transactions.ts` (creating, updating, deleting, listing, and P&L summaries per page & per client).
-3. Update the navigation layout in `app/(dashboard)/[workspaceSlug]/layout.tsx` to enable the "Finance P&L" menu item linking to `/${workspace.slug}/finance`.
-4. Design and implement a premium Finance Ledger & P&L Dashboard at `app/(dashboard)/[workspaceSlug]/finance/page.tsx` showing revenue, expenses, net profits, and recurring ledger items.
-5. Seed `convex/crons.ts` to schedule recurring transaction automation.
+1. [x] Create category specifications in `lib/finance-categories.ts` as the single source of truth for income and expense classifications.
+2. [x] Implement Convex mutations and queries for `transactions` in `convex/transactions.ts` (creating, updating, deleting, listing, and P&L summaries per page & per client).
+3. [x] Update the navigation layout in `app/(dashboard)/[workspaceSlug]/layout.tsx` to enable the "Finance P&L" menu item linking to `/${workspace.slug}/finance`.
+4. [x] Design and implement a premium Finance Ledger & P&L Dashboard at `app/(dashboard)/[workspaceSlug]/finance/page.tsx` showing revenue, expenses, net profits, and recurring ledger items.
+5. [x] Seed `convex/crons.ts` to schedule recurring transaction automation.
 
 ## Notes
 
@@ -22,6 +22,7 @@ In Progress
 
 ## History
 
+- Financial Tracking (P&L Ledger) implementation
 - Media Library (Asset Management) implementation
 - Project setup and boilerplate cleanup
 - Workspace creation + Clerk auth wiring & dashboard routing

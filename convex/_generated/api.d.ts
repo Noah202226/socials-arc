@@ -11,11 +11,13 @@
 import type * as assets from "../assets.js";
 import type * as clients from "../clients.js";
 import type * as comments from "../comments.js";
+import type * as crons from "../crons.js";
 import type * as members from "../members.js";
 import type * as posts from "../posts.js";
 import type * as projects from "../projects.js";
 import type * as socialPages from "../socialPages.js";
 import type * as tasks from "../tasks.js";
+import type * as transactions from "../transactions.js";
 import type * as workspaces from "../workspaces.js";
 
 import type {
@@ -28,11 +30,13 @@ declare const fullApi: ApiFromModules<{
   assets: typeof assets;
   clients: typeof clients;
   comments: typeof comments;
+  crons: typeof crons;
   members: typeof members;
   posts: typeof posts;
   projects: typeof projects;
   socialPages: typeof socialPages;
   tasks: typeof tasks;
+  transactions: typeof transactions;
   workspaces: typeof workspaces;
 }>;
 
