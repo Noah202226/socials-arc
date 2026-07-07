@@ -219,7 +219,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         </header>
 
         {/* Content Container */}
-        <div className="p-4 md:p-8 flex flex-col gap-6 md:gap-8 flex-1 max-w-5xl">
+        <div className="p-4 md:p-8 flex flex-col gap-6 md:gap-8 flex-1 w-full max-w-none">
           {children}
         </div>
       </main>

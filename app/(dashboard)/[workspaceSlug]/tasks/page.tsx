@@ -268,7 +268,7 @@ export default function TasksPage() {
             return (
               <div 
                 key={col.id}
-                className={`rounded-xl border p-4 flex flex-col gap-4 min-h-[500px] ${col.color}`}
+                className={`rounded-xl border p-4 flex flex-col gap-4 h-auto md:h-[calc(100vh-340px)] md:min-h-[400px] overflow-hidden ${col.color}`}
               >
                 {/* Column Header */}
                 <div className="flex justify-between items-center pb-2 border-b border-zinc-900/60">
