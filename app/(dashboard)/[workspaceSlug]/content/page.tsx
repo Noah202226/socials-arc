@@ -26,7 +26,12 @@ import {
   X as CloseIcon,
   Send,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  FileText as DocIcon,
+  Link as LinkIcon,
+  Unlink
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -79,11 +84,20 @@ export default function ContentWorkflowPage() {
     workspace ? { workspaceId: workspace._id } : "skip"
   );
 
+  const assets = useQuery(
+    api.assets.listByWorkspace,
+    workspace ? { workspaceId: workspace._id } : "skip"
+  );
+
   // Mutations
   const createPost = useMutation(api.posts.create);
   const updatePostStatus = useMutation(api.posts.updateStatus);
   const updatePostDetails = useMutation(api.posts.updateDetails);
   const deletePost = useMutation(api.posts.deletePost);
+
+  const generateUploadUrl = useMutation(api.assets.generateUploadUrl);
+  const saveAsset = useMutation(api.assets.save);
+  const attachToPost = useMutation(api.assets.attachToPost);
 
   const columnsList = workspace?.settings?.postColumns || defaultPostColumns;
   const activeColumns = columnsList.filter(col => !col.hidden);
@@ -96,6 +110,7 @@ export default function ContentWorkflowPage() {
   const [draggedPostId, setDraggedPostId] = useState<string | null>(null);
   const [activeDropCol, setActiveDropCol] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<any>(null);
+  const postAssets = selectedPost ? (assets?.filter((a) => a.postId === selectedPost._id) || []) : [];
   const [copiedToken, setCopiedToken] = useState(false);
 
   // Form Composer States
@@ -106,6 +121,10 @@ export default function ContentWorkflowPage() {
   const [postScheduledDate, setPostScheduledDate] = useState("");
   const [postScheduledTime, setPostScheduledTime] = useState("");
   const [postStatus, setPostStatus] = useState<string>("draft");
+
+  // File Upload States
+  const [composerFile, setComposerFile] = useState<File | null>(null);
+  const [uploadingInspectorFile, setUploadingInspectorFile] = useState(false);
 
   // Comment Form States
   const [commentText, setCommentText] = useState("");
@@ -148,7 +167,7 @@ export default function ContentWorkflowPage() {
     }
 
     try {
-      await createPost({
+      const newPost = await createPost({
         projectId: postProject as any,
         pageId: postPage as any,
         caption: postCaption.trim(),
@@ -158,6 +177,33 @@ export default function ContentWorkflowPage() {
       });
       toast.success("Post created successfully.");
 
+      if (composerFile && newPost) {
+        toast.info("Uploading attached media...");
+        const uploadUrl = await generateUploadUrl({ projectId: postProject as any });
+        const response = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": composerFile.type },
+          body: composerFile,
+        });
+        if (!response.ok) {
+          throw new Error("File upload to Convex storage failed.");
+        }
+        const { storageId } = await response.json();
+        
+        let assetType: "image" | "video" | "document" = "document";
+        if (composerFile.type.startsWith("image/")) assetType = "image";
+        else if (composerFile.type.startsWith("video/")) assetType = "video";
+
+        await saveAsset({
+          projectId: postProject as any,
+          postId: newPost._id,
+          storageId,
+          type: assetType,
+          fileName: composerFile.name,
+        });
+        toast.success("Media attached successfully.");
+      }
+
       // Reset
       setPostCaption("");
       setPostProject("");
@@ -165,6 +211,7 @@ export default function ContentWorkflowPage() {
       setPostAssignee("");
       setPostScheduledDate("");
       setPostScheduledTime("");
+      setComposerFile(null);
       setActiveModal(null);
     } catch (err: any) {
       console.error(err);
@@ -505,6 +552,7 @@ export default function ContentWorkflowPage() {
                       const project = projects.find((p) => p._id === post.projectId);
                       const page = socialPages.find((sp) => sp._id === post.pageId);
                       const pConfig = page ? (platformConfigs as any)[page.platform] : null;
+                      const postAsset = assets?.find((a) => a.postId === post._id && a.type === "image");
 
                       return (
                         <div 
@@ -529,6 +577,18 @@ export default function ContentWorkflowPage() {
                               </span>
                             )}
                           </div>
+
+                          {/* Media Preview (If attached) */}
+                          {postAsset && postAsset.url && (
+                            <div className="w-full h-24 rounded-md overflow-hidden bg-zinc-950 border border-zinc-900 mb-0.5 shrink-0 relative">
+                              <img 
+                                src={postAsset.url} 
+                                alt={post.caption} 
+                                className="w-full h-full object-cover" 
+                                loading="lazy"
+                              />
+                            </div>
+                          )}
 
                           {/* Caption */}
                           <div className="flex justify-between items-start gap-1">
@@ -685,6 +745,44 @@ export default function ContentWorkflowPage() {
                 />
               </div>
 
+              {/* Optional Media Attachment */}
+              <div className="flex flex-col gap-1.5 text-left">
+                <label className="text-xs font-semibold text-zinc-400">Media Attachment (Optional)</label>
+                <div className="border border-dashed border-zinc-800 bg-zinc-900/10 rounded-xl p-4 text-center flex flex-col items-center gap-2">
+                  <input 
+                    type="file" 
+                    id="composer-media-file"
+                    className="hidden" 
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setComposerFile(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-xs text-zinc-400 truncate max-w-[220px]">
+                      {composerFile ? composerFile.name : "No file attached"}
+                    </span>
+                    {composerFile ? (
+                      <button 
+                        type="button" 
+                        onClick={() => setComposerFile(null)}
+                        className="text-zinc-500 hover:text-red-450 text-xs font-bold"
+                      >
+                        Remove
+                      </button>
+                    ) : (
+                      <label 
+                        htmlFor="composer-media-file"
+                        className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-850 border border-zinc-850 text-zinc-300 text-[10px] font-semibold rounded cursor-pointer transition-colors"
+                      >
+                        Browse File
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1.5 text-left col-span-2">
                   <label className="text-xs font-semibold text-zinc-400">Scheduled Date</label>
@@ -835,6 +933,103 @@ export default function ContentWorkflowPage() {
                       <option key={col.id} value={col.id}>{col.label}</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Attached Media Section */}
+                <div className="flex flex-col gap-2 border-t border-zinc-900/60 pt-4 mt-2">
+                  <label className="text-xs font-semibold text-zinc-400">Attached Media</label>
+                  
+                  {/* List of currently attached assets */}
+                  {postAssets.length > 0 && (
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      {postAssets.map((asset) => (
+                        <div key={asset._id} className="relative group border border-zinc-900 bg-zinc-950 rounded-lg p-2 flex items-center gap-2">
+                          {asset.type === "image" && asset.url ? (
+                            <img src={asset.url} className="h-8 w-8 object-cover rounded" />
+                          ) : asset.type === "video" ? (
+                            <VideoIcon className="h-8 w-8 text-indigo-400 p-1.5 bg-indigo-500/10 rounded" />
+                          ) : (
+                            <DocIcon className="h-8 w-8 text-amber-500 p-1.5 bg-amber-500/10 rounded" />
+                          )}
+                          <span className="text-[10px] text-zinc-300 truncate flex-1">{asset.fileName}</span>
+                          
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await attachToPost({ assetId: asset._id, postId: undefined });
+                                toast.success("Asset detached from post.");
+                              } catch (err: any) {
+                                toast.error(err.message || "Failed to detach asset");
+                              }
+                            }}
+                            className="text-zinc-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10 cursor-pointer"
+                            title="Detach from post"
+                          >
+                            <Unlink className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Upload box */}
+                  <div className="flex items-center gap-2">
+                    <input 
+                      type="file" 
+                      id="inspector-media-upload"
+                      className="hidden" 
+                      onChange={async (e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const fileToUpload = e.target.files[0];
+                          setUploadingInspectorFile(true);
+                          try {
+                            const uploadUrl = await generateUploadUrl({ projectId: selectedPost.projectId });
+                            const res = await fetch(uploadUrl, {
+                              method: "POST",
+                              headers: { "Content-Type": fileToUpload.type },
+                              body: fileToUpload,
+                            });
+                            if (!res.ok) throw new Error("Upload failed");
+                            const { storageId } = await res.json();
+                            
+                            let assetType: "image" | "video" | "document" = "document";
+                            if (fileToUpload.type.startsWith("image/")) assetType = "image";
+                            else if (fileToUpload.type.startsWith("video/")) assetType = "video";
+
+                            await saveAsset({
+                              projectId: selectedPost.projectId,
+                              postId: selectedPost._id,
+                              storageId,
+                              type: assetType,
+                              fileName: fileToUpload.name,
+                            });
+                            toast.success("File uploaded and attached!");
+                          } catch (err: any) {
+                            toast.error(err.message || "Failed to upload file");
+                          } finally {
+                            setUploadingInspectorFile(false);
+                          }
+                        }
+                      }}
+                    />
+                    <label 
+                      htmlFor="inspector-media-upload"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 border border-dashed border-zinc-800 hover:border-zinc-700 bg-zinc-900/10 hover:bg-zinc-900/20 text-zinc-400 hover:text-zinc-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                    >
+                      {uploadingInspectorFile ? (
+                        <>
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-400" />
+                          Uploading file...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-3.5 w-3.5" />
+                          Upload & Attach File
+                        </>
+                      )}
+                    </label>
+                  </div>
                 </div>
 
                 {/* Client approval link section */}

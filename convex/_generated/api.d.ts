@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as assets from "../assets.js";
 import type * as clients from "../clients.js";
 import type * as comments from "../comments.js";
 import type * as members from "../members.js";
@@ -24,6 +25,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  assets: typeof assets;
   clients: typeof clients;
   comments: typeof comments;
   members: typeof members;
