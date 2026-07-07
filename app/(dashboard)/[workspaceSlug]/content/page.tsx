@@ -29,6 +29,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 const defaultPostColumns = [
   { id: "draft", label: "Draft", color: "bg-zinc-900/60 border-zinc-800", hidden: false },
@@ -90,6 +91,10 @@ export default function ContentWorkflowPage() {
   // States
   const [activeTab, setActiveTab] = useState<"kanban" | "calendar">("kanban");
   const [activeModal, setActiveModal] = useState<null | "create" | "inspect">(null);
+
+  // Drag and Drop States
+  const [draggedPostId, setDraggedPostId] = useState<string | null>(null);
+  const [activeDropCol, setActiveDropCol] = useState<string | null>(null);
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [copiedToken, setCopiedToken] = useState(false);
 
@@ -100,7 +105,7 @@ export default function ContentWorkflowPage() {
   const [postAssignee, setPostAssignee] = useState("");
   const [postScheduledDate, setPostScheduledDate] = useState("");
   const [postScheduledTime, setPostScheduledTime] = useState("");
-  const [postStatus, setPostStatus] = useState<PostStatus>("draft");
+  const [postStatus, setPostStatus] = useState<string>("draft");
 
   // Comment Form States
   const [commentText, setCommentText] = useState("");
@@ -149,7 +154,9 @@ export default function ContentWorkflowPage() {
         caption: postCaption.trim(),
         scheduledAt: scheduledTime,
         assigneeId: postAssignee || undefined,
+        status: postStatus,
       });
+      toast.success("Post created successfully.");
 
       // Reset
       setPostCaption("");
@@ -159,8 +166,9 @@ export default function ContentWorkflowPage() {
       setPostScheduledDate("");
       setPostScheduledTime("");
       setActiveModal(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to create post");
     } finally {
       setLoadingAction(false);
     }
@@ -188,11 +196,13 @@ export default function ContentWorkflowPage() {
         scheduledAt: scheduledTime,
         assigneeId: postAssignee || undefined,
       });
+      toast.success("Post updated successfully.");
       
       setSelectedPost(updatedPost);
       setActiveModal(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to update post");
     } finally {
       setLoadingAction(false);
     }
@@ -202,10 +212,12 @@ export default function ContentWorkflowPage() {
     if (!confirm("Are you sure you want to delete this post? All comments will be permanently deleted.")) return;
     try {
       await deletePost({ postId });
+      toast.info("Post deleted successfully.");
       setActiveModal(null);
       setSelectedPost(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to delete post");
     }
   };
 
@@ -227,16 +239,59 @@ export default function ContentWorkflowPage() {
   };
 
   const handleMoveStatus = async (postId: any, currentStatus: any, direction: "left" | "right") => {
-    const order: PostStatus[] = ["draft", "internal_review", "client_review", "changes_requested", "approved", "scheduled", "published"];
+    const order = activeColumns.map(col => col.id);
     const idx = order.indexOf(currentStatus);
     const nextIdx = idx + (direction === "right" ? 1 : -1);
 
     if (nextIdx >= 0 && nextIdx < order.length) {
+      const nextStatus = order[nextIdx];
       try {
-        await updatePostStatus({ postId, status: order[nextIdx] });
-      } catch (err) {
+        await updatePostStatus({ postId, status: nextStatus });
+        const nextCol = activeColumns.find(c => c.id === nextStatus);
+        toast.success(`Post moved to: ${nextCol?.label || nextStatus}`);
+      } catch (err: any) {
         console.error(err);
+        toast.error(err.message || "Failed to move post");
       }
+    }
+  };
+
+  // Drag & Drop Handlers
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedPostId(id);
+    e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnd = () => {
+    setDraggedPostId(null);
+    setActiveDropCol(null);
+  };
+
+  const handleDragEnter = (e: React.DragEvent, colId: string) => {
+    e.preventDefault();
+    setActiveDropCol(colId);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
+    e.preventDefault();
+    const postId = e.dataTransfer.getData("text/plain") || draggedPostId;
+    setDraggedPostId(null);
+    setActiveDropCol(null);
+
+    if (!postId) return;
+
+    // Find post
+    const postObj = posts?.find(p => p._id === postId);
+    if (!postObj || postObj.status === targetStatus) return;
+
+    try {
+      await updatePostStatus({ postId: postId as any, status: targetStatus });
+      const targetCol = activeColumns.find(c => c.id === targetStatus);
+      toast.success(`Post moved to: ${targetCol?.label || targetStatus}`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update post status");
     }
   };
 
@@ -357,7 +412,7 @@ export default function ContentWorkflowPage() {
             onClick={() => {
               setPostProject(projects[0]?._id || "");
               setPostPage(socialPages[0]?._id || "");
-              setPostStatus("draft");
+              setPostStatus(activeColumns[0]?.id || "draft");
               setActiveModal("create");
             }}
             className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 text-xs font-semibold"
@@ -411,8 +466,7 @@ export default function ContentWorkflowPage() {
         
         /* 1. KANBAN BOARD VIEW */
         <div 
-          className="grid grid-cols-1 gap-4 items-start w-full overflow-x-auto pb-4 md:grid"
-          style={{ gridTemplateColumns: activeColumns.length > 0 ? `repeat(${activeColumns.length}, minmax(0, 1fr))` : undefined }}
+          className="flex gap-5 items-start w-full overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
         >
           {activeColumns.map((col) => {
             const colPosts = posts.filter((p) => p.status === col.id);
@@ -420,7 +474,15 @@ export default function ContentWorkflowPage() {
             return (
               <div 
                 key={col.id} 
-                className={`rounded-xl border p-3 flex flex-col gap-3 min-w-[200px] h-auto lg:h-[calc(100vh-270px)] lg:min-h-[400px] overflow-hidden ${col.color}`}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnter={(e) => handleDragEnter(e, col.id)}
+                onDragLeave={() => setActiveDropCol(prev => prev === col.id ? null : prev)}
+                onDrop={(e) => handleDrop(e, col.id)}
+                className={`rounded-xl border p-4 flex flex-col gap-4 w-[290px] shrink-0 h-auto lg:h-[calc(100vh-270px)] lg:min-h-[450px] overflow-hidden transition-all duration-200 ${
+                  activeDropCol === col.id 
+                    ? "border-indigo-500/60 bg-indigo-950/20 shadow-lg shadow-indigo-950/25" 
+                    : col.color
+                }`}
               >
                 {/* Header */}
                 <div className="flex justify-between items-center pb-2 border-b border-zinc-900/60">
@@ -447,7 +509,12 @@ export default function ContentWorkflowPage() {
                       return (
                         <div 
                           key={post._id}
-                          className="p-3 rounded-lg border border-zinc-900 bg-zinc-950 hover:border-zinc-800 transition-all duration-200 flex flex-col gap-2.5 text-left group"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, post._id)}
+                          onDragEnd={handleDragEnd}
+                          className={`p-3 rounded-lg border border-zinc-900 bg-zinc-950 hover:border-indigo-600/40 cursor-grab active:cursor-grabbing transition-all duration-200 flex flex-col gap-2.5 text-left group ${
+                            draggedPostId === post._id ? "opacity-40 border-dashed border-zinc-800 scale-95" : ""
+                          }`}
                         >
                           {/* Project + Platform tags */}
                           <div className="flex flex-wrap items-center gap-1.5">
@@ -494,32 +561,6 @@ export default function ContentWorkflowPage() {
                               </button>
                             )}
                           </div>
-
-                          {/* Move arrows */}
-                          <div className="flex items-center justify-between border-t border-zinc-900/60 pt-1.5 text-zinc-650">
-                            {col.id !== "draft" ? (
-                              <button 
-                                onClick={() => handleMoveStatus(post._id, post.status, "left")}
-                                className="hover:text-indigo-400 p-0.5 rounded hover:bg-zinc-900"
-                              >
-                                <ChevronLeft className="h-3.5 w-3.5" />
-                              </button>
-                            ) : <div />}
-
-                            <span className="text-[8px] uppercase tracking-wider font-bold text-zinc-650 font-mono select-none">
-                              Move
-                            </span>
-
-                            {col.id !== "published" ? (
-                              <button 
-                                onClick={() => handleMoveStatus(post._id, post.status, "right")}
-                                className="hover:text-indigo-400 p-0.5 rounded hover:bg-zinc-900"
-                              >
-                                <ChevronRight className="h-3.5 w-3.5" />
-                              </button>
-                            ) : <div />}
-                          </div>
-
                         </div>
                       );
                     })
@@ -787,16 +828,12 @@ export default function ContentWorkflowPage() {
                   <label className="text-xs font-semibold text-zinc-400">Post Status</label>
                   <select 
                     value={postStatus} 
-                    onChange={(e) => setPostStatus(e.target.value as PostStatus)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                    onChange={(e) => setPostStatus(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600 cursor-pointer"
                   >
-                    <option value="draft">Draft</option>
-                    <option value="internal_review">Internal Review</option>
-                    <option value="client_review">Client Review</option>
-                    <option value="changes_requested">Changes Requested</option>
-                    <option value="approved">Approved</option>
-                    <option value="scheduled">Scheduled</option>
-                    <option value="published">Published</option>
+                    {activeColumns.map((col) => (
+                      <option key={col.id} value={col.id}>{col.label}</option>
+                    ))}
                   </select>
                 </div>
 

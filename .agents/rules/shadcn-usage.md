@@ -11,3 +11,5 @@
   mode; use the Tailwind theme tokens already configured.
 - Forms use shadcn's `Form` component (react-hook-form + zod) for anything with more than
   one field or that needs validation messages.
+- **Toast Notifications**: Use the custom `toast` utility from `@/components/ui/toast` (via `useToast`) to show feedback toast notifications on success/error/info operations (e.g. saving forms, moving Kanban cards, deletions). Do not use browser `alert()` or raw dialogs for feedback notifications.
+

@@ -29,6 +29,8 @@ const defaultTaskColumns = [
   { id: "done", label: "Completed", color: "bg-emerald-950/10 border-emerald-900/20", hidden: false },
 ];
 
+import { toast } from "sonner";
+
 type TaskStatus = "todo" | "in_progress" | "done";
 
 export default function TasksPage() {
@@ -72,9 +74,13 @@ export default function TasksPage() {
   const [taskProject, setTaskProject] = useState("");
   const [taskAssignee, setTaskAssignee] = useState("");
   const [taskDueDate, setTaskDueDate] = useState("");
-  const [taskStatus, setTaskStatus] = useState<TaskStatus>("todo");
+  const [taskStatus, setTaskStatus] = useState<string>("todo");
 
   const [loadingAction, setLoadingAction] = useState(false);
+
+  // Drag and Drop States
+  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  const [activeDropCol, setActiveDropCol] = useState<string | null>(null);
 
   if (workspace === undefined || tasks === undefined || projects === undefined || members === undefined) {
     return (
@@ -86,6 +92,45 @@ export default function TasksPage() {
   }
 
   if (!workspace) return null;
+
+  // Drag & Drop Handlers
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedTaskId(id);
+    e.dataTransfer.setData("text/plain", id);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTaskId(null);
+    setActiveDropCol(null);
+  };
+
+  const handleDragEnter = (e: React.DragEvent, colId: string) => {
+    e.preventDefault();
+    setActiveDropCol(colId);
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetStatus: string) => {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData("text/plain") || draggedTaskId;
+    setDraggedTaskId(null);
+    setActiveDropCol(null);
+
+    if (!taskId) return;
+
+    // Find task
+    const taskObj = tasks?.find(t => t._id === taskId);
+    if (!taskObj || taskObj.status === targetStatus) return;
+
+    try {
+      await updateTaskStatus({ taskId: taskId as any, status: targetStatus });
+      const targetCol = activeColumns.find(c => c.id === targetStatus);
+      toast.success(`Task moved to: ${targetCol?.label || targetStatus}`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update task status");
+    }
+  };
 
   // Handlers
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -99,7 +144,9 @@ export default function TasksPage() {
         description: taskDesc.trim() || undefined,
         assigneeId: taskAssignee || undefined,
         dueDate: taskDueDate ? new Date(taskDueDate).getTime() : undefined,
+        status: taskStatus,
       });
+      toast.success(`Task "${taskTitle.trim()}" created successfully.`);
       
       // Reset Form
       setTaskTitle("");
@@ -108,8 +155,9 @@ export default function TasksPage() {
       setTaskAssignee("");
       setTaskDueDate("");
       setActiveModal(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to create task");
     } finally {
       setLoadingAction(false);
     }
@@ -128,10 +176,12 @@ export default function TasksPage() {
         dueDate: taskDueDate ? new Date(taskDueDate).getTime() : undefined,
         status: taskStatus,
       });
+      toast.success("Task updated successfully.");
       setActiveModal(null);
       setSelectedTask(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to update task");
     } finally {
       setLoadingAction(false);
     }
@@ -141,15 +191,17 @@ export default function TasksPage() {
     if (!confirm("Are you sure you want to delete this task?")) return;
     try {
       await deleteTask({ taskId });
+      toast.info("Task deleted successfully.");
       setActiveModal(null);
       setSelectedTask(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to delete task");
     }
   };
 
-  const handleMoveStatus = async (taskId: any, currentStatus: TaskStatus, direction: "left" | "right") => {
-    const statusOrder: TaskStatus[] = ["todo", "in_progress", "done"];
+  const handleMoveStatus = async (taskId: any, currentStatus: string, direction: "left" | "right") => {
+    const statusOrder = activeColumns.map(col => col.id);
     const currentIndex = statusOrder.indexOf(currentStatus);
     let nextIndex = currentIndex + (direction === "right" ? 1 : -1);
     
@@ -158,8 +210,11 @@ export default function TasksPage() {
       // Optimistic update local display
       try {
         await updateTaskStatus({ taskId, status: nextStatus });
-      } catch (err) {
+        const nextCol = activeColumns.find(c => c.id === nextStatus);
+        toast.success(`Task moved to: ${nextCol?.label || nextStatus}`);
+      } catch (err: any) {
         console.error(err);
+        toast.error(err.message || "Failed to move task");
       }
     }
   };
@@ -190,7 +245,7 @@ export default function TasksPage() {
           <Button 
             onClick={() => {
               setTaskProject(projects[0]?._id || "");
-              setTaskStatus("todo");
+              setTaskStatus(activeColumns[0]?.id || "todo");
               setActiveModal("create");
             }} 
             className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 text-xs font-semibold"
@@ -264,8 +319,7 @@ export default function TasksPage() {
       ) : (
         /* Kanban Board columns */
         <div 
-          className="grid grid-cols-1 gap-6 items-start"
-          style={{ gridTemplateColumns: activeColumns.length > 0 ? `repeat(${activeColumns.length}, minmax(0, 1fr))` : undefined }}
+          className="flex gap-5 items-start w-full overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent"
         >
           {activeColumns.map((col) => {
             const colTasks = tasks.filter(t => t.status === col.id);
@@ -273,7 +327,15 @@ export default function TasksPage() {
             return (
               <div 
                 key={col.id}
-                className={`rounded-xl border p-4 flex flex-col gap-4 h-auto md:h-[calc(100vh-340px)] md:min-h-[400px] overflow-hidden ${col.color}`}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnter={(e) => handleDragEnter(e, col.id)}
+                onDragLeave={() => setActiveDropCol(prev => prev === col.id ? null : prev)}
+                onDrop={(e) => handleDrop(e, col.id)}
+                className={`rounded-xl border p-4 flex flex-col gap-4 w-[290px] shrink-0 h-auto md:h-[calc(100vh-340px)] md:min-h-[450px] overflow-hidden transition-all duration-200 ${
+                  activeDropCol === col.id 
+                    ? "border-indigo-500/60 bg-indigo-950/20 shadow-lg shadow-indigo-950/25" 
+                    : col.color
+                }`}
               >
                 {/* Column Header */}
                 <div className="flex justify-between items-center pb-2 border-b border-zinc-900/60">
@@ -299,7 +361,12 @@ export default function TasksPage() {
                       return (
                         <div 
                           key={task._id}
-                          className="p-4 rounded-lg border border-zinc-900 bg-zinc-950/70 hover:border-zinc-800 transition-all duration-200 flex flex-col gap-3 text-left group"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, task._id)}
+                          onDragEnd={handleDragEnd}
+                          className={`p-4 rounded-lg border border-zinc-900 bg-zinc-950/70 hover:border-indigo-600/40 cursor-grab active:cursor-grabbing transition-all duration-200 flex flex-col gap-3 text-left group ${
+                            draggedTaskId === task._id ? "opacity-40 border-dashed border-zinc-800 scale-95" : ""
+                          }`}
                         >
                           {/* Project Tag */}
                           {project && (
@@ -349,31 +416,6 @@ export default function TasksPage() {
                                 </span>
                               </div>
                             )}
-                          </div>
-
-                          {/* Move arrows */}
-                          <div className="flex items-center justify-between border-t border-zinc-900/60 pt-2 text-zinc-600">
-                            {col.id !== "todo" ? (
-                              <button 
-                                onClick={() => handleMoveStatus(task._id, task.status, "left")}
-                                className="hover:text-indigo-400 p-0.5 rounded hover:bg-zinc-900"
-                              >
-                                <ArrowLeft className="h-3.5 w-3.5" />
-                              </button>
-                            ) : <div />}
-
-                            <span className="text-[9px] uppercase tracking-wider font-bold text-zinc-650 font-mono">
-                              Move
-                            </span>
-
-                            {col.id !== "done" ? (
-                              <button 
-                                onClick={() => handleMoveStatus(task._id, task.status, "right")}
-                                className="hover:text-indigo-400 p-0.5 rounded hover:bg-zinc-900"
-                              >
-                                <ArrowRight className="h-3.5 w-3.5" />
-                              </button>
-                            ) : <div />}
                           </div>
                         </div>
                       );
@@ -544,12 +586,12 @@ export default function TasksPage() {
                 <label className="text-xs font-semibold text-zinc-400">Task Status</label>
                 <select 
                   value={taskStatus} 
-                  onChange={(e) => setTaskStatus(e.target.value as TaskStatus)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                  onChange={(e) => setTaskStatus(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600 cursor-pointer"
                 >
-                  <option value="todo">To Do</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="done">Completed</option>
+                  {activeColumns.map((col) => (
+                    <option key={col.id} value={col.id}>{col.label}</option>
+                  ))}
                 </select>
               </div>
 

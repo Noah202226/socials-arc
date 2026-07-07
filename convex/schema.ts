@@ -100,16 +100,7 @@ export default defineSchema({
     projectId: v.id("projects"),
     pageId: v.id("socialPages"),
     caption: v.string(),
-    status: v.union(
-      v.literal("draft"),
-      v.literal("internal_review"),
-      v.literal("client_review"),
-      v.literal("changes_requested"),
-      v.literal("approved"),
-      v.literal("scheduled"),
-      v.literal("published"),
-      v.literal("failed"),
-    ),
+    status: v.string(),
     scheduledAt: v.optional(v.number()),
     publishedAt: v.optional(v.number()),
     assigneeId: v.optional(v.string()), // Clerk user id
@@ -129,11 +120,7 @@ export default defineSchema({
     projectId: v.id("projects"),
     title: v.string(),
     description: v.optional(v.string()),
-    status: v.union(
-      v.literal("todo"),
-      v.literal("in_progress"),
-      v.literal("done"),
-    ),
+    status: v.string(),
     assigneeId: v.optional(v.string()), // Clerk user id
     dueDate: v.optional(v.number()),
   })

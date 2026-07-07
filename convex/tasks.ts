@@ -67,6 +67,7 @@ export const create = mutation({
     description: v.optional(v.string()),
     assigneeId: v.optional(v.string()),
     dueDate: v.optional(v.number()),
+    status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     await verifyMembershipByProject(ctx, args.projectId);
@@ -75,7 +76,7 @@ export const create = mutation({
       projectId: args.projectId,
       title: args.title,
       description: args.description,
-      status: "todo",
+      status: args.status || "todo",
       assigneeId: args.assigneeId,
       dueDate: args.dueDate,
     });
@@ -132,7 +133,7 @@ export const listByWorkspace = query({
 export const updateStatus = mutation({
   args: {
     taskId: v.id("tasks"),
-    status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
+    status: v.string(),
   },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);
@@ -160,7 +161,7 @@ export const updateDetails = mutation({
     description: v.optional(v.string()),
     assigneeId: v.optional(v.string()),
     dueDate: v.optional(v.number()),
-    status: v.union(v.literal("todo"), v.literal("in_progress"), v.literal("done")),
+    status: v.string(),
   },
   handler: async (ctx, args) => {
     const task = await ctx.db.get(args.taskId);

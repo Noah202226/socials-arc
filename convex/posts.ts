@@ -67,6 +67,7 @@ export const create = mutation({
     caption: v.string(),
     scheduledAt: v.optional(v.number()),
     assigneeId: v.optional(v.string()),
+    status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { identity } = await verifyMembershipByProject(ctx, args.projectId);
@@ -75,7 +76,7 @@ export const create = mutation({
       projectId: args.projectId,
       pageId: args.pageId,
       caption: args.caption,
-      status: "draft",
+      status: args.status || "draft",
       scheduledAt: args.scheduledAt,
       assigneeId: args.assigneeId,
       createdBy: identity.subject,
@@ -135,16 +136,7 @@ export const updateDetails = mutation({
     postId: v.id("posts"),
     caption: v.string(),
     pageId: v.id("socialPages"),
-    status: v.union(
-      v.literal("draft"),
-      v.literal("internal_review"),
-      v.literal("client_review"),
-      v.literal("changes_requested"),
-      v.literal("approved"),
-      v.literal("scheduled"),
-      v.literal("published"),
-      v.literal("failed"),
-    ),
+    status: v.string(),
     scheduledAt: v.optional(v.number()),
     assigneeId: v.optional(v.string()),
   },
@@ -181,16 +173,7 @@ export const updateDetails = mutation({
 export const updateStatus = mutation({
   args: {
     postId: v.id("posts"),
-    status: v.union(
-      v.literal("draft"),
-      v.literal("internal_review"),
-      v.literal("client_review"),
-      v.literal("changes_requested"),
-      v.literal("approved"),
-      v.literal("scheduled"),
-      v.literal("published"),
-      v.literal("failed"),
-    ),
+    status: v.string(),
   },
   handler: async (ctx, args) => {
     const post = await ctx.db.get(args.postId);
