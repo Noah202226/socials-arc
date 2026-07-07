@@ -23,12 +23,11 @@ import {
   AlertCircle
 } from "lucide-react";
 
-// Kanban columns structure
-const columns = [
-  { id: "todo", title: "To Do", color: "bg-zinc-800/60 border-zinc-800" },
-  { id: "in_progress", title: "In Progress", color: "bg-indigo-950/20 border-indigo-900/30" },
-  { id: "done", title: "Completed", color: "bg-emerald-950/10 border-emerald-900/20" },
-] as const;
+const defaultTaskColumns = [
+  { id: "todo", label: "To Do", color: "bg-zinc-800/60 border-zinc-800", hidden: false },
+  { id: "in_progress", label: "In Progress", color: "bg-indigo-950/20 border-indigo-900/30", hidden: false },
+  { id: "done", label: "Completed", color: "bg-emerald-950/10 border-emerald-900/20", hidden: false },
+];
 
 type TaskStatus = "todo" | "in_progress" | "done";
 
@@ -59,6 +58,9 @@ export default function TasksPage() {
   const updateTaskStatus = useMutation(api.tasks.updateStatus);
   const updateTaskDetails = useMutation(api.tasks.updateDetails);
   const deleteTask = useMutation(api.tasks.deleteTask);
+
+  const columnsList = workspace?.settings?.taskColumns || defaultTaskColumns;
+  const activeColumns = columnsList.filter(col => !col.hidden);
 
   // Local Component States
   const [activeModal, setActiveModal] = useState<null | "create" | "edit">(null);
@@ -261,8 +263,11 @@ export default function TasksPage() {
         </div>
       ) : (
         /* Kanban Board columns */
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
-          {columns.map((col) => {
+        <div 
+          className="grid grid-cols-1 gap-6 items-start"
+          style={{ gridTemplateColumns: activeColumns.length > 0 ? `repeat(${activeColumns.length}, minmax(0, 1fr))` : undefined }}
+        >
+          {activeColumns.map((col) => {
             const colTasks = tasks.filter(t => t.status === col.id);
 
             return (
@@ -273,7 +278,7 @@ export default function TasksPage() {
                 {/* Column Header */}
                 <div className="flex justify-between items-center pb-2 border-b border-zinc-900/60">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                    {col.title}
+                    {col.label}
                   </h4>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-900 border border-zinc-800 text-zinc-400">
                     {colTasks.length}

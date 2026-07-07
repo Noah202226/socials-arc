@@ -17,7 +17,8 @@ import {
   LayoutDashboard,
   Briefcase,
   Menu,
-  X
+  X,
+  Settings
 } from "lucide-react";
 import Link from "next/link";
 
@@ -68,6 +69,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   const isTasksActive = pathname.startsWith(`/${workspace.slug}/tasks`);
   const isTeamActive = pathname.startsWith(`/${workspace.slug}/team`);
   const isContentActive = pathname.startsWith(`/${workspace.slug}/content`);
+  const isSettingsActive = pathname.startsWith(`/${workspace.slug}/settings`);
 
   const closeSidebar = () => setIsMobileSidebarOpen(false);
 
@@ -176,6 +178,19 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
             <span>Content Workflow</span>
           </Link>
 
+          <Link 
+            href={`/${workspace.slug}/settings`} 
+            onClick={closeSidebar}
+            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              isSettingsActive 
+                ? "bg-zinc-900 text-white" 
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
+            }`}
+          >
+            <Settings className={`h-4 w-4 ${isSettingsActive ? "text-indigo-400" : ""}`} />
+            <span>Workspace Settings</span>
+          </Link>
+
           <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-zinc-650 cursor-not-allowed group relative">
             <TrendingUp className="h-4 w-4" />
             <span>Finance P&L</span>
@@ -215,7 +230,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
               <Menu className="h-5 w-5" />
             </button>
             <h1 className="text-sm md:text-lg font-semibold text-white">
-              {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : isTasksActive ? "Tasks Board" : isTeamActive ? "Team Members" : isContentActive ? "Content Workflow" : "Workspace"}
+              {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : isTasksActive ? "Tasks Board" : isTeamActive ? "Team Members" : isContentActive ? "Content Workflow" : isSettingsActive ? "Workspace Settings" : "Workspace"}
             </h1>
           </div>
           

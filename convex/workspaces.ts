@@ -177,3 +177,58 @@ export const listMembers = query({
       .collect();
   },
 });
+
+/**
+ * Updates settings for a workspace (only for owners or admins).
+ */
+export const updateSettings = mutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    settings: v.object({
+      taskColumns: v.optional(
+        v.array(
+          v.object({
+            id: v.string(),
+            label: v.string(),
+            color: v.string(),
+            hidden: v.boolean(),
+          })
+        )
+      ),
+      postColumns: v.optional(
+        v.array(
+          v.object({
+            id: v.string(),
+            label: v.string(),
+            color: v.string(),
+            hidden: v.boolean(),
+          })
+        )
+      ),
+    }),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError("Unauthenticated");
+    }
+
+    // Verify membership & role (only owner/admin)
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_and_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", identity.subject)
+      )
+      .first();
+
+    if (!membership || (membership.role !== "owner" && membership.role !== "admin")) {
+      throw new ConvexError("Unauthorized: Only workspace owners and admins can edit settings");
+    }
+
+    await ctx.db.patch(args.workspaceId, {
+      settings: args.settings,
+    });
+
+    return await ctx.db.get(args.workspaceId);
+  },
+});

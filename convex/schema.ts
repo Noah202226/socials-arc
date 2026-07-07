@@ -10,6 +10,30 @@ export default defineSchema({
     slug: v.string(),
     plan: v.union(v.literal("free"), v.literal("pro"), v.literal("agency")),
     ownerId: v.string(), // Clerk user id
+    settings: v.optional(
+      v.object({
+        taskColumns: v.optional(
+          v.array(
+            v.object({
+              id: v.string(),
+              label: v.string(),
+              color: v.string(),
+              hidden: v.boolean(),
+            })
+          )
+        ),
+        postColumns: v.optional(
+          v.array(
+            v.object({
+              id: v.string(),
+              label: v.string(),
+              color: v.string(),
+              hidden: v.boolean(),
+            })
+          )
+        ),
+      })
+    ),
   }).index("by_slug", ["slug"]),
 
   members: defineTable({

@@ -30,18 +30,17 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
-// Status columns for content posts
-const statusColumns = [
-  { id: "draft", title: "Draft", color: "bg-zinc-900/60 border-zinc-800" },
-  { id: "internal_review", title: "Internal Review", color: "bg-indigo-950/20 border-indigo-900/30" },
-  { id: "client_review", title: "Client Review", color: "bg-amber-950/10 border-amber-900/20" },
-  { id: "changes_requested", title: "Changes Requested", color: "bg-rose-950/10 border-rose-900/20" },
-  { id: "approved", title: "Approved", color: "bg-emerald-950/10 border-emerald-900/20" },
-  { id: "scheduled", title: "Scheduled", color: "bg-sky-950/10 border-sky-900/20" },
-  { id: "published", title: "Published", color: "bg-teal-950/10 border-teal-900/20" },
-] as const;
+const defaultPostColumns = [
+  { id: "draft", label: "Draft", color: "bg-zinc-900/60 border-zinc-800", hidden: false },
+  { id: "internal_review", label: "Internal Review", color: "bg-indigo-950/20 border-indigo-900/30", hidden: false },
+  { id: "client_review", label: "Client Review", color: "bg-amber-950/10 border-amber-900/20", hidden: false },
+  { id: "changes_requested", label: "Changes Requested", color: "bg-rose-950/10 border-rose-900/20", hidden: false },
+  { id: "approved", label: "Approved", color: "bg-emerald-950/10 border-emerald-900/20", hidden: false },
+  { id: "scheduled", label: "Scheduled", color: "bg-sky-950/10 border-sky-900/20", hidden: false },
+  { id: "published", label: "Published", color: "bg-teal-950/10 border-teal-900/20", hidden: false },
+];
 
-type PostStatus = typeof statusColumns[number]["id"];
+type PostStatus = "draft" | "internal_review" | "client_review" | "changes_requested" | "approved" | "scheduled" | "published" | "failed";
 
 const platformConfigs = {
   instagram: { label: "Instagram", color: "text-pink-400 bg-pink-500/10 border-pink-500/20" },
@@ -84,6 +83,9 @@ export default function ContentWorkflowPage() {
   const updatePostStatus = useMutation(api.posts.updateStatus);
   const updatePostDetails = useMutation(api.posts.updateDetails);
   const deletePost = useMutation(api.posts.deletePost);
+
+  const columnsList = workspace?.settings?.postColumns || defaultPostColumns;
+  const activeColumns = columnsList.filter(col => !col.hidden);
 
   // States
   const [activeTab, setActiveTab] = useState<"kanban" | "calendar">("kanban");
@@ -408,8 +410,11 @@ export default function ContentWorkflowPage() {
       ) : activeTab === "kanban" ? (
         
         /* 1. KANBAN BOARD VIEW */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4 items-start w-full overflow-x-auto pb-4">
-          {statusColumns.map((col) => {
+        <div 
+          className="grid grid-cols-1 gap-4 items-start w-full overflow-x-auto pb-4 md:grid"
+          style={{ gridTemplateColumns: activeColumns.length > 0 ? `repeat(${activeColumns.length}, minmax(0, 1fr))` : undefined }}
+        >
+          {activeColumns.map((col) => {
             const colPosts = posts.filter((p) => p.status === col.id);
 
             return (
@@ -420,7 +425,7 @@ export default function ContentWorkflowPage() {
                 {/* Header */}
                 <div className="flex justify-between items-center pb-2 border-b border-zinc-900/60">
                   <h4 className="text-[10px] font-bold uppercase tracking-wider text-zinc-300 truncate max-w-[130px]">
-                    {col.title}
+                    {col.label}
                   </h4>
                   <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-zinc-900 border border-zinc-800 text-zinc-400">
                     {colPosts.length}
