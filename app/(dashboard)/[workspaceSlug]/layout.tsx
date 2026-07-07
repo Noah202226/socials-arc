@@ -67,6 +67,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   const isClientsActive = pathname.startsWith(`/${workspace.slug}/clients`);
   const isTasksActive = pathname.startsWith(`/${workspace.slug}/tasks`);
   const isTeamActive = pathname.startsWith(`/${workspace.slug}/team`);
+  const isContentActive = pathname.startsWith(`/${workspace.slug}/content`);
 
   const closeSidebar = () => setIsMobileSidebarOpen(false);
 
@@ -162,11 +163,18 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
             <span>Tasks Board</span>
           </Link>
 
-          <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-zinc-650 cursor-not-allowed group relative">
-            <Layers className="h-4 w-4" />
+          <Link 
+            href={`/${workspace.slug}/content`} 
+            onClick={closeSidebar}
+            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              isContentActive 
+                ? "bg-zinc-900 text-white" 
+                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
+            }`}
+          >
+            <Layers className={`h-4 w-4 ${isContentActive ? "text-indigo-400" : ""}`} />
             <span>Content Workflow</span>
-            <span className="absolute right-3 text-[9px] font-bold bg-zinc-900 text-zinc-655 px-1.5 py-0.5 rounded border border-zinc-900">Soon</span>
-          </div>
+          </Link>
 
           <div className="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg text-zinc-650 cursor-not-allowed group relative">
             <TrendingUp className="h-4 w-4" />
@@ -207,7 +215,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
               <Menu className="h-5 w-5" />
             </button>
             <h1 className="text-sm md:text-lg font-semibold text-white">
-              {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : isTasksActive ? "Tasks Board" : isTeamActive ? "Team Members" : "Workspace"}
+              {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : isTasksActive ? "Tasks Board" : isTeamActive ? "Team Members" : isContentActive ? "Content Workflow" : "Workspace"}
             </h1>
           </div>
           
