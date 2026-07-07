@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation, internalQuery } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
 
 /**
@@ -105,6 +105,32 @@ export const getMyWorkspaces = query({
     }
 
     return workspaces;
+  },
+});
+
+/**
+ * Fetch a workspace by ID, verifying membership for security.
+ */
+export const get = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return null;
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_and_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", identity.subject)
+      )
+      .first();
+
+    if (!membership) {
+      return null;
+    }
+
+    return await ctx.db.get(args.workspaceId);
   },
 });
 
@@ -230,5 +256,62 @@ export const updateSettings = mutation({
     });
 
     return await ctx.db.get(args.workspaceId);
+  },
+});
+
+/**
+ * Internal mutation to update workspace billing plan and Stripe subscription details.
+ */
+export const updateBilling = internalMutation({
+  args: {
+    workspaceId: v.id("workspaces"),
+    plan: v.union(v.literal("free"), v.literal("pro"), v.literal("agency")),
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.workspaceId, {
+      plan: args.plan,
+      stripeCustomerId: args.stripeCustomerId,
+      stripeSubscriptionId: args.stripeSubscriptionId,
+    });
+    return await ctx.db.get(args.workspaceId);
+  },
+});
+
+/**
+ * Internal query to lookup a workspace by Stripe Customer ID.
+ */
+export const getByStripeCustomer = internalQuery({
+  args: {
+    stripeCustomerId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("workspaces")
+      .withIndex("by_stripe_customer", (q) => q.eq("stripeCustomerId", args.stripeCustomerId))
+      .first();
+  },
+});
+
+/**
+ * Verifies if the authenticated user is an owner/admin of the workspace.
+ */
+export const checkAdmin = query({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return false;
+    }
+
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_and_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", identity.subject)
+      )
+      .first();
+
+    return !!membership && (membership.role === "owner" || membership.role === "admin");
   },
 });

@@ -26,7 +26,12 @@ async function verifyMembershipByClient(ctx: any, clientId: any) {
     throw new ConvexError("Unauthorized: Access denied to this workspace");
   }
 
-  return { identity, membership, client };
+  const workspace = await ctx.db.get(client.workspaceId);
+  if (!workspace) {
+    throw new ConvexError("Workspace not found");
+  }
+
+  return { identity, membership, client, workspace };
 }
 
 /**
@@ -68,7 +73,30 @@ export const create = mutation({
     handle: v.string(),
   },
   handler: async (ctx, args) => {
-    await verifyMembershipByClient(ctx, args.clientId);
+    const { client, workspace } = await verifyMembershipByClient(ctx, args.clientId);
+
+    // Rollup existing pages across all clients of this workspace
+    const workspaceClients = await ctx.db
+      .query("clients")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", workspace._id))
+      .collect();
+
+    let totalPagesCount = 0;
+    for (const c of workspaceClients) {
+      const pages = await ctx.db
+        .query("socialPages")
+        .withIndex("by_client", (q) => q.eq("clientId", c._id))
+        .collect();
+      totalPagesCount += pages.length;
+    }
+
+    if (workspace.plan === "free" && totalPagesCount >= 1) {
+      throw new ConvexError("Your workspace is on the Free tier, which is limited to 1 connected social page. Please upgrade to Pro or Agency in Settings.");
+    }
+
+    if (workspace.plan === "pro" && totalPagesCount >= 5) {
+      throw new ConvexError("Your workspace is on the Pro tier, which is limited to 5 connected social pages. Please upgrade to Agency in Settings.");
+    }
 
     const pageId = await ctx.db.insert("socialPages", {
       clientId: args.clientId,

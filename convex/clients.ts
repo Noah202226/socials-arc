@@ -36,6 +36,21 @@ export const create = mutation({
   handler: async (ctx, args) => {
     await verifyMembership(ctx, args.workspaceId);
 
+    const workspace = await ctx.db.get(args.workspaceId);
+    if (!workspace) {
+      throw new ConvexError("Workspace not found");
+    }
+
+    if (workspace.plan === "free") {
+      const existing = await ctx.db
+        .query("clients")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+        .collect();
+      if (existing.length >= 1) {
+        throw new ConvexError("Your workspace is on the Free tier, which is limited to 1 Client. Please upgrade in Settings to add more.");
+      }
+    }
+
     const clientId = await ctx.db.insert("clients", {
       workspaceId: args.workspaceId,
       name: args.name,

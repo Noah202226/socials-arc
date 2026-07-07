@@ -10,6 +10,8 @@ export default defineSchema({
     slug: v.string(),
     plan: v.union(v.literal("free"), v.literal("pro"), v.literal("agency")),
     ownerId: v.string(), // Clerk user id
+    stripeCustomerId: v.optional(v.string()),
+    stripeSubscriptionId: v.optional(v.string()),
     settings: v.optional(
       v.object({
         taskColumns: v.optional(
@@ -34,7 +36,9 @@ export default defineSchema({
         ),
       })
     ),
-  }).index("by_slug", ["slug"]),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_stripe_customer", ["stripeCustomerId"]),
 
   members: defineTable({
     workspaceId: v.id("workspaces"),

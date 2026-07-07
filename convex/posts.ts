@@ -31,7 +31,12 @@ async function verifyMembershipByProject(ctx: any, projectId: any) {
     throw new ConvexError("Unauthorized: Access denied to this workspace");
   }
 
-  return { identity, membership, project, client };
+  const workspace = await ctx.db.get(client.workspaceId);
+  if (!workspace) {
+    throw new ConvexError("Workspace not found");
+  }
+
+  return { identity, membership, project, client, workspace };
 }
 
 /**
@@ -70,7 +75,42 @@ export const create = mutation({
     status: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const { identity } = await verifyMembershipByProject(ctx, args.projectId);
+    const { identity, client, workspace } = await verifyMembershipByProject(ctx, args.projectId);
+
+    if (workspace.plan === "free") {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+
+      const clientsList = await ctx.db
+        .query("clients")
+        .withIndex("by_workspace", (q) => q.eq("workspaceId", workspace._id))
+        .collect();
+      const clientIds = clientsList.map(c => c._id);
+      
+      const projectIds = [];
+      for (const cid of clientIds) {
+        const projs = await ctx.db
+          .query("projects")
+          .withIndex("by_client", (q) => q.eq("clientId", cid))
+          .collect();
+        projectIds.push(...projs.map(p => p._id));
+      }
+
+      let monthlyPostsCount = 0;
+      for (const pid of projectIds) {
+        const posts = await ctx.db
+          .query("posts")
+          .withIndex("by_project", (q) => q.eq("projectId", pid))
+          .collect();
+        const thisMonthPosts = posts.filter(p => p._creationTime >= startOfMonth && p._creationTime < endOfMonth);
+        monthlyPostsCount += thisMonthPosts.length;
+      }
+
+      if (monthlyPostsCount >= 5) {
+        throw new ConvexError("Your workspace is on the Free tier, which is limited to 5 posts per month. Please upgrade to Pro or Agency in Settings to schedule unlimited content.");
+      }
+    }
 
     const postId = await ctx.db.insert("posts", {
       projectId: args.projectId,

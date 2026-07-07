@@ -1,6 +1,6 @@
 # Current Feature
 
-Financial Tracking (P&L Ledger)
+SaaS Stripe Billing Setup
 
 ## Status
 
@@ -8,20 +8,21 @@ Completed
 
 ## Goals
 
-1. [x] Create category specifications in `lib/finance-categories.ts` as the single source of truth for income and expense classifications.
-2. [x] Implement Convex mutations and queries for `transactions` in `convex/transactions.ts` (creating, updating, deleting, listing, and P&L summaries per page & per client).
-3. [x] Update the navigation layout in `app/(dashboard)/[workspaceSlug]/layout.tsx` to enable the "Finance P&L" menu item linking to `/${workspace.slug}/finance`.
-4. [x] Design and implement a premium Finance Ledger & P&L Dashboard at `app/(dashboard)/[workspaceSlug]/finance/page.tsx` showing revenue, expenses, net profits, and recurring ledger items.
-5. [x] Seed `convex/crons.ts` to schedule recurring transaction automation.
+1. [x] Install `stripe` and `@stripe/stripe-js` npm packages.
+2. [x] Implement Stripe Checkout and Customer Portal integration in Convex actions (generating session links).
+3. [x] Set up a Convex HTTP Webhook handler to receive Stripe subscription events (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`) and update the workspace plan tier in the database.
+4. [x] Design a premium **Billing & Plans** tab/section in the Settings page (`app/(dashboard)/[workspaceSlug]/settings/page.tsx`) that displays tier statuses and triggers subscription checkouts.
+5. [x] Enforce Free, Pro, and Agency plan limits (clients, connected social channels, monthly scheduled posts budget) across all Convex creation mutations.
 
 ## Notes
 
-- Currency amounts are stored as integer cents (e.g., $10.00 is stored as 1000). Never use floats.
-- Perform calculations using integer math to prevent silent rounding bugs.
-- Rollups must stay in sync across page summaries and client summaries.
+- Workspace tiers are: `free`, `pro`, and `agency`.
+- Webhooks must verify Stripe signature using webhook secret to ensure security.
+- HTTP action routing in Convex lives in `convex/http.ts`.
 
 ## History
 
+- SaaS Stripe Billing Setup implementation
 - Financial Tracking (P&L Ledger) implementation
 - Media Library (Asset Management) implementation
 - Project setup and boilerplate cleanup
