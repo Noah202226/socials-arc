@@ -171,7 +171,11 @@ export const deleteAsset = mutation({
     await verifyMembershipByProject(ctx, asset.projectId);
 
     // Delete the file from Convex Storage
-    await ctx.storage.delete(asset.storageId);
+    try {
+      await ctx.storage.delete(asset.storageId);
+    } catch (err) {
+      console.error("Failed to delete asset file from storage:", err);
+    }
 
     // Delete the entry from the database
     await ctx.db.delete(args.assetId);

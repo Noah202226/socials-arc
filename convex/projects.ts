@@ -154,3 +154,64 @@ export const updateStatus = mutation({
     return await ctx.db.get(args.projectId);
   },
 });
+
+/**
+ * Deletes a project and all associated posts and comments.
+ */
+export const remove = mutation({
+  args: {
+    projectId: v.id("projects"),
+  },
+  handler: async (ctx, args) => {
+    const project = await ctx.db.get(args.projectId);
+    if (!project) {
+      throw new ConvexError("Project not found");
+    }
+
+    await verifyMembershipByClient(ctx, project.clientId);
+
+    // Cascade delete posts
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+
+    for (const post of posts) {
+      const comments = await ctx.db
+        .query("comments")
+        .withIndex("by_post", (q) => q.eq("postId", post._id))
+        .collect();
+      for (const comment of comments) {
+        await ctx.db.delete(comment._id);
+      }
+      await ctx.db.delete(post._id);
+    }
+
+    // Cascade delete tasks
+    const tasks = await ctx.db
+      .query("tasks")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    for (const task of tasks) {
+      await ctx.db.delete(task._id);
+    }
+
+    // Cascade delete assets
+    const assets = await ctx.db
+      .query("assets")
+      .withIndex("by_project", (q) => q.eq("projectId", args.projectId))
+      .collect();
+    for (const asset of assets) {
+      try {
+        await ctx.storage.delete(asset.storageId);
+      } catch (err) {
+        console.error("Failed to delete asset storage:", err);
+      }
+      await ctx.db.delete(asset._id);
+    }
+
+    await ctx.db.delete(args.projectId);
+    return { success: true };
+  },
+});
+

@@ -181,7 +181,11 @@ export const update = mutation({
       args.receiptStorageId !== undefined &&
       transaction.receiptStorageId !== args.receiptStorageId
     ) {
-      await ctx.storage.delete(transaction.receiptStorageId);
+      try {
+        await ctx.storage.delete(transaction.receiptStorageId);
+      } catch (err) {
+        console.error("Failed to delete old receipt from storage:", err);
+      }
     }
 
     await ctx.db.patch(args.transactionId, {

@@ -181,3 +181,57 @@ export const toggleActive = mutation({
     return await ctx.db.get(args.pageId);
   },
 });
+
+/**
+ * Deletes a social page and all associated posts and comments.
+ */
+export const remove = mutation({
+  args: {
+    pageId: v.id("socialPages"),
+  },
+  handler: async (ctx, args) => {
+    const page = await ctx.db.get(args.pageId);
+    if (!page) {
+      throw new ConvexError("Social page not found");
+    }
+
+    await verifyMembershipByClient(ctx, page.clientId);
+
+    // Cascade delete posts on this page
+    const posts = await ctx.db
+      .query("posts")
+      .withIndex("by_page", (q) => q.eq("pageId", args.pageId))
+      .collect();
+
+    for (const post of posts) {
+      const comments = await ctx.db
+        .query("comments")
+        .withIndex("by_post", (q) => q.eq("postId", post._id))
+        .collect();
+      for (const comment of comments) {
+        await ctx.db.delete(comment._id);
+      }
+      await ctx.db.delete(post._id);
+    }
+
+    // Cascade delete transactions bound to this page
+    const transactions = await ctx.db
+      .query("transactions")
+      .withIndex("by_page", (q) => q.eq("pageId", args.pageId))
+      .collect();
+    for (const tx of transactions) {
+      if (tx.receiptStorageId) {
+        try {
+          await ctx.storage.delete(tx.receiptStorageId);
+        } catch (err) {
+          console.error("Failed to delete transaction receipt storage:", err);
+        }
+      }
+      await ctx.db.delete(tx._id);
+    }
+
+    await ctx.db.delete(args.pageId);
+    return { success: true };
+  },
+});
+

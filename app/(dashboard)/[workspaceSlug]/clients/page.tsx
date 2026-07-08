@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import Link from "next/link";
 import { 
   Plus, 
   Loader2, 
@@ -22,16 +24,18 @@ import {
   Check,
   ChevronRight,
   Sparkles,
-  Link2
+  Link2,
+  Trash2,
+  AlertTriangle
 } from "lucide-react";
 
 // Platform helper config
 const platforms = [
-  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-500 bg-pink-500/10 border-pink-500/20" },
-  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-600 bg-blue-600/10 border-blue-600/20" },
-  { value: "tiktok", label: "TikTok", icon: Globe, color: "text-teal-400 bg-teal-400/10 border-teal-400/20" },
-  { value: "x", label: "X (Twitter)", icon: Globe, color: "text-white bg-white/10 border-white/20" },
-  { value: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-blue-400 bg-blue-400/10 border-blue-400/20" },
+  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-400 bg-pink-950/20 border-pink-900/30" },
+  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-400 bg-blue-950/20 border-blue-900/30" },
+  { value: "tiktok", label: "TikTok", icon: Globe, color: "text-[#05ffc4] bg-[#05ffc4]/10 border-[#05ffc4]/20" },
+  { value: "x", label: "X (Twitter)", icon: Globe, color: "text-zinc-300 bg-zinc-900/40 border-zinc-800" },
+  { value: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-indigo-400 bg-indigo-950/20 border-indigo-900/30" },
 ];
 
 export default function ClientsPage() {
@@ -57,14 +61,28 @@ export default function ClientsPage() {
   // Mutations
   const createClient = useMutation(api.clients.create);
   const toggleClientActive = useMutation(api.clients.toggleActive);
+  const deleteClient = useMutation(api.clients.remove);
+
   const createProject = useMutation(api.projects.create);
   const updateProjectStatus = useMutation(api.projects.updateStatus);
+  const deleteProject = useMutation(api.projects.remove);
+  
   const createSocialPage = useMutation(api.socialPages.create);
   const togglePageActive = useMutation(api.socialPages.toggleActive);
+  const deleteSocialPage = useMutation(api.socialPages.remove);
 
   // Component local states (Modals)
-  const [activeModal, setActiveModal] = useState<null | "client" | "project" | "page">(null);
+  const [activeModal, setActiveModal] = useState<null | "client" | "project" | "page" | "delete_client" | "delete_project" | "delete_page">(null);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
+  
+  // Deletion Target States
+  const [deleteTargetClientId, setDeleteTargetClientId] = useState<string>("");
+  const [deleteTargetClientName, setDeleteTargetClientName] = useState<string>("");
+  const [deleteTargetProjectId, setDeleteTargetProjectId] = useState<string>("");
+  const [deleteTargetProjectName, setDeleteTargetProjectName] = useState<string>("");
+  const [deleteTargetPageId, setDeleteTargetPageId] = useState<string>("");
+  const [deleteTargetPageHandle, setDeleteTargetPageHandle] = useState<string>("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   // Form States
   const [clientName, setClientName] = useState("");
@@ -78,7 +96,7 @@ export default function ClientsPage() {
   if (workspace === undefined || clients === undefined || projects === undefined || socialPages === undefined) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mb-4" />
+        <Loader2 className="h-8 w-8 animate-spin text-[#05ffc4] mb-4" />
         <p className="text-sm font-medium">Fetching clients, campaigns, and page profiles...</p>
       </div>
     );
@@ -96,10 +114,12 @@ export default function ClientsPage() {
         workspaceId: workspace._id,
         name: clientName.trim(),
       });
+      toast.success(`Client "${clientName.trim()}" created successfully!`);
       setClientName("");
       setActiveModal(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to create client.");
     } finally {
       setLoadingAction(false);
     }
@@ -115,11 +135,13 @@ export default function ClientsPage() {
         name: projectName.trim(),
         description: projectDesc.trim() || undefined,
       });
+      toast.success(`Campaign "${projectName.trim()}" initialized!`);
       setProjectName("");
       setProjectDesc("");
       setActiveModal(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to create project.");
     } finally {
       setLoadingAction(false);
     }
@@ -135,22 +157,85 @@ export default function ClientsPage() {
         platform: pagePlatform as any,
         handle: pageHandle.trim().replace(/^@/, ""),
       });
+      toast.success(`Channel @${pageHandle.trim().replace(/^@/, "")} linked!`);
       setPageHandle("");
       setActiveModal(null);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to connect social page.");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleDeleteClient = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deleteConfirmText.toLowerCase() !== "delete") {
+      toast.error("Please type DELETE to confirm");
+      return;
+    }
+    setLoadingAction(true);
+    try {
+      await deleteClient({ clientId: deleteTargetClientId as any });
+      toast.success(`Client profile "${deleteTargetClientName}" deleted successfully.`);
+      setActiveModal(null);
+      setDeleteConfirmText("");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to delete client.");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleDeleteProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deleteConfirmText.toLowerCase() !== "delete") {
+      toast.error("Please type DELETE to confirm");
+      return;
+    }
+    setLoadingAction(true);
+    try {
+      await deleteProject({ projectId: deleteTargetProjectId as any });
+      toast.success(`Campaign "${deleteTargetProjectName}" deleted successfully.`);
+      setActiveModal(null);
+      setDeleteConfirmText("");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to delete project.");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleDeleteSocialPage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (deleteConfirmText.toLowerCase() !== "disconnect") {
+      toast.error("Please type DISCONNECT to confirm");
+      return;
+    }
+    setLoadingAction(true);
+    try {
+      await deleteSocialPage({ pageId: deleteTargetPageId as any });
+      toast.success(`Social page @${deleteTargetPageHandle} disconnected.`);
+      setActiveModal(null);
+      setDeleteConfirmText("");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to disconnect page.");
     } finally {
       setLoadingAction(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full">
+    <div className="flex flex-col gap-6 md:gap-8 w-full text-left">
+      
       {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-900 pb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#16181d] pb-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-bold text-white tracking-tight">Clients & Connections</h2>
-          <p className="text-sm text-zinc-400">
+          <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">Clients & Connections</h2>
+          <p className="text-xs text-zinc-500">
             Define client entities, configure campaigns, and link social pages for workflow & cashflow tracking.
           </p>
         </div>
@@ -158,7 +243,7 @@ export default function ClientsPage() {
         <div className="flex items-center gap-2">
           <Button 
             onClick={() => setActiveModal("client")} 
-            className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 text-xs font-semibold"
+            className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] hover:opacity-90 text-[#0b0c0e] font-extrabold text-xs shadow-lg shadow-[#05ffc4]/15 border border-[#05ffc4]/20 rounded-lg px-4 py-2"
           >
             <Plus className="h-4 w-4 mr-1.5" /> Add Client
           </Button>
@@ -171,96 +256,112 @@ export default function ClientsPage() {
         {/* Clients list (2 cols) */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-sm font-semibold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
-              <Users className="h-4 w-4 text-indigo-400" /> Active Clients ({clients.length})
+            <h3 className="text-xs font-bold uppercase text-zinc-550 tracking-wider flex items-center gap-2">
+              <Users className="h-4 w-4 text-[#05ffc4]" /> Active Clients ({clients.length})
             </h3>
           </div>
 
           {clients.length === 0 ? (
-            <div className="p-12 rounded-2xl border border-zinc-900 border-dashed bg-zinc-950/20 text-center flex flex-col items-center gap-4">
-              <div className="h-10 w-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-500">
+            <div className="p-12 rounded-2xl border border-[#16181d] border-dashed bg-[#0d0e12]/30 text-center flex flex-col items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-[#12141a] flex items-center justify-center text-zinc-550 border border-[#1d2027]">
                 <Users className="h-5 w-5" />
               </div>
-              <div className="flex flex-col gap-1">
-                <h4 className="text-sm font-semibold text-white">No clients found</h4>
-                <p className="text-xs text-zinc-500 max-w-xs">
+              <div className="flex flex-col gap-1 text-center items-center">
+                <h4 className="text-sm font-bold text-white">No clients found</h4>
+                <p className="text-xs text-zinc-500 max-w-xs leading-relaxed">
                   Create your first client to start organizing campaigns and publishing schedules.
                 </p>
               </div>
-              <Button onClick={() => setActiveModal("client")} variant="outline" size="sm" className="border-zinc-800 text-zinc-300 hover:bg-zinc-900">
+              <Button onClick={() => setActiveModal("client")} className="bg-[#12141a] border border-[#1d2027] text-zinc-350 hover:bg-[#1c1f26] text-xs font-bold px-4">
                 Create Client Profile
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {clients.map((client) => {
                 const clientProjects = projects.filter(p => p.clientId === client._id);
                 const clientPages = socialPages.filter(p => p.clientId === client._id);
 
                 return (
-                  <div 
-                    key={client._id}
-                    className="p-5 rounded-xl border border-zinc-900 bg-zinc-900/10 flex flex-col gap-4 hover:border-zinc-800 transition-all duration-300 relative group"
-                  >
-                    {/* Header */}
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col">
-                        <h4 className="font-semibold text-white group-hover:text-indigo-400 transition-colors">
-                          {client.name}
-                        </h4>
-                        <span className="text-[10px] text-zinc-500 uppercase font-medium tracking-wide">
-                          Client
-                        </span>
-                      </div>
-                      
-                      <button 
-                        onClick={() => toggleClientActive({ clientId: client._id, isActive: !client.isActive })}
-                        className={`text-zinc-500 transition-colors ${client.isActive ? "text-indigo-400" : "text-zinc-700"}`}
-                      >
-                        {client.isActive ? (
-                          <ToggleRight className="h-6 w-6" />
-                        ) : (
-                          <ToggleLeft className="h-6 w-6" />
-                        )}
-                      </button>
-                    </div>
+                  /* Premium 3D glowing glass card wrapper */
+                  <div key={client._id} className="relative group">
+                    <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4] to-[#00d9f5] rounded-xl blur-xs opacity-0 group-hover:opacity-15 transition duration-500" />
+                    
+                    <div className="relative p-5 rounded-xl border border-[#16181d] bg-[#0d0e12]/80 backdrop-blur-sm hover:border-[#05ffc4]/30 hover:[transform:perspective(800px)_rotateX(2deg)_rotateY(-2deg)] hover:shadow-xl hover:shadow-[#05ffc4]/5 transition-all duration-300 ease-out flex flex-col gap-4 min-h-[170px] text-left">
+                      {/* Header */}
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col">
+                          <h4 className="font-extrabold text-sm text-white group-hover:text-[#05ffc4] transition-colors">
+                            {client.name}
+                          </h4>
+                          <span className="text-[9px] text-zinc-550 uppercase font-bold tracking-wider">
+                            Client Profile
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => toggleClientActive({ clientId: client._id, isActive: !client.isActive })}
+                            className={`transition-colors ${client.isActive ? "text-[#05ffc4]" : "text-zinc-650 hover:text-zinc-400"}`}
+                            title={client.isActive ? "Pause Client" : "Activate Client"}
+                          >
+                            {client.isActive ? (
+                              <ToggleRight className="h-5 w-5" />
+                            ) : (
+                              <ToggleLeft className="h-5 w-5" />
+                            )}
+                          </button>
 
-                    {/* Stats */}
-                    <div className="grid grid-cols-2 gap-2 border-t border-zinc-900/50 pt-3 text-xs text-zinc-400">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-zinc-500 font-semibold uppercase">Campaigns</span>
-                        <span className="font-semibold text-zinc-200">{clientProjects.length} Active</span>
+                          {/* Client Delete Trigger Button */}
+                          <button
+                            onClick={() => {
+                              setDeleteTargetClientId(client._id);
+                              setDeleteTargetClientName(client.name);
+                              setActiveModal("delete_client");
+                            }}
+                            className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title="Delete Client"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-zinc-500 font-semibold uppercase">Social Pages</span>
-                        <span className="font-semibold text-zinc-200">{clientPages.length} Bound</span>
-                      </div>
-                    </div>
 
-                    {/* Quick action buttons */}
-                    <div className="flex gap-2 border-t border-zinc-900/50 pt-3 mt-auto">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => {
-                          setSelectedClientId(client._id);
-                          setActiveModal("project");
-                        }}
-                        className="text-[10px] h-7 px-2 bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-850 text-zinc-300"
-                      >
-                        <Plus className="h-3 w-3 mr-1" /> Campaign
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost"
-                        onClick={() => {
-                          setSelectedClientId(client._id);
-                          setActiveModal("page");
-                        }}
-                        className="text-[10px] h-7 px-2 bg-zinc-900/50 hover:bg-zinc-800 border border-zinc-850 text-zinc-300 ml-auto"
-                      >
-                        <Link2 className="h-3 w-3 mr-1" /> Connect Page
-                      </Button>
+                      {/* Stats */}
+                      <div className="grid grid-cols-2 gap-2 border-t border-[#16181d] pt-3 text-xs text-zinc-450 font-semibold font-mono">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] text-zinc-550 font-bold uppercase tracking-wider">Campaigns</span>
+                          <span className="font-bold text-zinc-200">{clientProjects.length} Active</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-[9px] text-zinc-550 font-bold uppercase tracking-wider">Social Channels</span>
+                          <span className="font-bold text-zinc-200">{clientPages.length} Connected</span>
+                        </div>
+                      </div>
+
+                      {/* Quick Action buttons */}
+                      <div className="flex gap-2 border-t border-[#16181d] pt-3 mt-auto">
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            setSelectedClientId(client._id);
+                            setActiveModal("project");
+                          }}
+                          className="text-[10px] h-7 px-2.5 bg-[#12141a] hover:bg-[#1c1f26] border border-[#1d2027] text-zinc-350 hover:text-white font-bold rounded-lg"
+                        >
+                          <Plus className="h-3 w-3 mr-1" /> Project
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            setSelectedClientId(client._id);
+                            setActiveModal("page");
+                          }}
+                          className="text-[10px] h-7 px-2.5 bg-[#12141a] hover:bg-[#1c1f26] border border-[#1d2027] text-zinc-350 hover:text-white font-bold rounded-lg ml-auto"
+                        >
+                          <Link2 className="h-3 w-3 mr-1" /> Link Channel
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -270,16 +371,16 @@ export default function ClientsPage() {
         </div>
 
         {/* Channels & campaigns (1 col) */}
-        <div className="flex flex-col gap-8 border-l-0 lg:border-l border-zinc-900 pl-0 lg:pl-8">
+        <div className="flex flex-col gap-8 border-l-0 lg:border-l border-[#16181d] pl-0 lg:pl-8">
           
           {/* Linked Pages */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-sm font-semibold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
-              <Layers className="h-4 w-4 text-indigo-400" /> Linked Accounts ({socialPages.length})
+            <h3 className="text-xs font-bold uppercase text-zinc-550 tracking-wider flex items-center gap-2">
+              <Layers className="h-4 w-4 text-[#05ffc4]" /> Linked Channels ({socialPages.length})
             </h3>
 
             {socialPages.length === 0 ? (
-              <p className="text-xs text-zinc-500 italic">No social pages connected yet.</p>
+              <p className="text-xs text-zinc-550 italic">No social pages connected yet.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {socialPages.map((page) => {
@@ -287,30 +388,64 @@ export default function ClientsPage() {
                   const pConfig = platforms.find(p => p.value === page.platform);
                   const PIcon = pConfig ? pConfig.icon : Globe;
 
+                  // Define clickable link location based on platform
+                  const platformUrl = 
+                    page.platform === "instagram" ? `https://instagram.com/${page.handle}` :
+                    page.platform === "facebook" ? `https://facebook.com/${page.handle}` :
+                    page.platform === "tiktok" ? `https://tiktok.com/@${page.handle}` :
+                    page.platform === "x" ? `https://x.com/${page.handle}` :
+                    `https://linkedin.com/search/results/all/?keywords=${page.handle}`;
+
                   return (
-                    <div 
-                      key={page._id}
-                      className="p-3 rounded-lg border border-zinc-900 bg-zinc-950/40 flex items-center justify-between hover:border-zinc-800 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-1.5 rounded border ${pConfig?.color || "text-zinc-500 bg-zinc-900"}`}>
-                          <PIcon className="h-4 w-4" />
+                    /* Page row 3D card styling */
+                    <div key={page._id} className="relative group/page">
+                      <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4] to-[#00d9f5] rounded-xl blur-xs opacity-0 group-hover/page:opacity-10 transition duration-500" />
+                      
+                      <div className="relative p-3 rounded-xl border border-[#16181d] bg-[#0d0e12]/80 backdrop-blur-xs flex items-center justify-between hover:[transform:perspective(500px)_rotateX(1.5deg)_rotateY(-1.5deg)] transition-all duration-300 ease-out">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-1.5 rounded border ${pConfig?.color || "text-zinc-500 bg-zinc-900"}`}>
+                            <PIcon className="h-4 w-4" />
+                          </div>
+                          <div className="flex flex-col text-left">
+                            {/* Clickable Social handle going to actual location */}
+                            <a 
+                              href={platformUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="text-xs font-bold text-zinc-205 hover:text-[#05ffc4] transition-colors flex items-center gap-0.5 group/link"
+                            >
+                              @{page.handle} <span className="text-[8px] opacity-0 group-hover/link:opacity-100 transition-opacity">↗</span>
+                            </a>
+                            <span className="text-[9px] text-zinc-500 font-bold uppercase">Client: {client?.name || "Unknown"}</span>
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-xs font-semibold text-zinc-200">@{page.handle}</span>
-                          <span className="text-[9px] text-zinc-500">Client: {client?.name || "Unknown"}</span>
+
+                        <div className="flex items-center gap-2">
+                          <button 
+                            onClick={() => togglePageActive({ pageId: page._id, isActive: !page.isActive })}
+                            className={`text-[9px] px-2 py-0.5 rounded font-extrabold border uppercase tracking-wider ${
+                              page.isActive 
+                                ? "bg-[#05ffc4]/10 text-[#05ffc4] border-[#05ffc4]/20" 
+                                : "bg-zinc-900 text-zinc-650 border-zinc-800"
+                            }`}
+                          >
+                            {page.isActive ? "Active" : "Paused"}
+                          </button>
+                          
+                          {/* Page Delete Trigger Button */}
+                          <button
+                            onClick={() => {
+                              setDeleteTargetPageId(page._id);
+                              setDeleteTargetPageHandle(page.handle);
+                              setActiveModal("delete_page");
+                            }}
+                            className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title="Disconnect Account"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
                       </div>
-                      <button 
-                        onClick={() => togglePageActive({ pageId: page._id, isActive: !page.isActive })}
-                        className={`text-[9.5px] px-1.5 py-0.5 rounded font-semibold border ${
-                          page.isActive 
-                            ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" 
-                            : "bg-zinc-900 text-zinc-600 border-zinc-800"
-                        }`}
-                      >
-                        {page.isActive ? "Active" : "Paused"}
-                      </button>
                     </div>
                   );
                 })}
@@ -319,38 +454,63 @@ export default function ClientsPage() {
           </div>
 
           {/* Active Campaigns */}
-          <div className="flex flex-col gap-4 border-t border-zinc-900 pt-6">
-            <h3 className="text-sm font-semibold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
-              <FolderKanban className="h-4 w-4 text-indigo-400" /> Active Projects ({projects.length})
+          <div className="flex flex-col gap-4 border-t border-[#16181d] pt-6">
+            <h3 className="text-xs font-bold uppercase text-zinc-550 tracking-wider flex items-center gap-2">
+              <FolderKanban className="h-4 w-4 text-[#05ffc4]" /> Active Projects ({projects.length})
             </h3>
 
             {projects.length === 0 ? (
-              <p className="text-xs text-zinc-500 italic">No campaigns initialized yet.</p>
+              <p className="text-xs text-zinc-550 italic">No campaigns initialized yet.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {projects.map((project) => {
                   const client = clients.find(c => c._id === project.clientId);
 
                   return (
-                    <div 
-                      key={project._id}
-                      className="p-3 rounded-lg border border-zinc-900 bg-zinc-950/40 flex flex-col gap-1.5 hover:border-zinc-800 transition-colors"
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className="text-xs font-semibold text-zinc-200 truncate">{project.name}</span>
-                        <select 
-                          value={project.status}
-                          onChange={(e) => updateProjectStatus({ projectId: project._id, status: e.target.value as any })}
-                          className="text-[9px] font-bold uppercase tracking-wide bg-zinc-900 text-zinc-400 border border-zinc-800 rounded px-1 py-0.5"
-                        >
-                          <option value="active">Active</option>
-                          <option value="paused">Paused</option>
-                          <option value="archived">Archived</option>
-                        </select>
-                      </div>
-                      <div className="flex justify-between items-center text-[9px] text-zinc-500">
-                        <span>Client: {client?.name || "Unknown"}</span>
-                        {project.description && <span className="italic truncate max-w-[150px]">{project.description}</span>}
+                    /* Project row 3D card styling */
+                    <div key={project._id} className="relative group/project">
+                      <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4] to-[#00d9f5] rounded-xl blur-xs opacity-0 group-hover/project:opacity-10 transition duration-500" />
+                      
+                      <div className="relative p-3.5 rounded-xl border border-[#16181d] bg-[#0d0e12]/80 backdrop-blur-xs flex flex-col gap-1.5 hover:[transform:perspective(500px)_rotateX(1.5deg)_rotateY(-1.5deg)] transition-all duration-300 ease-out text-left">
+                        <div className="flex justify-between items-center">
+                          {/* Clickable project name going to content board */}
+                          <Link 
+                            href={`/${slug}/content`}
+                            className="text-xs font-bold text-zinc-200 hover:text-[#05ffc4] transition-colors truncate max-w-[150px]"
+                          >
+                            {project.name}
+                          </Link>
+                          
+                          <div className="flex items-center gap-2">
+                            <select 
+                              value={project.status}
+                              onChange={(e) => updateProjectStatus({ projectId: project._id, status: e.target.value as any })}
+                              className="text-[9px] font-bold uppercase tracking-wider bg-[#12141a] text-zinc-400 border border-[#1d2027] rounded-md px-1 py-0.5"
+                            >
+                              <option value="active">Active</option>
+                              <option value="paused">Paused</option>
+                              <option value="archived">Archived</option>
+                            </select>
+
+                            {/* Project Delete Trigger Button */}
+                            <button
+                              onClick={() => {
+                                setDeleteTargetProjectId(project._id);
+                                setDeleteTargetProjectName(project.name);
+                                setActiveModal("delete_project");
+                              }}
+                              className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                              title="Delete Project"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-[9px] text-zinc-500 font-medium">
+                          <span>Client: {client?.name || "Unknown"}</span>
+                          {project.description && <span className="italic truncate max-w-[120px]">{project.description}</span>}
+                        </div>
                       </div>
                     </div>
                   );
@@ -364,33 +524,33 @@ export default function ClientsPage() {
 
       {/* --- MODALS OVERLAYS --- */}
       
-      {/* 1. Client Modal */}
+      {/* 1. Add Client Modal */}
       {activeModal === "client" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
-              <h3 className="font-bold text-white text-base">Add Client Profile</h3>
+          <div className="w-full max-w-md bg-[#0d0e12] border border-[#16181d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-[#16181d] flex justify-between items-center">
+              <h3 className="font-extrabold text-white text-sm uppercase tracking-wider">Add Client Profile</h3>
               <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
-                <CloseIcon className="h-5 w-5" />
+                <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleCreateClient} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Client Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Client Name</label>
                 <input 
                   type="text" 
                   value={clientName} 
                   onChange={(e) => setClientName(e.target.value)}
-                  placeholder="e.g. Acme Corp" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  placeholder="e.g. Acme Corporation" 
+                  className="w-full px-3.5 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 />
               </div>
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" variant="ghost" onClick={() => setActiveModal(null)} className="text-zinc-500 text-xs">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loadingAction} className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs">
+                <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Create Client
                 </Button>
@@ -403,20 +563,20 @@ export default function ClientsPage() {
       {/* 2. Project/Campaign Modal */}
       {activeModal === "project" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
-              <h3 className="font-bold text-white text-base">Initialize Campaign</h3>
+          <div className="w-full max-w-md bg-[#0d0e12] border border-[#16181d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-[#16181d] flex justify-between items-center">
+              <h3 className="font-extrabold text-white text-sm uppercase tracking-wider">Initialize Campaign</h3>
               <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
-                <CloseIcon className="h-5 w-5" />
+                <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleCreateProject} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Target Client</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Target Client</label>
                 <select 
                   value={selectedClientId} 
                   onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 >
                   <option value="">Select a Client...</option>
@@ -426,31 +586,31 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Campaign/Project Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Campaign/Project Name</label>
                 <input 
                   type="text" 
                   value={projectName} 
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="e.g. Summer Launch 2026" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3.5 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 />
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Brief Description</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Brief Description</label>
                 <textarea 
                   value={projectDesc} 
                   onChange={(e) => setProjectDesc(e.target.value)}
                   placeholder="Optional notes or goals..." 
                   rows={3}
-                  className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3.5 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
                 />
               </div>
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" variant="ghost" onClick={() => setActiveModal(null)} className="text-zinc-500 text-xs">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loadingAction} className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs">
+                <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Create Campaign
                 </Button>
@@ -463,20 +623,20 @@ export default function ClientsPage() {
       {/* 3. Social Page Modal */}
       {activeModal === "page" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
-              <h3 className="font-bold text-white text-base">Connect Social Page</h3>
+          <div className="w-full max-w-md bg-[#0d0e12] border border-[#16181d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-[#16181d] flex justify-between items-center">
+              <h3 className="font-extrabold text-white text-sm uppercase tracking-wider">Connect Social Page</h3>
               <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
-                <CloseIcon className="h-5 w-5" />
+                <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleCreateSocialPage} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Target Client</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Target Client</label>
                 <select 
                   value={selectedClientId} 
                   onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-350 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 >
                   <option value="">Select a Client...</option>
@@ -486,11 +646,11 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Social Platform</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Social Platform</label>
                 <select 
                   value={pagePlatform} 
                   onChange={(e) => setPagePlatform(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 >
                   {platforms.map(p => (
@@ -499,26 +659,197 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Handle / Account Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Handle / Account Name</label>
                 <div className="relative flex items-center">
-                  <span className="absolute left-3.5 text-zinc-500 text-sm font-semibold select-none">@</span>
+                  <span className="absolute left-3.5 text-zinc-500 text-xs font-bold select-none">@</span>
                   <input 
                     type="text" 
                     value={pageHandle} 
                     onChange={(e) => setPageHandle(e.target.value)}
                     placeholder="handle" 
-                    className="w-full pl-8 pr-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    className="w-full pl-8 pr-3.5 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
                     required
                   />
                 </div>
               </div>
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" variant="ghost" onClick={() => setActiveModal(null)} className="text-zinc-500 text-xs">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loadingAction} className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs">
+                <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Connect Account
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Delete Client Confirmation Modal */}
+      {activeModal === "delete_client" && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0d0e12] border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-red-900/20 bg-red-950/10 flex justify-between items-center text-left">
+              <div className="flex items-center gap-2 text-red-400">
+                <AlertTriangle className="h-4 w-4" />
+                <h3 className="font-extrabold text-sm uppercase tracking-wider">Delete Client Profile</h3>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300">
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleDeleteClient} className="p-6 flex flex-col gap-4 text-left">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                You are about to delete client profile <strong className="text-white">"{deleteTargetClientName}"</strong>. 
+                This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
+              </p>
+              <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
+                <li>All active projects/campaigns of this client</li>
+                <li>All linked social channels & credentials</li>
+                <li>All social posts, tasks, and media assets</li>
+                <li>All historical comments and P&L transactions</li>
+              </ul>
+              
+              <div className="flex flex-col gap-1.5 pt-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">
+                  Type <span className="text-white font-black">DELETE</span> to confirm:
+                </label>
+                <input 
+                  type="text" 
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE" 
+                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-red-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={loadingAction || deleteConfirmText.toLowerCase() !== "delete"} 
+                  className="bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+                >
+                  {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                  Delete Client
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Delete Project Confirmation Modal */}
+      {activeModal === "delete_project" && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0d0e12] border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-red-900/20 bg-red-950/10 flex justify-between items-center text-left">
+              <div className="flex items-center gap-2 text-red-400">
+                <AlertTriangle className="h-4 w-4" />
+                <h3 className="font-extrabold text-sm uppercase tracking-wider">Delete Campaign</h3>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300">
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleDeleteProject} className="p-6 flex flex-col gap-4 text-left">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                You are about to delete campaign <strong className="text-white">"{deleteTargetProjectName}"</strong>. 
+                This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
+              </p>
+              <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
+                <li>All posts and tasks drafts in this campaign</li>
+                <li>All visual content and attachments</li>
+                <li>All historical comments on related posts</li>
+              </ul>
+              
+              <div className="flex flex-col gap-1.5 pt-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">
+                  Type <span className="text-white font-black">DELETE</span> to confirm:
+                </label>
+                <input 
+                  type="text" 
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE" 
+                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-red-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={loadingAction || deleteConfirmText.toLowerCase() !== "delete"} 
+                  className="bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+                >
+                  {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                  Delete Campaign
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Disconnect Page Confirmation Modal */}
+      {activeModal === "delete_page" && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0d0e12] border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-red-900/20 bg-red-950/10 flex justify-between items-center text-left">
+              <div className="flex items-center gap-2 text-red-400">
+                <AlertTriangle className="h-4 w-4" />
+                <h3 className="font-extrabold text-sm uppercase tracking-wider">Disconnect social page</h3>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300">
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleDeleteSocialPage} className="p-6 flex flex-col gap-4 text-left">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                You are about to disconnect account <strong className="text-white">@{deleteTargetPageHandle}</strong>. 
+                This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
+              </p>
+              <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
+                <li>All posts bound to this social channel</li>
+                <li>All comments and schedules associated with this page</li>
+              </ul>
+              
+              <div className="flex flex-col gap-1.5 pt-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">
+                  Type <span className="text-white font-black">DISCONNECT</span> to confirm:
+                </label>
+                <input 
+                  type="text" 
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DISCONNECT" 
+                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-red-500"
+                  required
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={loadingAction || deleteConfirmText.toLowerCase() !== "disconnect"} 
+                  className="bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+                >
+                  {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                  Disconnect Account
                 </Button>
               </div>
             </form>
