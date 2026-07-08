@@ -6,6 +6,7 @@ every prompt — everything in here is read on demand or pulled in explicitly wi
 `@context/...` path reference.
 
 - `project-overview.md` — full spec: problem, features, data model, tech stack, roadmap
+- `features-documentation.md` — technical documentation of all implemented features, flows, and code links
 - `coding-standards.md` — conventions and rules the agent must follow when writing code
 - `ai-interaction.md` — workflow, communication style, and guardrails for working with the agent
 - `current-feature.md` — living doc: what's being worked on right now, updated as you go

@@ -19,7 +19,9 @@ import {
   Menu,
   X,
   Settings,
-  Image
+  Image,
+  Bell,
+  Sparkles
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,8 +35,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   if (workspace === undefined) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 text-zinc-400 font-sans">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mb-4" />
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0b0c0e] text-zinc-400 font-sans">
+        <Loader2 className="h-8 w-8 animate-spin text-[#05ffc4] mb-4" />
         <p className="text-sm font-medium">Loading workspace dashboard...</p>
       </div>
     );
@@ -42,7 +44,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   if (workspace === null) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-zinc-950 text-zinc-50 font-sans px-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0b0c0e] text-zinc-50 font-sans px-4">
         <div className="w-full max-w-md p-8 rounded-2xl border border-red-900/30 bg-red-950/5 backdrop-blur-xl flex flex-col items-center gap-6 text-center shadow-2xl">
           <div className="h-12 w-12 rounded-full bg-red-500/10 flex items-center justify-center text-red-400">
             <Layers className="h-6 w-6" />
@@ -50,12 +52,12 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-bold text-white">Access Denied</h2>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              We couldn't find workspace <code className="text-xs px-1.5 py-0.5 bg-zinc-900 rounded font-mono text-indigo-400">"{slug}"</code> or you do not have permission to view it.
+              We couldn't find workspace <code className="text-xs px-1.5 py-0.5 bg-zinc-900 rounded font-mono text-[#05ffc4]">"{slug}"</code> or you do not have permission to view it.
             </p>
           </div>
           <div className="flex flex-col gap-3 w-full">
             <Link href="/" className="w-full">
-              <Button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/20">
+              <Button className="w-full bg-[#05ffc4] hover:bg-[#00e5b0] text-[#0b0c0e] font-bold shadow-lg shadow-[#05ffc4]/20">
                 Return to Portal
               </Button>
             </Link>
@@ -76,8 +78,12 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   const closeSidebar = () => setIsMobileSidebarOpen(false);
 
+  // Connection indicator color matching active states
+  const activeIconClass = "text-[#05ffc4]";
+  const inactiveIconClass = "text-zinc-500 group-hover:text-zinc-300";
+
   return (
-    <div className="flex h-screen bg-zinc-950 text-zinc-100 font-sans overflow-hidden">
+    <div className="flex h-screen bg-[#0b0c0e] text-zinc-100 font-sans overflow-hidden">
       
       {/* Mobile Sidebar Backdrop Overlay */}
       {isMobileSidebarOpen && (
@@ -87,18 +93,28 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         />
       )}
 
-      {/* Sidebar Drawer */}
-      <aside className={`fixed inset-y-0 left-0 w-64 border-r border-zinc-900 bg-zinc-950 flex flex-col z-50 shrink-0 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+      {/* Sidebar Drawer (Inspired by Hynex Sidebar mockup) */}
+      <aside className={`fixed inset-y-0 left-0 w-64 border-r border-[#16181d] bg-[#0d0e12] flex flex-col z-50 shrink-0 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
         isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
         {/* Brand & Mobile Close */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-zinc-900">
-          <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded bg-indigo-600 flex items-center justify-center font-bold text-white text-sm">
-              S
-            </div>
-            <span className="font-semibold text-base tracking-tight text-white">Socials Ark</span>
-          </div>
+        <div className="h-16 flex items-center justify-between px-6 border-b border-[#16181d]">
+          <Link href={`/${workspace.slug}`} onClick={closeSidebar} className="flex items-center gap-2.5">
+            {/* Custom Interlocking double loop SVG (similar to Hynex logo) */}
+            <svg 
+              className="h-6 w-6 text-[#05ffc4]"
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            >
+              <path d="M4.5 16.5c-1.5-1.5-2.5-3.5-2.5-6s1-4.5 2.5-6S9 2 11.5 4.5s4.5 6 4.5 8.5-1 4.5-2.5 6-4.5 2.5-7 0z" />
+              <path d="M19.5 7.5c1.5 1.5 2.5 3.5 2.5 6s-1 4.5-2.5 6-4.5 2.5-7 0-4.5-6-4.5-8.5 1-4.5 2.5-6 4.5-2.5 7 0z" opacity="0.8" />
+            </svg>
+            <span className="font-extrabold text-base tracking-tight text-white font-sans">Socials Ark</span>
+          </Link>
           <button 
             onClick={closeSidebar}
             className="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 md:hidden"
@@ -108,126 +124,146 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         </div>
 
         {/* Workspace Quick Details */}
-        <div className="p-4 mx-4 my-3 rounded-lg bg-zinc-900/40 border border-zinc-900 flex flex-col gap-1">
-          <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Active Workspace</span>
-          <span className="text-xs font-semibold text-zinc-200 truncate">{workspace.name}</span>
-          <span className="text-[10px] text-zinc-500 truncate">slug: {workspace.slug}</span>
+        <div className="p-3.5 mx-4 my-3 rounded-xl bg-[#12141a] border border-[#1d2027] flex flex-col gap-0.5">
+          <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">Active Workspace</span>
+          <span className="text-xs font-bold text-zinc-200 truncate">{workspace.name}</span>
+          <span className="text-[9px] text-[#05ffc4]/80 font-semibold truncate uppercase">Slug: {workspace.slug}</span>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-4 py-2 flex flex-col gap-1">
-          <Link 
-            href={`/${workspace.slug}`} 
-            onClick={closeSidebar}
-            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              isDashboardActive 
-                ? "bg-zinc-900 text-white" 
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
-            }`}
-          >
-            <LayoutDashboard className={`h-4 w-4 ${isDashboardActive ? "text-indigo-400" : ""}`} />
-            <span>Dashboard</span>
-          </Link>
+        {/* Structured Tree Navigation (Inspired by Hynex bullet connection mockup) */}
+        <nav className="flex-1 px-4 py-2 flex flex-col gap-6 overflow-y-auto scrollbar-none">
           
-          <Link 
-            href={`/${workspace.slug}/clients`} 
-            onClick={closeSidebar}
-            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              isClientsActive 
-                ? "bg-zinc-900 text-white" 
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
-            }`}
-          >
-            <Briefcase className={`h-4 w-4 ${isClientsActive ? "text-indigo-400" : ""}`} />
-            <span>Clients & Pages</span>
-          </Link>
+          {/* SECTION 1: MAIN */}
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 px-3 mb-2">Main</span>
+            <div className="pl-3 border-l border-[#1d2027] flex flex-col gap-1 ml-3.5 relative">
+              <Link 
+                href={`/${workspace.slug}`} 
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
+                  isDashboardActive 
+                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                }`}
+              >
+                <LayoutDashboard className={`h-4 w-4 shrink-0 transition-colors ${isDashboardActive ? activeIconClass : inactiveIconClass}`} />
+                <span>Overview</span>
+              </Link>
+              
+              <Link 
+                href={`/${workspace.slug}/clients`} 
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
+                  isClientsActive 
+                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                }`}
+              >
+                <Briefcase className={`h-4 w-4 shrink-0 transition-colors ${isClientsActive ? activeIconClass : inactiveIconClass}`} />
+                <span>Clients & Pages</span>
+              </Link>
 
-          <Link 
-            href={`/${workspace.slug}/team`} 
-            onClick={closeSidebar}
-            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              isTeamActive 
-                ? "bg-zinc-900 text-white" 
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
-            }`}
-          >
-            <Users className={`h-4 w-4 ${isTeamActive ? "text-indigo-400" : ""}`} />
-            <span>Team Members</span>
-          </Link>
+              <Link 
+                href={`/${workspace.slug}/team`} 
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
+                  isTeamActive 
+                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                }`}
+              >
+                <Users className={`h-4 w-4 shrink-0 transition-colors ${isTeamActive ? activeIconClass : inactiveIconClass}`} />
+                <span>Team Members</span>
+              </Link>
+            </div>
+          </div>
 
-          <Link 
-            href={`/${workspace.slug}/tasks`} 
-            onClick={closeSidebar}
-            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              isTasksActive 
-                ? "bg-zinc-900 text-white" 
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
-            }`}
-          >
-            <Calendar className={`h-4 w-4 ${isTasksActive ? "text-indigo-400" : ""}`} />
-            <span>Tasks Board</span>
-          </Link>
+          {/* SECTION 2: FEATURES */}
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 px-3 mb-2">Features</span>
+            <div className="pl-3 border-l border-[#1d2027] flex flex-col gap-1 ml-3.5">
+              <Link 
+                href={`/${workspace.slug}/tasks`} 
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
+                  isTasksActive 
+                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                }`}
+              >
+                <Calendar className={`h-4 w-4 shrink-0 transition-colors ${isTasksActive ? activeIconClass : inactiveIconClass}`} />
+                <span>Tasks Board</span>
+              </Link>
 
-          <Link 
-            href={`/${workspace.slug}/content`} 
-            onClick={closeSidebar}
-            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              isContentActive 
-                ? "bg-zinc-900 text-white" 
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
-            }`}
-          >
-            <Layers className={`h-4 w-4 ${isContentActive ? "text-indigo-400" : ""}`} />
-            <span>Content Workflow</span>
-          </Link>
+              <Link 
+                href={`/${workspace.slug}/content`} 
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
+                  isContentActive 
+                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                }`}
+              >
+                <Layers className={`h-4 w-4 shrink-0 transition-colors ${isContentActive ? activeIconClass : inactiveIconClass}`} />
+                <span>Content Workflow</span>
+              </Link>
 
-          <Link 
-            href={`/${workspace.slug}/media`} 
-            onClick={closeSidebar}
-            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              isMediaActive 
-                ? "bg-zinc-900 text-white" 
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
-            }`}
-          >
-            <Image className={`h-4 w-4 ${isMediaActive ? "text-indigo-400" : ""}`} />
-            <span>Media Library</span>
-          </Link>
+              <Link 
+                href={`/${workspace.slug}/media`} 
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
+                  isMediaActive 
+                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                }`}
+              >
+                <Image className={`h-4 w-4 shrink-0 transition-colors ${isMediaActive ? activeIconClass : inactiveIconClass}`} />
+                <span>Media Library</span>
+              </Link>
+            </div>
+          </div>
 
-          <Link 
-            href={`/${workspace.slug}/settings`} 
-            onClick={closeSidebar}
-            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              isSettingsActive 
-                ? "bg-zinc-900 text-white" 
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
-            }`}
-          >
-            <Settings className={`h-4 w-4 ${isSettingsActive ? "text-indigo-400" : ""}`} />
-            <span>Workspace Settings</span>
-          </Link>
+          {/* SECTION 3: TOOLS */}
+          <div className="flex flex-col">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 px-3 mb-2">Tools</span>
+            <div className="pl-3 border-l border-[#1d2027] flex flex-col gap-1 ml-3.5">
+              <Link 
+                href={`/${workspace.slug}/settings`} 
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
+                  isSettingsActive 
+                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                }`}
+              >
+                <Settings className={`h-4 w-4 shrink-0 transition-colors ${isSettingsActive ? activeIconClass : inactiveIconClass}`} />
+                <span>Workspace Settings</span>
+              </Link>
 
-          <Link 
-            href={`/${workspace.slug}/finance`} 
-            onClick={closeSidebar}
-            className={`flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-              isFinanceActive 
-                ? "bg-zinc-900 text-white" 
-                : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"
-            }`}
-          >
-            <TrendingUp className={`h-4 w-4 ${isFinanceActive ? "text-indigo-400" : ""}`} />
-            <span>Finance P&L</span>
-          </Link>
+              <Link 
+                href={`/${workspace.slug}/finance`} 
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
+                  isFinanceActive 
+                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
+                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                }`}
+              >
+                <TrendingUp className={`h-4 w-4 shrink-0 transition-colors ${isFinanceActive ? activeIconClass : inactiveIconClass}`} />
+                <span>Finance P&L</span>
+              </Link>
+            </div>
+          </div>
+
         </nav>
 
         {/* Footer Settings & Auth */}
-        <div className="p-4 border-t border-zinc-900 flex items-center justify-between">
+        <div className="p-4 border-t border-[#16181d] flex items-center justify-between bg-[#0b0c0e]/40">
           <div className="flex items-center gap-3">
             <UserButton />
             <div className="flex flex-col text-left">
-              <span className="text-xs font-semibold text-zinc-200">Account</span>
-              <span className="text-[10px] text-zinc-500">Settings & Profile</span>
+              <span className="text-xs font-bold text-zinc-200">Account</span>
+              <span className="text-[9px] text-zinc-500 font-semibold uppercase">Settings & Profile</span>
             </div>
           </div>
           <Link href="/" onClick={closeSidebar}>
@@ -239,12 +275,12 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main Panel */}
-      <main className="flex-1 flex flex-col overflow-y-auto bg-zinc-950 relative">
-        {/* Backdrop Glow */}
-        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-indigo-900/5 rounded-full blur-[100px] pointer-events-none" />
+      <main className="flex-1 flex flex-col overflow-y-auto bg-[#0b0c0e] relative">
+        {/* Neon Backdrop Glow (Inspired by Hynex design) */}
+        <div className="absolute top-0 right-1/4 w-[450px] h-[450px] bg-[#05ffc4]/3 rounded-full blur-[120px] pointer-events-none" />
 
-        {/* Header */}
-        <header className="h-16 border-b border-zinc-900 px-4 md:px-8 flex items-center justify-between shrink-0 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-10">
+        {/* Header (Top Search bar structure) */}
+        <header className="h-16 border-b border-[#16181d] px-4 md:px-8 flex items-center justify-between shrink-0 bg-[#0d0e12]/60 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
@@ -252,15 +288,19 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-sm md:text-lg font-semibold text-white">
+            <h1 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-zinc-300">
               {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : isTasksActive ? "Tasks Board" : isTeamActive ? "Team Members" : isContentActive ? "Content Workflow" : isMediaActive ? "Media Library" : isFinanceActive ? "Finance Ledger" : isSettingsActive ? "Workspace Settings" : "Workspace"}
             </h1>
           </div>
           
-          <div className="flex items-center gap-3 text-[10px] md:text-xs text-zinc-500">
-            <span className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 font-mono capitalize">
-              plan: {workspace.plan}
+          <div className="flex items-center gap-3.5">
+            {/* Header controls (Inspired by top-right header mockup) */}
+            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#12141a] border border-[#1d2027] text-zinc-400">
+              Workspace Plan: <span className="text-[#05ffc4]">{workspace.plan}</span>
             </span>
+            <button className="p-1.5 rounded-lg border border-[#16181d] text-zinc-400 hover:text-[#05ffc4] hover:bg-[#12141a] transition-all">
+              <Bell className="h-3.5 w-3.5" />
+            </button>
           </div>
         </header>
 
