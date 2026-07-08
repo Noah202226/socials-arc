@@ -23,7 +23,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${plusJakartaSans.variable} h-full antialiased font-sans`}
+      className={`${plusJakartaSans.variable} h-full antialiased font-sans dark`}
     >
       <body className="min-h-full flex flex-col bg-[#0b0c0e]">
         <ConvexClientProvider>
