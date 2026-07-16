@@ -57,7 +57,7 @@ export const getOrCreate = mutation({
     const workspaceId = await ctx.db.insert("workspaces", {
       name: workspaceName,
       slug,
-      plan: "free",
+      plan: "agency",
       ownerId: userId,
     });
 
@@ -253,6 +253,37 @@ export const updateSettings = mutation({
 
     await ctx.db.patch(args.workspaceId, {
       settings: args.settings,
+    });
+
+    return await ctx.db.get(args.workspaceId);
+  },
+});
+
+/**
+ * Developer mutation to manually upgrade a workspace to the Agency tier.
+ */
+export const devUpgradeToAgency = mutation({
+  args: { workspaceId: v.id("workspaces") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError("Unauthenticated");
+    }
+
+    // Verify membership
+    const membership = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_and_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", identity.subject)
+      )
+      .first();
+
+    if (!membership) {
+      throw new ConvexError("Unauthorized: You are not a member of this workspace");
+    }
+
+    await ctx.db.patch(args.workspaceId, {
+      plan: "agency",
     });
 
     return await ctx.db.get(args.workspaceId);

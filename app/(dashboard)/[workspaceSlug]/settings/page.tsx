@@ -61,10 +61,27 @@ export default function SettingsPage() {
   // Convex Queries
   const workspace = useQuery(api.workspaces.getBySlug, { slug });
   const updateSettings = useMutation(api.workspaces.updateSettings);
+  const devUpgradeToAgency = useMutation(api.workspaces.devUpgradeToAgency);
 
   // Stripe Actions
   const pay = useAction(api.stripe.pay);
   const portal = useAction(api.stripe.portal);
+
+  // Developer Upgrade State & Handler
+  const [loadingDevUpgrade, setLoadingDevUpgrade] = useState(false);
+  const handleDevUpgrade = async () => {
+    if (!workspace) return;
+    setLoadingDevUpgrade(true);
+    try {
+      await devUpgradeToAgency({ workspaceId: workspace._id });
+      toast.success("Successfully upgraded to Agency plan (Dev Mode)!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to upgrade to Agency plan");
+    } finally {
+      setLoadingDevUpgrade(false);
+    }
+  };
 
   // States
   const [activeTab, setActiveTab] = useState<"kanban" | "billing">("kanban");
@@ -629,25 +646,47 @@ export default function SettingsPage() {
               </p>
             </div>
 
-            {workspace.plan !== "free" && (
-              <Button 
-                onClick={handleOpenPortal}
-                disabled={redirectingStripe !== null}
-                className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-xs font-semibold shrink-0"
-              >
-                {redirectingStripe === "portal" ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                    Opening...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="h-4 w-4 mr-1.5" />
-                    Manage Billing
-                  </>
-                )}
-              </Button>
-            )}
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+              {workspace.plan !== "agency" && (
+                <Button 
+                  onClick={handleDevUpgrade}
+                  disabled={loadingDevUpgrade}
+                  className="bg-[#05ffc4]/15 hover:bg-[#05ffc4]/25 border border-[#05ffc4]/35 text-[#05ffc4] text-xs font-semibold shadow-md shadow-[#05ffc4]/5"
+                >
+                  {loadingDevUpgrade ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                      Activating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-1.5" />
+                      Dev Upgrade
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {workspace.plan !== "free" && (
+                <Button 
+                  onClick={handleOpenPortal}
+                  disabled={redirectingStripe !== null}
+                  className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-xs font-semibold"
+                >
+                  {redirectingStripe === "portal" ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                      Opening...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="h-4 w-4 mr-1.5" />
+                      Manage Billing
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Pricing Grid */}
