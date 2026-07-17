@@ -77,6 +77,7 @@ export const save = mutation({
   args: {
     projectId: v.id("projects"),
     postId: v.optional(v.id("posts")),
+    taskId: v.optional(v.id("tasks")),
     storageId: v.id("_storage"),
     type: v.union(
       v.literal("image"),
@@ -95,9 +96,17 @@ export const save = mutation({
       }
     }
 
+    if (args.taskId) {
+      const task = await ctx.db.get(args.taskId);
+      if (!task || task.projectId !== args.projectId) {
+        throw new ConvexError("Task not found or project mismatch");
+      }
+    }
+
     const assetId = await ctx.db.insert("assets", {
       projectId: args.projectId,
       postId: args.postId,
+      taskId: args.taskId,
       storageId: args.storageId,
       type: args.type,
       fileName: args.fileName,
@@ -274,6 +283,74 @@ export const listByPost = query({
     const assets = await ctx.db
       .query("assets")
       .withIndex("by_post", (q) => q.eq("postId", args.postId))
+      .collect();
+
+    return await Promise.all(
+      assets.map(async (asset) => ({
+        ...asset,
+        url: await ctx.storage.getUrl(asset.storageId),
+      }))
+    );
+  },
+});
+
+/**
+ * Attaches or detaches an asset to/from a task.
+ */
+export const attachToTask = mutation({
+  args: {
+    assetId: v.id("assets"),
+    taskId: v.optional(v.id("tasks")),
+  },
+  handler: async (ctx, args) => {
+    const asset = await ctx.db.get(args.assetId);
+    if (!asset) {
+      throw new ConvexError("Asset not found");
+    }
+
+    await verifyMembershipByProject(ctx, asset.projectId);
+
+    if (args.taskId) {
+      const task = await ctx.db.get(args.taskId);
+      if (!task || task.projectId !== asset.projectId) {
+        throw new ConvexError("Task not found or project mismatch");
+      }
+    }
+
+    await ctx.db.patch(args.assetId, {
+      taskId: args.taskId,
+    });
+
+    const updated = await ctx.db.get(args.assetId);
+    if (!updated) {
+      throw new ConvexError("Failed to fetch updated asset");
+    }
+
+    return {
+      ...updated,
+      url: await ctx.storage.getUrl(updated.storageId),
+    };
+  },
+});
+
+/**
+ * Lists assets attached to a specific task.
+ */
+export const listByTask = query({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, args) => {
+    const task = await ctx.db.get(args.taskId);
+    if (!task) {
+      throw new ConvexError("Task not found");
+    }
+
+    await verifyMembershipByProject(ctx, task.projectId);
+
+    const assets = await ctx.db
+      .query("assets")
+      .withIndex("by_task", (q) => q.eq("taskId", args.taskId))
       .collect();
 
     return await Promise.all(

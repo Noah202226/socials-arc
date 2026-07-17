@@ -152,11 +152,10 @@ export default function TeamPage() {
 
   return (
     <div className="flex flex-col gap-8 w-full">
-      {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-900 pb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-bold text-white tracking-tight">Team Management</h2>
-          <p className="text-sm text-zinc-400">
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">Team Management</h2>
+          <p className="text-sm text-zinc-650 dark:text-zinc-400">
             Invite colleagues, manage assistant roles, and control client dashboard visibility.
           </p>
         </div>
@@ -210,7 +209,7 @@ export default function TeamPage() {
                   </div>
                   <div className="flex flex-col text-left">
                     <div className="flex items-baseline gap-2">
-                      <span className="text-sm font-semibold text-zinc-200">
+                      <span className="text-sm font-semibold text-zinc-650 dark:text-zinc-500">
                         {member.userName || (member.userId === workspace.ownerId ? "Workspace Owner" : "Active Teammate")}
                       </span>
                       {member.userName && (
@@ -358,9 +357,9 @@ export default function TeamPage() {
       {/* --- INVITE MODAL --- */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
-              <h3 className="font-bold text-white text-base">Invite Teammate</h3>
+          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+              <h3 className="font-bold text-foreground text-base">Invite Teammate</h3>
               <button
                 onClick={() => setShowInviteModal(false)}
                 className="text-zinc-500 hover:text-zinc-300"
@@ -431,9 +430,9 @@ export default function TeamPage() {
       {/* --- EDIT PROFILE MODAL --- */}
       {showEditProfileModal && editingMemberId && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
-              <h3 className="font-bold text-white text-base">Customize Member Profile</h3>
+          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+              <h3 className="font-bold text-foreground text-base">Customize Member Profile</h3>
               <button
                 onClick={() => { setShowEditProfileModal(false); setEditingMemberId(null); }}
                 className="text-zinc-500 hover:text-zinc-300"
@@ -498,7 +497,7 @@ export default function TeamPage() {
               <div className="flex flex-col gap-1.5 text-left">
                 <span className="text-xs font-semibold text-zinc-400">Choose a fun preset icon / emoji:</span>
                 <div className="flex flex-wrap gap-2 p-3.5 rounded-lg bg-zinc-900/25 border border-zinc-900/60">
-                  {["🦊", "🦁", "🐯", "🐼", "🐨", "🚀", "💻", "🎨", "💡", "👑", "🔥", "✨", "🍿", "🎮", "🌟", "👾"].map(emoji => (
+                  {["💼", "👔", "👑", "💻", "⚙️", "🎨", "✍️", "📊", "📣", "📈", "🛡️", "🤝", "🚀", "💡", "✨", "🌟", "🦊", "🦁", "🐯", "🐼", "🐨", "🍿", "🎮", "👾"].map(emoji => (
                     <button
                       key={emoji}
                       type="button"

@@ -288,13 +288,12 @@ export default function SettingsPage() {
   return (
     <div className="flex flex-col gap-8 w-full max-w-4xl text-left">
       
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-900 pb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-bold text-white tracking-tight">
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">
             {activeTab === "kanban" ? "Board Customization Settings" : "Billing & Subscription"}
           </h2>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-650 dark:text-zinc-400">
             {activeTab === "kanban" 
               ? "Personalize your workspace Kanban columns: rename labels, customize styling themes, or hide processes."
               : "Manage your subscription tiers, limits, and customer portal details."}
@@ -306,7 +305,7 @@ export default function SettingsPage() {
             <Button 
               variant="ghost" 
               onClick={handleResetDefaults}
-              className="text-zinc-550 hover:text-zinc-300 text-xs border border-zinc-900"
+              className="text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-250 text-xs border border-border"
             >
               <Undo2 className="h-4 w-4 mr-1.5" /> Defaults
             </Button>

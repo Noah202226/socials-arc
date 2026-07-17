@@ -236,13 +236,12 @@ export default function FinancePage() {
   return (
     <div className="flex flex-col gap-6 w-full animate-fade-in font-sans">
       
-      {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-900 pb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-indigo-400" /> Financial ledger & P&L
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
+            <TrendingUp className="h-6 w-6 text-indigo-500 dark:text-indigo-400" /> Financial ledger & P&L
           </h2>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-650 dark:text-zinc-400">
             Track cents-accurate revenues, content investments, sponsorships, and platform P&L details.
           </p>
         </div>
@@ -275,42 +274,42 @@ export default function FinancePage() {
             return (
               <div 
                 key={cur}
-                className="p-5 rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-900/60 to-indigo-950/5 flex flex-col gap-4 relative overflow-hidden group shadow-lg"
+                className="p-5 rounded-2xl border border-border bg-gradient-to-br from-zinc-50 to-indigo-50/5 dark:from-zinc-900/60 dark:to-indigo-950/5 flex flex-col gap-4 relative overflow-hidden group shadow-lg"
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-indigo-500/10 transition-all" />
                 
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-500">Summary ({cur})</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-zinc-650 dark:text-zinc-500">Summary ({cur})</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                     isProfit 
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25" 
-                      : "bg-red-500/10 text-red-400 border-red-500/25"
+                      ? "bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/25" 
+                      : "bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 border-red-200 dark:border-red-500/25"
                   }`}>
                     {margin}% Margin
                   </span>
                 </div>
 
                 <div className="flex flex-col gap-0.5">
-                  <span className="text-3xl font-extrabold tracking-tight text-white font-mono">
+                  <span className="text-3xl font-extrabold tracking-tight text-zinc-950 dark:text-white font-mono">
                     {isProfit ? "" : "-"}{cur} {(Math.abs(totals.net) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
-                  <span className="text-[10.5px] font-medium text-zinc-500">Net operating balance</span>
+                  <span className="text-[10.5px] font-medium text-zinc-650 dark:text-zinc-500">Net operating balance</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-900/60 text-xs">
+                <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border text-xs">
                   <div className="flex flex-col gap-0.5 text-left">
-                    <span className="text-zinc-500 flex items-center gap-1">
-                      <TrendingUp className="h-3 w-3 text-emerald-400" /> Revenue
+                    <span className="text-zinc-550 dark:text-zinc-500 flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> Revenue
                     </span>
-                    <span className="font-semibold text-zinc-200 font-mono">
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-200 font-mono">
                       +{(totals.income / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex flex-col gap-0.5 text-left">
-                    <span className="text-zinc-500 flex items-center gap-1">
-                      <TrendingDown className="h-3 w-3 text-red-400" /> Expenses
+                    <span className="text-zinc-550 dark:text-zinc-500 flex items-center gap-1">
+                      <TrendingDown className="h-3 w-3 text-red-600 dark:text-red-400" /> Expenses
                     </span>
-                    <span className="font-semibold text-zinc-200 font-mono text-left">
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-200 font-mono text-left">
                       -{(totals.expense / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </span>
                   </div>

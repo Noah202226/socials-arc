@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode, useState } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useParams, usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
 import { UserButton } from "@clerk/nextjs";
@@ -79,11 +80,11 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   const closeSidebar = () => setIsMobileSidebarOpen(false);
 
   // Connection indicator color matching active states
-  const activeIconClass = "text-[#05ffc4]";
-  const inactiveIconClass = "text-zinc-500 group-hover:text-zinc-300";
+  const activeIconClass = "text-indigo-650 dark:text-[#05ffc4]";
+  const inactiveIconClass = "text-zinc-550 dark:text-zinc-550 group-hover:text-zinc-800 dark:group-hover:text-zinc-300";
 
   return (
-    <div className="flex h-screen bg-[#0b0c0e] text-zinc-100 font-sans overflow-hidden">
+    <div className="flex h-screen bg-background text-foreground font-sans overflow-hidden transition-colors duration-200">
       
       {/* Mobile Sidebar Backdrop Overlay */}
       {isMobileSidebarOpen && (
@@ -94,15 +95,15 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
       )}
 
       {/* Sidebar Drawer (Inspired by Hynex Sidebar mockup) */}
-      <aside className={`fixed inset-y-0 left-0 w-64 border-r border-[#16181d] bg-[#0d0e12] flex flex-col z-50 shrink-0 transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${
+      <aside className={`fixed inset-y-0 left-0 w-64 border-r border-border bg-card flex flex-col z-50 shrink-0 transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${
         isMobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
       }`}>
         {/* Brand & Mobile Close */}
-        <div className="h-16 flex items-center justify-between px-6 border-b border-[#16181d]">
+        <div className="h-16 flex items-center justify-between px-6 border-b border-border">
           <Link href={`/${workspace.slug}`} onClick={closeSidebar} className="flex items-center gap-2.5">
             {/* Custom Interlocking double loop SVG (similar to Hynex logo) */}
             <svg 
-              className="h-6 w-6 text-[#05ffc4]"
+              className="h-6 w-6 text-indigo-600 dark:text-[#05ffc4]"
               viewBox="0 0 24 24" 
               fill="none" 
               stroke="currentColor" 
@@ -113,21 +114,21 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
               <path d="M4.5 16.5c-1.5-1.5-2.5-3.5-2.5-6s1-4.5 2.5-6S9 2 11.5 4.5s4.5 6 4.5 8.5-1 4.5-2.5 6-4.5 2.5-7 0z" />
               <path d="M19.5 7.5c1.5 1.5 2.5 3.5 2.5 6s-1 4.5-2.5 6-4.5 2.5-7 0-4.5-6-4.5-8.5 1-4.5 2.5-6 4.5-2.5 7 0z" opacity="0.8" />
             </svg>
-            <span className="font-extrabold text-base tracking-tight text-white font-sans">Socials Arc</span>
+            <span className="font-extrabold text-base tracking-tight text-zinc-900 dark:text-white font-sans">Socials Arc</span>
           </Link>
           <button 
             onClick={closeSidebar}
-            className="p-1 rounded text-zinc-500 hover:text-white hover:bg-zinc-900 md:hidden"
+            className="p-1 rounded text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-150 dark:hover:bg-zinc-900 md:hidden"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Workspace Quick Details */}
-        <div className="p-3.5 mx-4 my-3 rounded-xl bg-[#12141a] border border-[#1d2027] flex flex-col gap-0.5">
-          <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider">Active Workspace</span>
-          <span className="text-xs font-bold text-zinc-200 truncate">{workspace.name}</span>
-          <span className="text-[9px] text-[#05ffc4]/80 font-semibold truncate uppercase">Slug: {workspace.slug}</span>
+        <div className="p-3.5 mx-4 my-3 rounded-xl bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/80 flex flex-col gap-0.5 transition-colors">
+          <span className="text-[9px] uppercase font-bold text-zinc-550 tracking-wider">Active Workspace</span>
+          <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{workspace.name}</span>
+          <span className="text-[9px] text-indigo-650 dark:text-[#05ffc4]/80 font-semibold truncate uppercase">Slug: {workspace.slug}</span>
         </div>
 
         {/* Structured Tree Navigation (Inspired by Hynex bullet connection mockup) */}
@@ -135,15 +136,15 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
           
           {/* SECTION 1: MAIN */}
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 px-3 mb-2">Main</span>
-            <div className="pl-3 border-l border-[#1d2027] flex flex-col gap-1 ml-3.5 relative">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-650 px-3 mb-2">Main</span>
+            <div className="pl-3 border-l border-zinc-200 dark:border-[#1d2027] flex flex-col gap-1 ml-3.5 relative">
               <Link 
                 href={`/${workspace.slug}`} 
                 onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
                   isDashboardActive 
-                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                    ? "bg-indigo-50/50 dark:bg-[#05ffc4]/5 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200/50 dark:border-[#05ffc4]/15" 
+                    : "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-150/80 dark:hover:bg-[#12141a]/40"
                 }`}
               >
                 <LayoutDashboard className={`h-4 w-4 shrink-0 transition-colors ${isDashboardActive ? activeIconClass : inactiveIconClass}`} />
@@ -155,8 +156,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
                 onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
                   isClientsActive 
-                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                    ? "bg-indigo-50/50 dark:bg-[#05ffc4]/5 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200/50 dark:border-[#05ffc4]/15" 
+                    : "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-150/80 dark:hover:bg-[#12141a]/40"
                 }`}
               >
                 <Briefcase className={`h-4 w-4 shrink-0 transition-colors ${isClientsActive ? activeIconClass : inactiveIconClass}`} />
@@ -168,8 +169,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
                 onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
                   isTeamActive 
-                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                    ? "bg-indigo-50/50 dark:bg-[#05ffc4]/5 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200/50 dark:border-[#05ffc4]/15" 
+                    : "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-150/80 dark:hover:bg-[#12141a]/40"
                 }`}
               >
                 <Users className={`h-4 w-4 shrink-0 transition-colors ${isTeamActive ? activeIconClass : inactiveIconClass}`} />
@@ -187,8 +188,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
                 onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
                   isTasksActive 
-                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                    ? "bg-indigo-50/50 dark:bg-[#05ffc4]/5 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200/50 dark:border-[#05ffc4]/15" 
+                    : "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-150/80 dark:hover:bg-[#12141a]/40"
                 }`}
               >
                 <Calendar className={`h-4 w-4 shrink-0 transition-colors ${isTasksActive ? activeIconClass : inactiveIconClass}`} />
@@ -200,8 +201,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
                 onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
                   isContentActive 
-                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                    ? "bg-indigo-50/50 dark:bg-[#05ffc4]/5 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200/50 dark:border-[#05ffc4]/15" 
+                    : "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-150/80 dark:hover:bg-[#12141a]/40"
                 }`}
               >
                 <Layers className={`h-4 w-4 shrink-0 transition-colors ${isContentActive ? activeIconClass : inactiveIconClass}`} />
@@ -213,8 +214,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
                 onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
                   isMediaActive 
-                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                    ? "bg-indigo-50/50 dark:bg-[#05ffc4]/5 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200/50 dark:border-[#05ffc4]/15" 
+                    : "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-150/80 dark:hover:bg-[#12141a]/40"
                 }`}
               >
                 <Image className={`h-4 w-4 shrink-0 transition-colors ${isMediaActive ? activeIconClass : inactiveIconClass}`} />
@@ -232,8 +233,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
                 onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
                   isSettingsActive 
-                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                    ? "bg-indigo-50/50 dark:bg-[#05ffc4]/5 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200/50 dark:border-[#05ffc4]/15" 
+                    : "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-150/80 dark:hover:bg-[#12141a]/40"
                 }`}
               >
                 <Settings className={`h-4 w-4 shrink-0 transition-colors ${isSettingsActive ? activeIconClass : inactiveIconClass}`} />
@@ -245,8 +246,8 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
                 onClick={closeSidebar}
                 className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
                   isFinanceActive 
-                    ? "bg-[#05ffc4]/5 text-[#05ffc4] border border-[#05ffc4]/15" 
-                    : "text-zinc-400 hover:text-zinc-200 hover:bg-[#12141a]/40"
+                    ? "bg-indigo-50/50 dark:bg-[#05ffc4]/5 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200/50 dark:border-[#05ffc4]/15" 
+                    : "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-150/80 dark:hover:bg-[#12141a]/40"
                 }`}
               >
                 <TrendingUp className={`h-4 w-4 shrink-0 transition-colors ${isFinanceActive ? activeIconClass : inactiveIconClass}`} />
@@ -258,7 +259,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         </nav>
 
         {/* Footer Settings & Auth */}
-        <div className="p-4 border-t border-[#16181d] flex items-center justify-between bg-[#0b0c0e]/40">
+        <div className="p-4 border-t border-border flex items-center justify-between bg-background/40">
           <div className="flex items-center gap-3">
             <UserButton />
             <div className="flex flex-col text-left">
@@ -275,30 +276,31 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main Panel */}
-      <main className="flex-1 flex flex-col overflow-y-auto bg-[#0b0c0e] relative">
+      <main className="flex-1 flex flex-col overflow-y-auto bg-background relative transition-colors duration-200">
         {/* Neon Backdrop Glow (Inspired by Hynex design) */}
         <div className="absolute top-0 right-1/4 w-[450px] h-[450px] bg-[#05ffc4]/3 rounded-full blur-[120px] pointer-events-none" />
 
         {/* Header (Top Search bar structure) */}
-        <header className="h-16 border-b border-[#16181d] px-4 md:px-8 flex items-center justify-between shrink-0 bg-[#0d0e12]/60 backdrop-blur-md sticky top-0 z-10">
+        <header className="h-16 border-b border-border px-4 md:px-8 flex items-center justify-between shrink-0 bg-card/60 backdrop-blur-md sticky top-0 z-10 transition-colors duration-200">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-              className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-900 md:hidden focus:outline-none"
+              className="p-1.5 rounded text-zinc-550 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white dark:hover:bg-zinc-900 md:hidden focus:outline-none"
             >
               <Menu className="h-5 w-5" />
             </button>
-            <h1 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-zinc-300">
+            <h1 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
               {isDashboardActive ? "Dashboard Overview" : isClientsActive ? "Clients & Pages" : isTasksActive ? "Tasks Board" : isTeamActive ? "Team Members" : isContentActive ? "Content Workflow" : isMediaActive ? "Media Library" : isFinanceActive ? "Finance Ledger" : isSettingsActive ? "Workspace Settings" : "Workspace"}
             </h1>
           </div>
           
           <div className="flex items-center gap-3.5">
             {/* Header controls (Inspired by top-right header mockup) */}
-            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-[#12141a] border border-[#1d2027] text-zinc-400">
-              Workspace Plan: <span className="text-[#05ffc4]">{workspace.plan}</span>
+            <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 dark:bg-[#12141a] border border-zinc-200 dark:border-[#1d2027] text-zinc-650 dark:text-zinc-400">
+              Workspace Plan: <span className="text-indigo-650 dark:text-[#05ffc4] font-bold">{workspace.plan}</span>
             </span>
-            <button className="p-1.5 rounded-lg border border-[#16181d] text-zinc-400 hover:text-[#05ffc4] hover:bg-[#12141a] transition-all">
+            <ThemeToggle />
+            <button className="p-1.5 rounded-lg border border-zinc-250 dark:border-[#16181d] text-zinc-650 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-[#05ffc4] hover:bg-zinc-200/50 dark:hover:bg-[#12141a] transition-all">
               <Bell className="h-3.5 w-3.5" />
             </button>
           </div>

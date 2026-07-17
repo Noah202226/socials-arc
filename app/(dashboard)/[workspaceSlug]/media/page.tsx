@@ -190,13 +190,12 @@ export default function MediaLibraryPage() {
   return (
     <div className="flex flex-col gap-6 w-full animate-fade-in font-sans">
       
-      {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-900 pb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Layers className="h-6 w-6 text-indigo-400" /> Media & Assets Library
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight flex items-center gap-2">
+            <Layers className="h-6 w-6 text-indigo-500 dark:text-indigo-400" /> Media & Assets Library
           </h2>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-zinc-650 dark:text-zinc-400">
             Upload, browse, and connect social graphics, shorts, and scripts to your campaigns & posts.
           </p>
         </div>

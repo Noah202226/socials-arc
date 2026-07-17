@@ -232,9 +232,9 @@ export default function ClientsPage() {
     <div className="flex flex-col gap-6 md:gap-8 w-full text-left">
       
       {/* Header Panel */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-[#16181d] pb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl md:text-2xl font-extrabold text-white tracking-tight">Clients & Connections</h2>
+          <h2 className="text-xl md:text-2xl font-extrabold text-foreground tracking-tight">Clients & Connections</h2>
           <p className="text-xs text-zinc-500">
             Define client entities, configure campaigns, and link social pages for workflow & cashflow tracking.
           </p>
@@ -262,17 +262,17 @@ export default function ClientsPage() {
           </div>
 
           {clients.length === 0 ? (
-            <div className="p-12 rounded-2xl border border-[#16181d] border-dashed bg-[#0d0e12]/30 text-center flex flex-col items-center gap-4">
-              <div className="h-10 w-10 rounded-full bg-[#12141a] flex items-center justify-center text-zinc-550 border border-[#1d2027]">
+            <div className="p-12 rounded-2xl border border-border border-dashed bg-card/30 text-center flex flex-col items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-zinc-550 border border-border">
                 <Users className="h-5 w-5" />
               </div>
               <div className="flex flex-col gap-1 text-center items-center">
-                <h4 className="text-sm font-bold text-white">No clients found</h4>
+                <h4 className="text-sm font-bold text-foreground">No clients found</h4>
                 <p className="text-xs text-zinc-500 max-w-xs leading-relaxed">
                   Create your first client to start organizing campaigns and publishing schedules.
                 </p>
               </div>
-              <Button onClick={() => setActiveModal("client")} className="bg-[#12141a] border border-[#1d2027] text-zinc-350 hover:bg-[#1c1f26] text-xs font-bold px-4">
+              <Button onClick={() => setActiveModal("client")} className="bg-muted border border-border text-zinc-600 dark:text-zinc-350 hover:bg-muted/80 text-xs font-bold px-4">
                 Create Client Profile
               </Button>
             </div>
@@ -287,11 +287,11 @@ export default function ClientsPage() {
                   <div key={client._id} className="relative group">
                     <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4] to-[#00d9f5] rounded-xl blur-xs opacity-0 group-hover:opacity-15 transition duration-500" />
                     
-                    <div className="relative p-5 rounded-xl border border-[#16181d] bg-[#0d0e12]/80 backdrop-blur-sm hover:border-[#05ffc4]/30 hover:[transform:perspective(800px)_rotateX(2deg)_rotateY(-2deg)] hover:shadow-xl hover:shadow-[#05ffc4]/5 transition-all duration-300 ease-out flex flex-col gap-4 min-h-[170px] text-left">
+                    <div className="relative p-5 rounded-xl border border-border bg-card/80 backdrop-blur-sm hover:border-[#05ffc4]/30 hover:[transform:perspective(800px)_rotateX(2deg)_rotateY(-2deg)] hover:shadow-xl hover:shadow-[#05ffc4]/5 transition-all duration-300 ease-out flex flex-col gap-4 min-h-[170px] text-left">
                       {/* Header */}
                       <div className="flex justify-between items-start">
                         <div className="flex flex-col">
-                          <h4 className="font-extrabold text-sm text-white group-hover:text-[#05ffc4] transition-colors">
+                          <h4 className="font-extrabold text-sm text-foreground group-hover:text-[#05ffc4] transition-colors">
                             {client.name}
                           </h4>
                           <span className="text-[9px] text-zinc-550 uppercase font-bold tracking-wider">
@@ -340,14 +340,14 @@ export default function ClientsPage() {
                       </div>
 
                       {/* Quick Action buttons */}
-                      <div className="flex gap-2 border-t border-[#16181d] pt-3 mt-auto">
+                      <div className="flex gap-2 border-t border-border pt-3 mt-auto">
                         <Button 
                           size="sm" 
                           onClick={() => {
                             setSelectedClientId(client._id);
                             setActiveModal("project");
                           }}
-                          className="text-[10px] h-7 px-2.5 bg-[#12141a] hover:bg-[#1c1f26] border border-[#1d2027] text-zinc-350 hover:text-white font-bold rounded-lg"
+                          className="text-[10px] h-7 px-2.5 bg-muted hover:bg-muted/80 border border-border text-zinc-600 dark:text-zinc-350 hover:text-foreground font-bold rounded-lg"
                         >
                           <Plus className="h-3 w-3 mr-1" /> Project
                         </Button>
@@ -357,7 +357,7 @@ export default function ClientsPage() {
                             setSelectedClientId(client._id);
                             setActiveModal("page");
                           }}
-                          className="text-[10px] h-7 px-2.5 bg-[#12141a] hover:bg-[#1c1f26] border border-[#1d2027] text-zinc-350 hover:text-white font-bold rounded-lg ml-auto"
+                          className="text-[10px] h-7 px-2.5 bg-muted hover:bg-muted/80 border border-border text-zinc-600 dark:text-zinc-350 hover:text-foreground font-bold rounded-lg ml-auto"
                         >
                           <Link2 className="h-3 w-3 mr-1" /> Link Channel
                         </Button>
@@ -529,7 +529,7 @@ export default function ClientsPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#0d0e12] border border-[#16181d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-[#16181d] flex justify-between items-center">
-              <h3 className="font-extrabold text-white text-sm uppercase tracking-wider">Add Client Profile</h3>
+              <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider">Add Client Profile</h3>
               <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
@@ -565,7 +565,7 @@ export default function ClientsPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#0d0e12] border border-[#16181d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-[#16181d] flex justify-between items-center">
-              <h3 className="font-extrabold text-white text-sm uppercase tracking-wider">Initialize Campaign</h3>
+              <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider">Initialize Campaign</h3>
               <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
@@ -625,7 +625,7 @@ export default function ClientsPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-[#0d0e12] border border-[#16181d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-[#16181d] flex justify-between items-center">
-              <h3 className="font-extrabold text-white text-sm uppercase tracking-wider">Connect Social Page</h3>
+              <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider">Connect Social Page</h3>
               <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
@@ -702,7 +702,7 @@ export default function ClientsPage() {
             
             <form onSubmit={handleDeleteClient} className="p-6 flex flex-col gap-4 text-left">
               <p className="text-xs text-zinc-400 leading-relaxed">
-                You are about to delete client profile <strong className="text-white">"{deleteTargetClientName}"</strong>. 
+                You are about to delete client profile <strong className="text-foreground">"{deleteTargetClientName}"</strong>. 
                 This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
               </p>
               <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
@@ -714,7 +714,7 @@ export default function ClientsPage() {
               
               <div className="flex flex-col gap-1.5 pt-2">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">
-                  Type <span className="text-white font-black">DELETE</span> to confirm:
+                  Type <span className="text-foreground font-black">DELETE</span> to confirm:
                 </label>
                 <input 
                   type="text" 
@@ -760,7 +760,7 @@ export default function ClientsPage() {
             
             <form onSubmit={handleDeleteProject} className="p-6 flex flex-col gap-4 text-left">
               <p className="text-xs text-zinc-400 leading-relaxed">
-                You are about to delete campaign <strong className="text-white">"{deleteTargetProjectName}"</strong>. 
+                You are about to delete campaign <strong className="text-foreground">"{deleteTargetProjectName}"</strong>. 
                 This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
               </p>
               <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
@@ -771,7 +771,7 @@ export default function ClientsPage() {
               
               <div className="flex flex-col gap-1.5 pt-2">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">
-                  Type <span className="text-white font-black">DELETE</span> to confirm:
+                  Type <span className="text-foreground font-black">DELETE</span> to confirm:
                 </label>
                 <input 
                   type="text" 
@@ -817,7 +817,7 @@ export default function ClientsPage() {
             
             <form onSubmit={handleDeleteSocialPage} className="p-6 flex flex-col gap-4 text-left">
               <p className="text-xs text-zinc-400 leading-relaxed">
-                You are about to disconnect account <strong className="text-white">@{deleteTargetPageHandle}</strong>. 
+                You are about to disconnect account <strong className="text-foreground">@{deleteTargetPageHandle}</strong>. 
                 This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
               </p>
               <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
@@ -827,7 +827,7 @@ export default function ClientsPage() {
               
               <div className="flex flex-col gap-1.5 pt-2">
                 <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">
-                  Type <span className="text-white font-black">DISCONNECT</span> to confirm:
+                  Type <span className="text-foreground font-black">DISCONNECT</span> to confirm:
                 </label>
                 <input 
                   type="text" 

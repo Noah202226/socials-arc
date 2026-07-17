@@ -210,13 +210,13 @@ export default function WorkspaceDashboard() {
       {/* 1. TOP HEADER SECTION */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex flex-col gap-0.5 text-left">
-          <h2 className="text-xl font-bold text-white tracking-tight font-sans">Dashboard</h2>
-          <p className="text-xs text-zinc-500">Welcome back to your workspace deck, {user?.firstName || "Creator"} 👋</p>
+          <h2 className="text-xl font-bold text-zinc-900 dark:text-white tracking-tight font-sans">Dashboard</h2>
+          <p className="text-xs text-zinc-650 dark:text-zinc-500">Welcome back to your workspace deck, {user?.firstName || "Creator"} 👋</p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <span className="hidden sm:inline-block px-3 py-1 bg-[#12141a] border border-[#1d2027] rounded-full text-xs font-semibold text-zinc-400">
-             Active: <span className="text-[#05ffc4] uppercase font-bold">{workspace.name}</span>
+          <span className="hidden sm:inline-block px-3 py-1 bg-zinc-100 dark:bg-[#12141a] border border-zinc-200 dark:border-[#1d2027] rounded-full text-xs font-semibold text-zinc-600 dark:text-zinc-400">
+             Active: <span className="text-indigo-650 dark:text-[#05ffc4] uppercase font-bold">{workspace.name}</span>
           </span>
           {workspace.plan !== "agency" && (
             <Link href={`/${slug}/settings`}>
@@ -236,34 +236,34 @@ export default function WorkspaceDashboard() {
         <div className="lg:col-span-2 flex flex-col gap-5">
           
           {/* Card 1.1: General Overview & AI Crystal shape (Inspired by AI assistant panel in reference-1) */}
-          <div className="p-5 rounded-2xl border border-[#16181d] bg-[#0d0e12] flex flex-col sm:flex-row justify-between gap-5 relative overflow-hidden group hover:border-[#1d2027] transition-all">
+          <div className="p-5 rounded-2xl border border-border bg-card flex flex-col sm:flex-row justify-between gap-5 relative overflow-hidden group hover:border-zinc-350 dark:hover:border-zinc-800 transition-all">
             {/* Background vector glow */}
-            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#05ffc4]/5 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-indigo-500/5 dark:bg-[#05ffc4]/5 rounded-full blur-2xl pointer-events-none" />
 
             <div className="flex flex-col justify-between text-left flex-1 z-10">
               <div className="flex flex-col gap-1">
-                <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Workspace Health Score</span>
-                <span className="text-3xl font-extrabold text-white tracking-tight">${clients.length * 1500 + totalPostsCount * 250}.00</span>
-                <span className="text-[11px] text-zinc-400">Estimated value generated • <span className="text-[#05ffc4] font-semibold">+12.4% this week</span></span>
+                <span className="text-[10px] uppercase font-bold text-zinc-600 dark:text-zinc-500 tracking-wider">Workspace Health Score</span>
+                <span className="text-3xl font-extrabold text-zinc-950 dark:text-white tracking-tight">${clients.length * 1500 + totalPostsCount * 250}.00</span>
+                <span className="text-[11px] text-zinc-600 dark:text-zinc-400">Estimated value generated • <span className="text-emerald-650 dark:text-[#05ffc4] font-semibold">+12.4% this week</span></span>
               </div>
 
-              <div className="mt-6 p-3.5 rounded-xl bg-[#12141a] border border-[#1d2027]">
-                <span className="text-[10px] font-bold text-[#05ffc4] uppercase block mb-1">AI Agent System Status</span>
-                <p className="text-[11px] text-zinc-400 leading-relaxed">
+              <div className="mt-6 p-3.5 rounded-xl bg-zinc-100 dark:bg-[#12141a] border border-zinc-200 dark:border-zinc-800/80">
+                <span className="text-[10px] font-bold text-indigo-650 dark:text-[#05ffc4] uppercase block mb-1">AI Agent System Status</span>
+                <p className="text-[11px] text-zinc-650 dark:text-zinc-400 leading-relaxed">
                   Your AI assistant is analyzing channel performance metrics. Workflow operations are performing smoothly.
                 </p>
               </div>
             </div>
 
             {/* Glowing 3D Glass Crystal Graphic (Pure CSS implementation of the crystal shape in mockup) */}
-            <div className="flex items-center justify-center min-w-[200px] h-[160px] bg-[#12141a]/60 border border-[#1d2027] rounded-xl relative overflow-hidden group-hover:bg-[#12141a] transition-all duration-300">
-              <div className="absolute inset-0 bg-radial-gradient from-[#05ffc4]/15 via-transparent to-transparent opacity-60 animate-pulse pointer-events-none" />
+            <div className="flex items-center justify-center min-w-[200px] h-[160px] bg-zinc-100/60 dark:bg-[#12141a]/60 border border-zinc-200 dark:border-zinc-800/80 rounded-xl relative overflow-hidden group-hover:bg-zinc-100 dark:group-hover:bg-[#12141a] transition-all duration-300">
+              <div className="absolute inset-0 bg-radial-gradient from-indigo-500/10 dark:from-[#05ffc4]/15 via-transparent to-transparent opacity-60 animate-pulse pointer-events-none" />
               
               {/* Animated Crystal Shape */}
               <div className="relative w-20 h-20 transform rotate-45 select-none animate-bounce" style={{ animationDuration: '4s' }}>
-                <div className="absolute inset-0 bg-gradient-to-tr from-[#05ffc4]/50 to-[#00d9f5]/55 border border-[#05ffc4]/30 rounded-lg backdrop-blur-sm shadow-xl shadow-[#05ffc4]/10 transform translate-x-2 translate-y-2 scale-90 opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-tr from-[#05ffc4]/50 to-[#00d9f5]/55 border border-[#05ffc4]/30 rounded-lg backdrop-blur-sm shadow-xl shadow-indigo-500/10 dark:shadow-[#05ffc4]/10 transform translate-x-2 translate-y-2 scale-90 opacity-80" />
                 <div className="absolute inset-0 bg-gradient-to-bl from-[#00f5a0]/70 to-[#05ffc4]/40 border border-[#05ffc4]/40 rounded-lg backdrop-blur-md shadow-2xl shadow-[#05ffc4]/20 transform -translate-x-1 -translate-y-1" />
-                <div className="absolute inset-1/4 bg-[#0b0c0e]/90 border border-zinc-800/40 rounded-md transform rotate-12 flex items-center justify-center text-[10px] text-[#05ffc4] font-bold">
+                <div className="absolute inset-1/4 bg-background/90 border border-zinc-300 dark:border-zinc-800/40 rounded-md transform rotate-12 flex items-center justify-center text-[10px] text-indigo-650 dark:text-[#05ffc4] font-bold">
                   S.A
                 </div>
               </div>
@@ -271,13 +271,13 @@ export default function WorkspaceDashboard() {
           </div>
 
           {/* Card 1.2: Usage Quotas & Segmented Progress Bar (Inspired by Spending Limits in reference-1) */}
-          <div className="p-5 rounded-2xl border border-[#16181d] bg-[#0d0e12] flex flex-col gap-4 text-left">
+          <div className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-4 text-left">
             <div className="flex justify-between items-center">
               <div className="flex flex-col gap-0.5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">Workspace Resource Limits</h3>
-                <p className="text-[10px] text-zinc-500">Usage statistics mapped to subscription plan: {workspace.plan}</p>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300">Workspace Resource Limits</h3>
+                <p className="text-[10px] text-zinc-600 dark:text-zinc-505">Usage statistics mapped to subscription plan: {workspace.plan}</p>
               </div>
-              <span className="text-[10px] font-bold text-[#05ffc4] bg-[#05ffc4]/10 border border-[#05ffc4]/25 px-2.5 py-0.5 rounded-full uppercase">
+              <span className="text-[10px] font-bold text-indigo-650 dark:text-[#05ffc4] bg-indigo-50 dark:bg-[#05ffc4]/10 border border-indigo-200/50 dark:border-[#05ffc4]/25 px-2.5 py-0.5 rounded-full uppercase">
                 {Math.round((currentQuotaUsed / totalQuotaCapacity) * 100)}% Used
               </span>
             </div>
@@ -342,22 +342,22 @@ export default function WorkspaceDashboard() {
         <div className="flex flex-col gap-5">
           
           {/* Card 2.1: Operational Tasks & Performance (Smart Health Finance) */}
-          <div className="p-5 rounded-2xl border border-[#16181d] bg-[#0d0e12] flex flex-col gap-4 text-left">
-            <div className="flex justify-between items-center border-b border-[#16181d] pb-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-zinc-300">Campaign Rollup Data</span>
-              <span className="text-[10px] text-zinc-500 font-medium">Monthly Stats</span>
+          <div className="p-5 rounded-2xl border border-border bg-card flex flex-col gap-4 text-left">
+            <div className="flex justify-between items-center border-b border-border pb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300">Campaign Rollup Data</span>
+              <span className="text-[10px] text-zinc-600 dark:text-zinc-500 font-medium">Monthly Stats</span>
             </div>
 
             <div className="flex items-center justify-between py-2">
               <div className="flex flex-col gap-0.5">
-                <span className="text-2xl font-black text-white tracking-tight">{tasks.length}</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Workspace Tasks</span>
+                <span className="text-2xl font-black text-zinc-950 dark:text-white tracking-tight">{tasks.length}</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-500">Workspace Tasks</span>
               </div>
               <div className="flex flex-col gap-0.5 text-right">
-                <span className="text-2xl font-black text-[#05ffc4] tracking-tight">
+                <span className="text-2xl font-black text-indigo-650 dark:text-[#05ffc4] tracking-tight">
                   {tasks.filter(t => t.status === "done").length}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Tasks Completed</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-500">Tasks Completed</span>
               </div>
             </div>
 
@@ -381,15 +381,27 @@ export default function WorkspaceDashboard() {
             {/* Quick Members bubble profile icons list (matching mockup) */}
             <div className="flex items-center gap-1.5 border-t border-[#16181d] pt-3.5 mt-1">
               <div className="flex -space-x-1.5 overflow-hidden">
-                {members.slice(0, 5).map((m, idx) => (
-                  <div 
-                    key={idx} 
-                    className="inline-block h-6 w-6 rounded-full ring-2 ring-[#0b0c0e] bg-zinc-800 text-[9px] font-extrabold flex items-center justify-center uppercase text-zinc-400 border border-zinc-700"
-                    title={`User: ${m.userId.substring(0, 5)}`}
-                  >
-                    {m.role === "owner" ? "OW" : "ED"}
-                  </div>
-                ))}
+                {members.slice(0, 5).map((m, idx) => {
+                  const avatar = m.pictureUrl;
+                  const isImage = avatar && (avatar.startsWith("http") || avatar.startsWith("/"));
+                  return (
+                    <div 
+                      key={idx} 
+                      className="inline-block h-6 w-6 rounded-full ring-2 ring-background bg-zinc-200 dark:bg-zinc-800 text-[9px] font-extrabold flex items-center justify-center uppercase text-zinc-500 dark:text-zinc-450 border border-zinc-300 dark:border-zinc-750 overflow-hidden shrink-0"
+                      title={m.userName || `User: ${m.userId.substring(0, 5)}`}
+                    >
+                      {avatar ? (
+                        isImage ? (
+                          <img src={avatar} className="h-full w-full object-cover" />
+                        ) : (
+                          <span className="text-xs">{avatar}</span>
+                        )
+                      ) : (
+                        m.role === "owner" ? "OW" : "ED"
+                      )}
+                    </div>
+                  );
+                })}
               </div>
               <span className="text-[10px] text-zinc-500 font-semibold uppercase">{members.length} Active Editors</span>
             </div>
@@ -404,10 +416,10 @@ export default function WorkspaceDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-1">
         
         {/* Left Search Table widget (Inspired by metrics search records table in reference-1) */}
-        <div className="lg:col-span-2 p-5 rounded-2xl border border-[#16181d] bg-[#0d0e12] flex flex-col gap-4 text-left">
+        <div className="lg:col-span-2 p-5 rounded-2xl border border-border bg-card flex flex-col gap-4 text-left">
           
           {/* Header controls */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-[#16181d] pb-3">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-border pb-3">
             <div className="relative w-full sm:w-60">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
               <input 
@@ -415,12 +427,12 @@ export default function WorkspaceDashboard() {
                 placeholder="Search health metrics/posts..." 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-[#12141a] border border-[#1d2027] rounded-lg py-1.5 pl-8 pr-4 text-[11px] text-zinc-300 placeholder-zinc-500 focus:outline-none focus:border-zinc-850"
+                className="w-full bg-zinc-100 dark:bg-[#12141a] border border-zinc-200 dark:border-[#1d2027] rounded-lg py-1.5 pl-8 pr-4 text-[11px] text-zinc-700 dark:text-zinc-300 placeholder-zinc-500 focus:outline-none focus:border-zinc-350 dark:focus:border-zinc-850"
               />
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex gap-1 p-0.5 bg-[#12141a] border border-[#1d2027] rounded-lg">
+            <div className="flex gap-1 p-0.5 bg-zinc-100 dark:bg-[#12141a] border border-zinc-200 dark:border-[#1d2027] rounded-lg">
               {[
                 { id: "all", label: "All Records" },
                 { id: "pending", label: "Pending" },
@@ -431,8 +443,8 @@ export default function WorkspaceDashboard() {
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`px-3 py-1 rounded-md text-[10px] font-bold uppercase transition-all ${
                     activeTab === tab.id 
-                      ? "bg-[#0d0e12] text-[#05ffc4] border border-[#05ffc4]/15" 
-                      : "text-zinc-500 hover:text-zinc-300"
+                      ? "bg-card text-indigo-650 dark:text-[#05ffc4] border border-indigo-650/10 dark:border-[#05ffc4]/15" 
+                      : "text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
                   }`}
                 >
                   {tab.label}
@@ -451,7 +463,7 @@ export default function WorkspaceDashboard() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="text-zinc-500 font-bold uppercase tracking-wider text-[9px] border-b border-[#16181d] pb-2">
+                  <tr className="text-zinc-500 font-bold uppercase tracking-wider text-[9px] border-b border-border pb-2">
                     <th className="py-2.5 px-3">Category (Caption)</th>
                     <th className="py-2.5 px-3">Campaign</th>
                     <th className="py-2.5 px-3">Platform</th>
@@ -466,10 +478,10 @@ export default function WorkspaceDashboard() {
 
                     return (
                       <tr key={post._id} className="hover:bg-[#12141a]/20 transition-colors group">
-                        <td className="py-3 px-3 max-w-[220px] truncate font-semibold text-zinc-200 group-hover:text-white">
+                        <td className="py-3 px-3 max-w-[220px] truncate font-semibold text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-950 dark:group-hover:text-white">
                           {post.caption}
                         </td>
-                        <td className="py-3 px-3 text-zinc-400 font-medium">
+                        <td className="py-3 px-3 text-zinc-600 dark:text-zinc-400 font-medium">
                           {project ? project.name : "N/A"}
                         </td>
                         <td className="py-3 px-3">
@@ -502,12 +514,12 @@ export default function WorkspaceDashboard() {
         </div>
 
         {/* Right AI Assistant Chat interface widget (Inspired by AI Assistant chat mockup in reference-1) */}
-        <div className="p-5 rounded-2xl border border-[#16181d] bg-[#0d0e12] flex flex-col justify-between gap-4 text-left min-h-[380px]">
+        <div className="p-5 rounded-2xl border border-border bg-card flex flex-col justify-between gap-4 text-left min-h-[380px]">
           {/* Header */}
-          <div className="flex justify-between items-center border-b border-[#16181d] pb-2.5 shrink-0">
+          <div className="flex justify-between items-center border-b border-border pb-2.5 shrink-0">
             <div className="flex items-center gap-2">
-              <Sparkle className="h-4 w-4 text-[#05ffc4] animate-spin" style={{ animationDuration: '6s' }} />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">AI Assistant Hub</h3>
+              <Sparkle className="h-4 w-4 text-indigo-600 dark:text-[#05ffc4] animate-spin" style={{ animationDuration: '6s' }} />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300">AI Assistant Hub</h3>
             </div>
             <div className="flex items-center gap-1.5 text-zinc-500">
               <button className="p-1 rounded hover:bg-zinc-900 hover:text-white" title="Export Thread">
@@ -523,18 +535,18 @@ export default function WorkspaceDashboard() {
           <div className="flex-1 flex flex-col gap-3.5 overflow-y-auto pr-0.5 justify-center py-2">
             
             {/* Bubble 1: User */}
-            <div className="bg-[#12141a] border border-[#1d2027] text-zinc-300 text-xs px-3.5 py-2.5 rounded-2xl rounded-tr-none self-end max-w-[85%] leading-relaxed shadow-sm">
+            <div className="bg-zinc-100 dark:bg-[#12141a] border border-zinc-200 dark:border-[#1d2027] text-zinc-700 dark:text-zinc-300 text-xs px-3.5 py-2.5 rounded-2xl rounded-tr-none self-end max-w-[85%] leading-relaxed shadow-sm">
               Which workspace status pipelines should I prioritize for content planning?
             </div>
 
             {/* Bubble 2: Assistant */}
             <div className="flex gap-2 items-start max-w-[90%] text-left">
-              <div className="h-5 w-5 rounded-full bg-[#05ffc4]/15 border border-[#05ffc4]/20 flex items-center justify-center text-[9px] font-bold text-[#05ffc4] shrink-0 mt-0.5">
+              <div className="h-5 w-5 rounded-full bg-indigo-50 dark:bg-[#05ffc4]/15 border border-indigo-200 dark:border-[#05ffc4]/20 flex items-center justify-center text-[9px] font-bold text-indigo-650 dark:text-[#05ffc4] shrink-0 mt-0.5">
                 AI
               </div>
               <div className="flex flex-col gap-1.5">
-                <div className="bg-[#12141a] border border-[#1d2027] text-zinc-350 text-xs px-3.5 py-2.5 rounded-2xl rounded-tl-none leading-relaxed shadow-sm">
-                  <span className="text-[#05ffc4] font-bold">Focus: Content Scheduling.</span> Prioritize posts in <span className="text-[#05ffc4] font-semibold">Client Review</span> and ensure client approvals are completed. Keep an eye on your monthly posts limits.
+                <div className="bg-zinc-100 dark:bg-[#12141a] border border-zinc-200 dark:border-[#1d2027] text-zinc-700 dark:text-zinc-350 text-xs px-3.5 py-2.5 rounded-2xl rounded-tl-none leading-relaxed shadow-sm">
+                  <span className="text-indigo-650 dark:text-[#05ffc4] font-bold">Focus: Content Scheduling.</span> Prioritize posts in <span className="text-indigo-650 dark:text-[#05ffc4] font-semibold">Client Review</span> and ensure client approvals are completed. Keep an eye on your monthly posts limits.
                 </div>
               </div>
             </div>
@@ -548,7 +560,7 @@ export default function WorkspaceDashboard() {
               {["Ask AI", "Review P&L", "Copy Approval Link"].map((chip, idx) => (
                 <span 
                   key={idx}
-                  className="px-2.5 py-0.5 bg-[#12141a] hover:bg-[#12141a]/85 border border-[#1d2027] hover:border-zinc-800 text-[9px] font-bold uppercase text-zinc-400 hover:text-zinc-200 cursor-pointer rounded-full transition-all"
+                  className="px-2.5 py-0.5 bg-zinc-150/80 hover:bg-zinc-200 dark:bg-[#12141a] dark:hover:bg-[#12141a]/85 border border-zinc-200 dark:border-[#1d2027] hover:border-zinc-350 dark:hover:border-[#1d2027] text-[9px] font-bold uppercase text-zinc-650 dark:text-zinc-400 hover:text-zinc-950 dark:hover:text-zinc-200 cursor-pointer rounded-full transition-all"
                 >
                   {chip}
                 </span>
@@ -561,13 +573,13 @@ export default function WorkspaceDashboard() {
                 type="text" 
                 placeholder="Ask AI Assistant or search metrics..."
                 disabled
-                className="w-full bg-[#12141a] border border-[#1d2027] rounded-lg py-2 pl-3 pr-16 text-xs text-zinc-450 placeholder-zinc-550 focus:outline-none"
+                className="w-full bg-zinc-100 dark:bg-[#12141a] border border-zinc-200 dark:border-[#1d2027] rounded-lg py-2 pl-3 pr-16 text-xs text-zinc-700 dark:text-zinc-300 placeholder-zinc-500 focus:outline-none"
               />
               <div className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                <button className="p-1 rounded hover:bg-zinc-900 text-zinc-550 hover:text-zinc-300" title="Voice Search">
+                <button className="p-1 rounded hover:bg-zinc-200 dark:hover:bg-zinc-900 text-zinc-550 dark:text-zinc-550 hover:text-zinc-800 dark:hover:text-zinc-300" title="Voice Search">
                   <Mic className="h-3.5 w-3.5" />
                 </button>
-                <button className="p-1 rounded bg-[#05ffc4]/10 text-[#05ffc4] border border-[#05ffc4]/20 hover:opacity-85" title="Submit">
+                <button className="p-1 rounded bg-indigo-50 dark:bg-[#05ffc4]/10 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200 dark:border-[#05ffc4]/20 hover:opacity-85" title="Submit">
                   <Send className="h-3 w-3" />
                 </button>
               </div>

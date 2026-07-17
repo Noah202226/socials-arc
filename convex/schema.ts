@@ -136,20 +136,25 @@ export default defineSchema({
     .index("by_assignee", ["assigneeId"]),
 
   // ---------------------------------------------------------------------
-  // Comments (on posts)
+  // Comments (on posts and tasks)
   // ---------------------------------------------------------------------
   comments: defineTable({
-    postId: v.id("posts"),
+    postId: v.optional(v.id("posts")),
+    taskId: v.optional(v.id("tasks")),
     authorId: v.string(), // Clerk user id, or "client" for external approver
     authorName: v.string(), // denormalized for display, esp. client-facing links
     body: v.string(),
-  }).index("by_post", ["postId"]),
+    imageStorageId: v.optional(v.id("_storage")),
+  })
+    .index("by_post", ["postId"])
+    .index("by_task", ["taskId"]),
 
   // ---------------------------------------------------------------------
   // Assets (media library)
   // ---------------------------------------------------------------------
   assets: defineTable({
     postId: v.optional(v.id("posts")), // optional: assets can exist unattached in the library
+    taskId: v.optional(v.id("tasks")), // attached to a task
     projectId: v.id("projects"),
     storageId: v.id("_storage"),
     type: v.union(
@@ -161,6 +166,7 @@ export default defineSchema({
     uploadedBy: v.string(), // Clerk user id
   })
     .index("by_post", ["postId"])
+    .index("by_task", ["taskId"])
     .index("by_project", ["projectId"]),
 
   // ---------------------------------------------------------------------

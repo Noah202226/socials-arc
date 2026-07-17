@@ -129,6 +129,7 @@ export default function ContentWorkflowPage() {
   // Comment Form States
   const [commentText, setCommentText] = useState("");
   const [loadingComment, setLoadingComment] = useState(false);
+  const [commentFile, setCommentFile] = useState<File | null>(null);
   const [loadingAction, setLoadingAction] = useState(false);
 
   // Calendar Navigation State
@@ -270,16 +271,33 @@ export default function ContentWorkflowPage() {
 
   const handlePostCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim() || !selectedPost) return;
+    if ((!commentText.trim() && !commentFile) || !selectedPost) return;
     setLoadingComment(true);
     try {
+      let imageStorageId = undefined;
+      if (commentFile) {
+        const uploadUrl = await generateUploadUrl({ projectId: selectedPost.projectId });
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": commentFile.type },
+          body: commentFile,
+        });
+        if (!res.ok) throw new Error("Image upload failed");
+        const json = await res.json();
+        imageStorageId = json.storageId;
+      }
+
       await createComment({
         postId: selectedPost._id,
         body: commentText.trim(),
+        imageStorageId,
       });
       setCommentText("");
-    } catch (err) {
+      setCommentFile(null);
+      toast.success("Comment posted successfully!");
+    } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Failed to post comment");
     } finally {
       setLoadingComment(false);
     }
@@ -445,11 +463,10 @@ export default function ContentWorkflowPage() {
 
   return (
     <div className="flex flex-col gap-6 w-full flex-1">
-      {/* Header and Toggle Controllers */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-zinc-900 pb-5">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-5">
         <div className="flex flex-col gap-1">
-          <h2 className="text-2xl font-bold text-white tracking-tight">Content Workflow</h2>
-          <p className="text-sm text-zinc-400">
+          <h2 className="text-2xl font-bold text-zinc-900 dark:text-white tracking-tight">Content Workflow</h2>
+          <p className="text-sm text-zinc-650 dark:text-zinc-400">
             Write captions, schedule platforms, organize reviews, and retrieve client-facing share tokens.
           </p>
         </div>
@@ -553,6 +570,7 @@ export default function ContentWorkflowPage() {
                       const page = socialPages.find((sp) => sp._id === post.pageId);
                       const pConfig = page ? (platformConfigs as any)[page.platform] : null;
                       const postAsset = assets?.find((a) => a.postId === post._id && a.type === "image");
+                      const assignee = members.find((m) => m.userId === post.assigneeId);
 
                       return (
                         <div 
@@ -602,19 +620,46 @@ export default function ContentWorkflowPage() {
 
                           {/* Info row */}
                           <div className="flex items-center justify-between text-[9px] text-zinc-500 border-t border-zinc-900/60 pt-2 mt-0.5">
-                            <div className="flex items-center gap-1 text-[8.5px]">
-                              <Clock className="h-2.5 w-2.5 text-zinc-650" />
-                              <span>
-                                {post.scheduledAt 
-                                  ? new Date(post.scheduledAt).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) 
-                                  : "Unscheduled"}
-                              </span>
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              {/* Assignee Avatar */}
+                              {assignee ? (
+                                assignee.pictureUrl ? (
+                                  assignee.pictureUrl.startsWith("http://") || assignee.pictureUrl.startsWith("https://") || assignee.pictureUrl.startsWith("/") ? (
+                                    <div className="h-[15px] w-[15px] rounded-full overflow-hidden shrink-0 border border-zinc-800" title={assignee.userName || "Teammate"}>
+                                      <img 
+                                        src={assignee.pictureUrl} 
+                                        alt="Assignee Avatar" 
+                                        className="h-full w-full object-cover"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <span className="text-[10px] leading-none shrink-0" title={assignee.userName || "Teammate"}>{assignee.pictureUrl}</span>
+                                  )
+                                ) : (
+                                  <span title={assignee.userName || "Teammate"} className="flex items-center shrink-0">
+                                    <User className="h-3 w-3 text-zinc-650" />
+                                  </span>
+                                )
+                              ) : (
+                                <span className="text-[10px] text-zinc-700 font-bold" title="Unassigned">👤</span>
+                              )}
+                              
+                              <span className="text-zinc-800">|</span>
+
+                              <div className="flex items-center gap-1 text-[8.5px] min-w-0">
+                                <Clock className="h-2.5 w-2.5 text-zinc-650 shrink-0" />
+                                <span className="truncate">
+                                  {post.scheduledAt 
+                                    ? new Date(post.scheduledAt).toLocaleDateString(undefined, {month: 'short', day: 'numeric'}) 
+                                    : "Unscheduled"}
+                                </span>
+                              </div>
                             </div>
 
                             {post.status === "client_review" && post.approvalToken && (
                               <button 
                                 onClick={() => handleCopyLink(post.approvalToken as string)}
-                                className="text-amber-500 hover:text-amber-400 flex items-center gap-0.5 font-bold uppercase text-[8px]"
+                                className="text-amber-500 hover:text-amber-400 flex items-center gap-0.5 font-bold uppercase text-[8px] shrink-0"
                                 title="Copy Share Link"
                               >
                                 <ExternalLink className="h-2.5 w-2.5" /> Review
@@ -811,14 +856,17 @@ export default function ContentWorkflowPage() {
                   onChange={(e) => setPostAssignee(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-350 text-sm focus:outline-none focus:border-indigo-600"
                 >
-                  <option value="">Unassigned</option>
+                  <option value="">👤 Unassigned</option>
                   {members.map(m => {
+                    const avatarSymbol = m.pictureUrl 
+                      ? (m.pictureUrl.startsWith("http") || m.pictureUrl.startsWith("/") ? "👤" : m.pictureUrl) 
+                      : "👤";
                     const displayName = m.userName && (m.userEmail || m.invitedEmail) 
                       ? `${m.userName} (${m.userEmail || m.invitedEmail})` 
                       : (m.userEmail || m.invitedEmail || m.userName || m.userId.substring(0, 8) + "...");
                     return (
                       <option key={m.userId} value={m.userId}>
-                        {m.userId === workspace.ownerId ? `Owner: ${displayName}` : `Teammate: ${displayName}`}
+                        {avatarSymbol} {m.userId === workspace.ownerId ? `Owner: ${displayName}` : `Teammate: ${displayName}`}
                       </option>
                     );
                   })}
@@ -842,7 +890,7 @@ export default function ContentWorkflowPage() {
       {/* 2. Inspect Post (Details + Share + Comments) Modal */}
       {activeModal === "inspect" && selectedPost && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-4xl bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-[calc(100%-2rem)] md:max-w-[90vw] lg:max-w-[85vw] xl:max-w-7xl h-[95vh] bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
             <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Layers className="h-5 w-5 text-indigo-400" />
@@ -856,10 +904,10 @@ export default function ContentWorkflowPage() {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 flex-1 min-h-0 overflow-y-auto md:overflow-visible">
               
               {/* Left Column: Form Details */}
-              <form onSubmit={handleInspectSaveSubmit} className="p-6 border-r border-zinc-900 flex flex-col gap-4 overflow-y-auto max-h-[500px]">
+              <form onSubmit={handleInspectSaveSubmit} className="p-6 border-b md:border-b-0 md:border-r border-zinc-900 flex flex-col gap-4 h-auto md:h-full overflow-y-visible md:overflow-y-auto">
                 
                 <div className="flex flex-col gap-1.5 text-left">
                   <label className="text-xs font-semibold text-zinc-400">Caption / Copy</label>
@@ -896,14 +944,17 @@ export default function ContentWorkflowPage() {
                       onChange={(e) => setPostAssignee(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-350 text-sm focus:outline-none focus:border-indigo-600"
                     >
-                      <option value="">Unassigned</option>
+                      <option value="">👤 Unassigned</option>
                       {members.map(m => {
+                        const avatarSymbol = m.pictureUrl 
+                          ? (m.pictureUrl.startsWith("http") || m.pictureUrl.startsWith("/") ? "👤" : m.pictureUrl) 
+                          : "👤";
                         const displayName = m.userName && (m.userEmail || m.invitedEmail) 
                           ? `${m.userName} (${m.userEmail || m.invitedEmail})` 
                           : (m.userEmail || m.invitedEmail || m.userName || m.userId.substring(0, 8) + "...");
                         return (
                           <option key={m.userId} value={m.userId}>
-                            {m.userId === workspace.ownerId ? `Owner: ${displayName}` : `Teammate: ${displayName}`}
+                            {avatarSymbol} {m.userId === workspace.ownerId ? `Owner: ${displayName}` : `Teammate: ${displayName}`}
                           </option>
                         );
                       })}
@@ -1110,13 +1161,13 @@ export default function ContentWorkflowPage() {
               </form>
 
               {/* Right Column: Comments Threads */}
-              <div className="p-6 bg-zinc-950/40 flex flex-col gap-4 max-h-[500px]">
+              <div className="p-6 bg-zinc-950/40 flex flex-col gap-4 h-[500px] md:h-full overflow-hidden shrink-0 md:shrink">
                 <h4 className="text-xs font-bold uppercase text-zinc-400 tracking-wider flex items-center gap-1.5 border-b border-zinc-900 pb-2 text-left">
                   <MessageSquare className="h-3.5 w-3.5 text-indigo-400" /> Collaboration Thread
                 </h4>
 
                 {/* Messages Roster */}
-                <div className="flex-1 overflow-y-auto flex flex-col gap-3 min-h-[250px] pr-1.5">
+                <div className="flex-1 overflow-y-auto flex flex-col gap-3 min-h-0 pr-1.5">
                   {comments === undefined ? (
                     <div className="flex justify-center items-center py-10">
                       <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
@@ -1140,29 +1191,84 @@ export default function ContentWorkflowPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-xs text-zinc-300 p-2.5 rounded-lg border border-zinc-900 bg-zinc-900/20 leading-relaxed max-w-[90%]">
-                            {c.body}
-                          </p>
+                          <div className="p-2.5 rounded-lg border border-zinc-900 bg-zinc-900/20 max-w-[90%] flex flex-col gap-2">
+                            {c.body && (
+                              <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                                {c.body}
+                              </p>
+                            )}
+                            {c.imageUrl && (
+                              <div className="relative max-w-full rounded-md overflow-hidden border border-zinc-800/80 bg-black/40">
+                                <img 
+                                  src={c.imageUrl} 
+                                  alt="Comment attachment" 
+                                  className="max-h-48 object-contain rounded w-auto max-w-full block"
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
                     })
                   )}
                 </div>
 
+                {/* Comment File Preview */}
+                {commentFile && (
+                  <div className="flex items-center justify-between gap-2 p-1.5 rounded-lg border border-zinc-900 bg-zinc-950/60 text-xs mt-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="relative h-8 w-8 rounded overflow-hidden border border-zinc-900 bg-black shrink-0">
+                        <img 
+                          src={URL.createObjectURL(commentFile)} 
+                          alt="preview" 
+                          className="h-full w-full object-cover" 
+                        />
+                      </div>
+                      <span className="text-[10px] text-zinc-300 truncate">{commentFile.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCommentFile(null)}
+                      className="text-zinc-500 hover:text-red-450 p-1"
+                    >
+                      <CloseIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
+
                 {/* Comment Input */}
                 <form onSubmit={handlePostCommentSubmit} className="flex items-center gap-2 border-t border-zinc-900/60 pt-3">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="comment-image-upload"
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files && e.target.files[0]) {
+                        setCommentFile(e.target.files[0]);
+                      }
+                    }}
+                  />
+                  <label 
+                    htmlFor="comment-image-upload"
+                    className="h-8 w-8 rounded-lg flex items-center justify-center border border-zinc-900 bg-zinc-900/20 text-zinc-400 hover:text-zinc-200 cursor-pointer shrink-0"
+                    title="Attach image"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                  </label>
+
                   <input
                     type="text"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Ask a question or request copy edits..."
                     className="flex-1 px-3 py-1.5 rounded-lg border border-zinc-900 bg-zinc-900/20 text-zinc-200 text-xs focus:outline-none focus:border-indigo-600"
-                    required
+                    required={!commentFile}
                   />
                   <Button 
                     type="submit" 
                     size="icon" 
-                    disabled={loadingComment || !commentText.trim()}
+                    disabled={loadingComment || (!commentText.trim() && !commentFile)}
                     className="h-8 w-8 bg-indigo-600 hover:bg-indigo-500 text-white shrink-0"
                   >
                     {loadingComment ? (
