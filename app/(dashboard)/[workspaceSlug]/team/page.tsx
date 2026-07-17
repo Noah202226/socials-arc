@@ -17,8 +17,10 @@ import {
   User,
   X as CloseIcon,
   HelpCircle,
-  AlertCircle
+  AlertCircle,
+  Edit2
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function TeamPage() {
   const params = useParams();
@@ -40,6 +42,27 @@ export default function TeamPage() {
   // Mutations
   const sendInvite = useMutation(api.members.invite);
   const cancelInvite = useMutation(api.members.cancelInvite);
+  const updateNickname = useMutation(api.members.updateNickname);
+
+  // Local States
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editNicknameValue, setEditNicknameValue] = useState("");
+  const [updatingNicknameId, setUpdatingNicknameId] = useState<string | null>(null);
+
+  const handleSaveNickname = async (memberId: string) => {
+    if (!editNicknameValue.trim()) return;
+    setUpdatingNicknameId(memberId);
+    try {
+      await updateNickname({ memberId, nickname: editNicknameValue.trim() });
+      toast.success("Teammate nickname updated successfully!");
+      setEditingMemberId(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update nickname");
+    } finally {
+      setUpdatingNicknameId(null);
+    }
+  };
 
   // Local States
   const [inviteEmail, setInviteEmail] = useState("");
@@ -142,11 +165,59 @@ export default function TeamPage() {
                     <User className="h-5 w-5" />
                   </div>
                   <div className="flex flex-col text-left">
-                    <span className="text-sm font-semibold text-zinc-200">
-                      {member.userId === workspace.ownerId ? "Workspace Owner" : `User ID: ${member.userId.substring(0, 15)}...`}
-                    </span>
-                    {member.invitedEmail && (
-                      <span className="text-xs text-zinc-500">{member.invitedEmail}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm font-semibold text-zinc-200">
+                        {member.userName || (member.userId === workspace.ownerId ? "Workspace Owner" : "Active Teammate")}
+                      </span>
+                      {member.userName && (
+                        <span className="text-[10px] text-zinc-500 font-mono">
+                          ({member.userId === workspace.ownerId ? "Owner" : `ID: ${member.userId.substring(0, 8)}...`})
+                        </span>
+                      )}
+                    </div>
+                    {editingMemberId === member._id ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          type="text"
+                          value={editNicknameValue}
+                          onChange={(e) => setEditNicknameValue(e.target.value)}
+                          className="px-2 py-1 text-xs rounded bg-zinc-900 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-650"
+                          placeholder="Enter nickname..."
+                          autoFocus
+                        />
+                        <Button
+                          size="sm"
+                          onClick={() => handleSaveNickname(member._id)}
+                          disabled={updatingNicknameId === member._id || !editNicknameValue.trim()}
+                          className="bg-indigo-600 hover:bg-indigo-500 px-2 py-0.5 h-6 text-[10px] text-white font-semibold"
+                        >
+                          {updatingNicknameId === member._id ? "Saving..." : "Save"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setEditingMemberId(null)}
+                          className="px-2 py-0.5 h-6 text-[10px] text-zinc-400 hover:text-zinc-200"
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-xs text-zinc-500">
+                          {member.userEmail || member.invitedEmail || "No email registered"}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setEditingMemberId(member._id);
+                            setEditNicknameValue(member.userName || "");
+                          }}
+                          className="text-zinc-600 hover:text-indigo-400 transition-colors p-0.5"
+                          title="Edit Nickname"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>

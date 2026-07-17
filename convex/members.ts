@@ -193,6 +193,8 @@ export const acceptInvite = mutation({
     await ctx.db.patch(pendingInvite._id, {
       userId: identity.subject,
       joinedAt: Date.now(),
+      userEmail: email,
+      userName: identity.name || identity.givenName || identity.nickname || "",
     });
 
     const workspace = await ctx.db.get(args.workspaceId);
@@ -201,5 +203,50 @@ export const acceptInvite = mutation({
     }
 
     return workspace;
+  },
+});
+
+/**
+ * Updates a member's display name/nickname.
+ * Allowed for workspace owner/admin, or the member themselves.
+ */
+export const updateNickname = mutation({
+  args: {
+    memberId: v.id("members"),
+    nickname: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError("Unauthenticated");
+    }
+
+    const member = await ctx.db.get(args.memberId);
+    if (!member) {
+      throw new ConvexError("Member not found");
+    }
+
+    // Verify calling user is owner/admin, OR the member themselves
+    const callerMembership = await ctx.db
+      .query("members")
+      .withIndex("by_workspace_and_user", (q) =>
+        q.eq("workspaceId", member.workspaceId).eq("userId", identity.subject)
+      )
+      .first();
+
+    const isSelf = member.userId === identity.subject;
+    const isOwnerOrAdmin = callerMembership && (callerMembership.role === "owner" || callerMembership.role === "admin");
+
+    if (!isSelf && !isOwnerOrAdmin) {
+      throw new ConvexError("Unauthorized: You cannot change this member's nickname");
+    }
+
+    const cleanedNickname = args.nickname.trim();
+
+    await ctx.db.patch(args.memberId, {
+      userName: cleanedNickname || undefined,
+    });
+
+    return await ctx.db.get(args.memberId);
   },
 });

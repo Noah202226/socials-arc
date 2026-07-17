@@ -488,11 +488,16 @@ export default function TasksPage() {
                     className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-350 text-sm focus:outline-none focus:border-indigo-600"
                   >
                     <option value="">Unassigned</option>
-                    {members.map(m => (
-                      <option key={m.userId} value={m.userId}>
-                        {m.userId === workspace.ownerId ? "Owner (You)" : `Assistant: ${m.userId.substring(0, 8)}...`}
-                      </option>
-                    ))}
+                    {members.map(m => {
+                      const displayName = m.userName && (m.userEmail || m.invitedEmail) 
+                        ? `${m.userName} (${m.userEmail || m.invitedEmail})` 
+                        : (m.userEmail || m.invitedEmail || m.userName || m.userId.substring(0, 8) + "...");
+                      return (
+                        <option key={m.userId} value={m.userId}>
+                          {m.userId === workspace.ownerId ? `Owner: ${displayName}` : `Assistant: ${displayName}`}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
@@ -563,11 +568,16 @@ export default function TasksPage() {
                     className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
                   >
                     <option value="">Unassigned</option>
-                    {members.map(m => (
-                      <option key={m.userId} value={m.userId}>
-                        {m.userId === workspace.ownerId ? "Owner (You)" : `Assistant: ${m.userId.substring(0, 8)}...`}
-                      </option>
-                    ))}
+                    {members.map(m => {
+                      const displayName = m.userName && (m.userEmail || m.invitedEmail) 
+                        ? `${m.userName} (${m.userEmail || m.invitedEmail})` 
+                        : (m.userEmail || m.invitedEmail || m.userName || m.userId.substring(0, 8) + "...");
+                      return (
+                        <option key={m.userId} value={m.userId}>
+                          {m.userId === workspace.ownerId ? `Owner: ${displayName}` : `Assistant: ${displayName}`}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 

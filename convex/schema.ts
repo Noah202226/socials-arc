@@ -51,6 +51,8 @@ export default defineSchema({
     ),
     invitedEmail: v.optional(v.string()),
     joinedAt: v.optional(v.number()),
+    userEmail: v.optional(v.string()),
+    userName: v.optional(v.string()),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_user", ["userId"])

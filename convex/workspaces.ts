@@ -40,6 +40,13 @@ export const getOrCreate = mutation({
       // Fetch and return the existing workspace
       const workspace = await ctx.db.get(existingMembership.workspaceId);
       if (workspace) {
+        // Backfill name/email details if missing on existing membership
+        if (!existingMembership.userEmail || !existingMembership.userName) {
+          await ctx.db.patch(existingMembership._id, {
+            userEmail: existingMembership.userEmail || identity.email || undefined,
+            userName: existingMembership.userName || identity.name || identity.givenName || identity.nickname || undefined,
+          });
+        }
         return workspace;
       }
     }
@@ -67,6 +74,8 @@ export const getOrCreate = mutation({
       userId,
       role: "owner",
       joinedAt: Date.now(),
+      userEmail: identity.email,
+      userName: identity.name || identity.givenName || identity.nickname || "",
     });
 
     const newWorkspace = await ctx.db.get(workspaceId);
