@@ -319,13 +319,13 @@ export default function FinancePage() {
           })}
         </div>
       ) : (
-        <div className="p-6 rounded-xl border border-zinc-900 bg-zinc-950/20 text-center text-xs text-zinc-500 italic">
+        <div className="p-6 rounded-xl border border-border bg-card text-center text-xs text-zinc-550 italic">
           No transaction entries logged yet. Setup your first ledger line below.
         </div>
       )}
 
       {/* Control bar */}
-      <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center bg-zinc-900/20 p-4 rounded-xl border border-zinc-900">
+      <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center bg-card p-4 rounded-xl border border-border">
         <div className="flex flex-1 flex-col sm:flex-row gap-3 items-stretch sm:items-center">
           
           {/* Text Search */}
@@ -336,7 +336,7 @@ export default function FinancePage() {
               placeholder="Search description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-zinc-800 bg-zinc-950/60 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600"
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
             />
           </div>
 
@@ -347,7 +347,7 @@ export default function FinancePage() {
               setSelectedClientFilter(e.target.value);
               setSelectedPageFilter("all"); // Reset page filter on client change
             }}
-            className="px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-950/60 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600 min-w-[150px]"
+            className="px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 min-w-[150px]"
           >
             <option value="all">All Clients</option>
             {clients.map(c => (
@@ -359,7 +359,7 @@ export default function FinancePage() {
           <select
             value={selectedPageFilter}
             onChange={(e) => setSelectedPageFilter(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-zinc-800 bg-zinc-950/60 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600 min-w-[160px]"
+            className="px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 min-w-[160px]"
           >
             <option value="all">All Channels</option>
             {filteredSocialPages.map(p => (
@@ -369,15 +369,15 @@ export default function FinancePage() {
         </div>
 
         {/* Type Filter Tabs */}
-        <div className="flex bg-zinc-950/60 p-1 rounded-lg border border-zinc-850 shrink-0 self-start lg:self-center">
+        <div className="flex bg-muted p-1 rounded-lg border border-border shrink-0 self-start lg:self-center">
           {(["all", "income", "expense"] as const).map((type) => (
             <button
               key={type}
               onClick={() => setSelectedTypeFilter(type)}
               className={`px-3 py-1 text-xs font-medium rounded-md capitalize transition-colors ${
                 selectedTypeFilter === type
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-200"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-zinc-550 hover:text-foreground"
               }`}
             >
               {type === "all" ? "All Entries" : `${type}s`}
@@ -387,11 +387,11 @@ export default function FinancePage() {
       </div>
 
       {/* Ledger Table */}
-      <div className="rounded-xl border border-zinc-900 bg-zinc-950/20 overflow-hidden shadow-lg">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-lg">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-zinc-900 bg-zinc-950/80 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+              <tr className="border-b border-border bg-muted text-[10px] uppercase font-bold text-zinc-550 dark:text-zinc-400 tracking-wider">
                 <th className="p-4">Date</th>
                 <th className="p-4">Channel / Client</th>
                 <th className="p-4">Category</th>
@@ -402,7 +402,7 @@ export default function FinancePage() {
                 <th className="p-4 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-900/60 text-xs">
+            <tbody className="divide-y divide-border text-xs">
               {filteredTransactions.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="p-8 text-center text-zinc-550 italic">
@@ -418,14 +418,14 @@ export default function FinancePage() {
                   return (
                     <tr 
                       key={t._id}
-                      className="hover:bg-zinc-900/10 transition-colors"
+                      className="hover:bg-muted/40 transition-colors"
                     >
-                      <td className="p-4 text-zinc-400 font-mono">
+                      <td className="p-4 text-zinc-500 dark:text-zinc-400 font-mono">
                         {new Date(t.date).toLocaleDateString(undefined, { year: 'numeric', month: '2-digit', day: '2-digit' })}
                       </td>
                       <td className="p-4">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-zinc-200">@{page?.handle || "Unknown"}</span>
+                          <span className="font-semibold text-foreground">@{page?.handle || "Unknown"}</span>
                           <span className="text-[10px] text-zinc-500 uppercase tracking-wide">{client?.name}</span>
                         </div>
                       </td>
@@ -438,7 +438,7 @@ export default function FinancePage() {
                           {getCategoryLabel(t.category)}
                         </span>
                       </td>
-                      <td className="p-4 text-zinc-300 max-w-[200px] truncate" title={t.description}>
+                      <td className="p-4 text-foreground max-w-[200px] truncate" title={t.description}>
                         <div className="flex items-center gap-1.5">
                           {t.recurring && (
                             <span title={`Recurring ${t.recurrenceInterval}`} className="shrink-0 flex items-center">
@@ -467,7 +467,7 @@ export default function FinancePage() {
                             href={t.receiptUrl} 
                             target="_blank" 
                             rel="noreferrer"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-muted border border-border text-zinc-500 hover:text-foreground"
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </a>
@@ -502,12 +502,12 @@ export default function FinancePage() {
       {/* 1. Log Transaction Modal */}
       {activeModal === "create" && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
-              <h3 className="font-bold text-white text-base flex items-center gap-2">
+          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+              <h3 className="font-bold text-foreground text-base flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-indigo-400" /> Log Campaign Transaction
               </h3>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-350">
                 <CloseIcon className="h-5 w-5" />
               </button>
             </div>
@@ -515,7 +515,7 @@ export default function FinancePage() {
             <form onSubmit={handleCreateSubmit} className="p-6 flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
               
               {/* Type Switcher */}
-              <div className="flex bg-zinc-900 p-1 rounded-lg border border-zinc-850">
+              <div className="flex bg-muted p-1 rounded-lg border border-border">
                 <button
                   type="button"
                   onClick={() => {
@@ -525,7 +525,7 @@ export default function FinancePage() {
                   className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                     txType === "income"
                       ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/10"
-                      : "text-zinc-400 hover:text-zinc-200"
+                      : "text-zinc-500 hover:text-foreground"
                   }`}
                 >
                   Income / Revenue
@@ -538,8 +538,8 @@ export default function FinancePage() {
                   }}
                   className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors ${
                     txType === "expense"
-                      ? "bg-red-500/80 text-white shadow-md shadow-red-500/10"
-                      : "text-zinc-400 hover:text-zinc-200"
+                      ? "bg-red-550 text-white shadow-md shadow-red-550/10"
+                      : "text-zinc-500 hover:text-foreground"
                   }`}
                 >
                   Expense / Investment
@@ -548,14 +548,14 @@ export default function FinancePage() {
 
               {/* Target Channel */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Target Social Channel *</label>
+                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Target Social Channel *</label>
                 <select 
                   value={txPageId} 
                   onChange={(e) => {
                     setTxPageId(e.target.value);
                     setTxPostId(""); // Reset post association
                   }}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                   required
                 >
                   {socialPages.map(page => (
@@ -568,11 +568,11 @@ export default function FinancePage() {
 
               {/* Category */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Classification Category *</label>
+                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Classification Category *</label>
                 <select 
                   value={txCategory} 
                   onChange={(e) => setTxCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                   required
                 >
                   {availableCategories.map(cat => (
@@ -584,7 +584,7 @@ export default function FinancePage() {
               {/* Amount & Currency */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1.5 text-left col-span-2">
-                  <label className="text-xs font-semibold text-zinc-400">Amount *</label>
+                  <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Amount *</label>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-zinc-500 text-sm font-semibold select-none">$</span>
                     <input 
@@ -593,18 +593,18 @@ export default function FinancePage() {
                       placeholder="0.00"
                       value={txAmount}
                       onChange={(e) => setTxAmount(e.target.value)}
-                      className="w-full pl-7 pr-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600 font-mono"
+                      className="w-full pl-7 pr-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 font-mono"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-xs font-semibold text-zinc-400">Currency *</label>
+                  <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Currency *</label>
                   <select 
                     value={txCurrency} 
                     onChange={(e) => setTxCurrency(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600 font-mono"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 font-mono"
                     required
                   >
                     <option value="USD">USD ($)</option>
@@ -617,23 +617,23 @@ export default function FinancePage() {
 
               {/* Date */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Transaction Date *</label>
+                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Transaction Date *</label>
                 <input 
                   type="date"
                   value={txDate}
                   onChange={(e) => setTxDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-350 text-sm focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                   required
                 />
               </div>
 
               {/* Optional Post Connection */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Link to Content Post (Optional)</label>
+                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Link to Content Post (Optional)</label>
                 <select 
                   value={txPostId} 
                   onChange={(e) => setTxPostId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-350 text-sm focus:outline-none focus:border-indigo-600 disabled:opacity-50"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 disabled:opacity-50"
                   disabled={!txPageId}
                 >
                   <option value="">Do not link to post</option>
@@ -656,21 +656,21 @@ export default function FinancePage() {
 
               {/* Description */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Memo / Description</label>
+                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Memo / Description</label>
                 <input 
                   type="text" 
                   placeholder="e.g. Meta Q3 Ads Payment or retainer fee" 
                   value={txDescription}
                   onChange={(e) => setTxDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                 />
               </div>
 
               {/* Recurrence Toggle */}
-              <div className="flex flex-col gap-2 p-3 rounded-lg border border-zinc-900 bg-zinc-900/10 text-left">
+              <div className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-muted/40 text-left">
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-zinc-300 flex items-center gap-1.5">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                       <Repeat className="h-3.5 w-3.5 text-indigo-400 animate-spin-slow" /> Recurring Transaction
                     </span>
                     <span className="text-[10px] text-zinc-500 mt-0.5">Automate logging at schedule intervals</span>
@@ -679,17 +679,17 @@ export default function FinancePage() {
                     type="checkbox"
                     checked={txRecurring}
                     onChange={(e) => setTxRecurring(e.target.checked)}
-                    className="h-4.5 w-4.5 rounded border-zinc-900 text-indigo-600 bg-zinc-950 focus:ring-indigo-600 cursor-pointer"
+                    className="h-4.5 w-4.5 rounded border-border text-indigo-600 bg-muted focus:ring-indigo-600 cursor-pointer"
                   />
                 </div>
 
                 {txRecurring && (
-                  <div className="flex flex-col gap-1.5 mt-2 border-t border-zinc-900/60 pt-2">
-                    <label className="text-[10px] font-semibold text-zinc-400">Interval</label>
+                  <div className="flex flex-col gap-1.5 mt-2 border-t border-border pt-2">
+                    <label className="text-[10px] font-semibold text-zinc-555 dark:text-zinc-400">Interval</label>
                     <select
                       value={txInterval}
                       onChange={(e: any) => setTxInterval(e.target.value)}
-                      className="px-3.5 py-1.5 rounded bg-zinc-950 border border-zinc-900 text-xs text-zinc-300 focus:outline-none focus:border-indigo-600"
+                      className="px-3.5 py-1.5 rounded bg-muted border border-border text-xs text-foreground focus:outline-none focus:border-indigo-600"
                     >
                       <option value="weekly">Every Week</option>
                       <option value="monthly">Every Month</option>
@@ -701,8 +701,8 @@ export default function FinancePage() {
 
               {/* Optional Receipt Attachment */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Receipt Attachment (Optional)</label>
-                <div className="border border-dashed border-zinc-800 bg-zinc-900/10 rounded-xl p-4 text-center flex flex-col items-center gap-2">
+                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Receipt Attachment (Optional)</label>
+                <div className="border border-dashed border-border bg-muted/40 rounded-xl p-4 text-center flex flex-col items-center gap-2">
                   <input 
                     type="file" 
                     id="tx-receipt-picker"
@@ -714,7 +714,7 @@ export default function FinancePage() {
                     }}
                   />
                   <div className="flex items-center justify-between w-full">
-                    <span className="text-xs text-zinc-400 truncate max-w-[200px]">
+                    <span className="text-xs text-zinc-500 truncate max-w-[200px]">
                       {receiptFile ? receiptFile.name : "No receipt attached"}
                     </span>
                     {receiptFile ? (
@@ -728,7 +728,7 @@ export default function FinancePage() {
                     ) : (
                       <label 
                         htmlFor="tx-receipt-picker"
-                        className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-850 border border-zinc-850 text-zinc-300 text-[10px] font-semibold rounded cursor-pointer transition-colors"
+                        className="px-2.5 py-1 bg-muted hover:bg-muted/80 border border-border text-foreground text-[10px] font-semibold rounded cursor-pointer transition-colors"
                       >
                         Upload file
                       </label>
@@ -738,7 +738,7 @@ export default function FinancePage() {
               </div>
 
               {/* Submit Buttons */}
-              <div className="flex gap-2 justify-end pt-3 border-t border-zinc-900/50 mt-2">
+              <div className="flex gap-2 justify-end pt-3 border-t border-border mt-2">
                 <Button type="button" variant="ghost" onClick={() => setActiveModal(null)} className="text-zinc-500 text-xs">
                   Cancel
                 </Button>

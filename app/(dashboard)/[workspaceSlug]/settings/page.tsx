@@ -27,19 +27,19 @@ import { toast } from "sonner";
 
 // Default column configurations
 const defaultTaskColumns = [
-  { id: "todo", label: "To Do", color: "bg-zinc-800/60 border-zinc-800", hidden: false },
-  { id: "in_progress", label: "In Progress", color: "bg-indigo-950/20 border-indigo-900/30", hidden: false },
-  { id: "done", label: "Completed", color: "bg-emerald-950/10 border-emerald-900/20", hidden: false },
+  { id: "todo", label: "To Do", color: "bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-800", hidden: false },
+  { id: "in_progress", label: "In Progress", color: "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-900/30", hidden: false },
+  { id: "done", label: "Completed", color: "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200/50 dark:border-emerald-900/20", hidden: false },
 ];
 
 const defaultPostColumns = [
-  { id: "draft", label: "Draft", color: "bg-zinc-900/60 border-zinc-800", hidden: false },
-  { id: "internal_review", label: "Internal Review", color: "bg-indigo-950/20 border-indigo-900/30", hidden: false },
-  { id: "client_review", label: "Client Review", color: "bg-amber-950/10 border-amber-900/20", hidden: false },
-  { id: "changes_requested", label: "Changes Requested", color: "bg-rose-950/10 border-rose-900/20", hidden: false },
-  { id: "approved", label: "Approved", color: "bg-emerald-950/10 border-emerald-900/20", hidden: false },
-  { id: "scheduled", label: "Scheduled", color: "bg-sky-950/10 border-sky-900/20", hidden: false },
-  { id: "published", label: "Published", color: "bg-teal-950/10 border-teal-900/20", hidden: false },
+  { id: "draft", label: "Draft", color: "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800", hidden: false },
+  { id: "internal_review", label: "Internal Review", color: "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-900/30", hidden: false },
+  { id: "client_review", label: "Client Review", color: "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-900/20", hidden: false },
+  { id: "changes_requested", label: "Changes Requested", color: "bg-rose-50/50 dark:bg-rose-950/10 border-rose-200/50 dark:border-rose-900/20", hidden: false },
+  { id: "approved", label: "Approved", color: "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200/50 dark:border-emerald-900/20", hidden: false },
+  { id: "scheduled", label: "Scheduled", color: "bg-sky-50/50 dark:bg-sky-950/10 border-sky-200/50 dark:border-sky-900/20", hidden: false },
+  { id: "published", label: "Published", color: "bg-teal-50/50 dark:bg-teal-950/10 border-teal-200/50 dark:border-teal-900/20", hidden: false },
 ];
 
 // Available theme color styles for columns
@@ -154,10 +154,10 @@ export default function SettingsPage() {
 
   // Add Column Inputs
   const [newTaskName, setNewTaskName] = useState("");
-  const [newTaskColor, setNewTaskColor] = useState("bg-zinc-800/60 border-zinc-800");
+  const [newTaskColor, setNewTaskColor] = useState("bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-800");
 
   const [newPostName, setNewPostName] = useState("");
-  const [newPostColor, setNewPostColor] = useState("bg-zinc-800/60 border-zinc-800");
+  const [newPostColor, setNewPostColor] = useState("bg-zinc-50 dark:bg-zinc-800/60 border-zinc-200 dark:border-zinc-800");
 
   // Populate local states when workspace settings load
   useEffect(() => {
@@ -322,13 +322,13 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex bg-zinc-950 p-1 rounded-lg border border-zinc-900 w-fit shrink-0">
+      <div className="flex bg-muted p-1 rounded-lg border border-border w-fit shrink-0">
         <button
           onClick={() => setActiveTab("kanban")}
           className={`px-4 py-2 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-colors ${
             activeTab === "kanban"
-              ? "bg-zinc-900 text-white shadow-sm"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-zinc-550 dark:text-zinc-400 hover:text-foreground"
           }`}
         >
           <Columns className="h-3.5 w-3.5" /> Kanban Process Columns
@@ -337,8 +337,8 @@ export default function SettingsPage() {
           onClick={() => setActiveTab("billing")}
           className={`px-4 py-2 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-colors ${
             activeTab === "billing"
-              ? "bg-zinc-900 text-white shadow-sm"
-              : "text-zinc-400 hover:text-zinc-200"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-zinc-550 dark:text-zinc-400 hover:text-foreground"
           }`}
         >
           <CreditCard className="h-3.5 w-3.5" /> Billing & Plans
@@ -376,9 +376,9 @@ export default function SettingsPage() {
         </div>
 
         {/* 1. Tasks Board customization */}
-        <div className="p-6 rounded-xl border border-zinc-900 bg-zinc-900/10 flex flex-col gap-5">
-          <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
-            <h3 className="text-sm font-bold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
+        <div className="p-6 rounded-xl border border-border bg-card flex flex-col gap-5">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="text-sm font-bold uppercase text-zinc-800 dark:text-zinc-300 tracking-wider flex items-center gap-2">
               <Columns className="h-4 w-4 text-indigo-400" /> Tasks Kanban Columns
             </h3>
             <span className="text-[10px] text-zinc-500 font-medium font-mono">
@@ -391,12 +391,12 @@ export default function SettingsPage() {
             {taskCols.map((col) => (
               <div 
                 key={col.id}
-                className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg border items-center ${col.hidden ? "border-zinc-950 bg-zinc-950/20 opacity-60" : "border-zinc-900 bg-zinc-950/50"}`}
+                className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg border items-center ${col.hidden ? "border-border bg-muted/40 opacity-60" : "border-border bg-card"}`}
               >
                 {/* ID Tag */}
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-zinc-550 uppercase font-bold tracking-wider">Database Status Key</span>
-                  <span className="text-xs font-mono text-zinc-300 font-semibold truncate max-w-[130px]" title={col.id}>{col.id}</span>
+                  <span className="text-xs font-mono text-foreground font-semibold truncate max-w-[130px]" title={col.id}>{col.id}</span>
                 </div>
 
                 {/* Custom Label */}
@@ -406,18 +406,18 @@ export default function SettingsPage() {
                     type="text"
                     value={col.label}
                     onChange={(e) => updateColProperty("tasks", col.id, "label", e.target.value)}
-                    className="px-3 py-1.5 rounded bg-zinc-900/30 border border-zinc-850 text-zinc-200 text-xs focus:outline-none focus:border-indigo-650 w-full"
+                    className="px-3 py-1.5 rounded bg-muted border border-border text-foreground text-xs focus:outline-none focus:border-indigo-650 w-full"
                     placeholder={col.id}
                   />
                 </div>
 
                 {/* Color Styling */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-zinc-550 uppercase">Color Theme</label>
+                  <label className="text-[10px] font-bold text-zinc-555 uppercase">Color Theme</label>
                   <select 
                     value={col.color}
                     onChange={(e) => updateColProperty("tasks", col.id, "color", e.target.value)}
-                    className="px-2.5 py-1.5 rounded bg-zinc-900/30 border border-zinc-850 text-zinc-300 text-xs focus:outline-none focus:border-indigo-650 w-full"
+                    className="px-2.5 py-1.5 rounded bg-muted border border-border text-foreground text-xs focus:outline-none focus:border-indigo-650 w-full"
                   >
                     {colorOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -497,9 +497,9 @@ export default function SettingsPage() {
         </div>
 
         {/* 2. Content Workflow Board customization */}
-        <div className="p-6 rounded-xl border border-zinc-900 bg-zinc-900/10 flex flex-col gap-5">
-          <div className="flex items-center justify-between border-b border-zinc-900 pb-3">
-            <h3 className="text-sm font-bold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
+        <div className="p-6 rounded-xl border border-border bg-card flex flex-col gap-5">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="text-sm font-bold uppercase text-zinc-800 dark:text-zinc-300 tracking-wider flex items-center gap-2">
               <Palette className="h-4 w-4 text-indigo-400" /> Content Workflow Columns
             </h3>
             <span className="text-[10px] text-zinc-500 font-medium font-mono">
@@ -512,33 +512,33 @@ export default function SettingsPage() {
             {postCols.map((col) => (
               <div 
                 key={col.id}
-                className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg border items-center ${col.hidden ? "border-zinc-950 bg-zinc-950/20 opacity-60" : "border-zinc-900 bg-zinc-950/50"}`}
+                className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg border items-center ${col.hidden ? "border-border bg-muted/40 opacity-60" : "border-border bg-card"}`}
               >
                 {/* ID Tag */}
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-zinc-550 uppercase font-bold tracking-wider">Database Status Key</span>
-                  <span className="text-xs font-mono text-zinc-300 font-semibold truncate max-w-[130px]" title={col.id}>{col.id}</span>
+                  <span className="text-xs font-mono text-foreground font-semibold truncate max-w-[130px]" title={col.id}>{col.id}</span>
                 </div>
 
                 {/* Custom Label */}
                 <div className="flex flex-col gap-1.5 md:col-span-2">
-                  <label className="text-[10px] font-bold text-zinc-550 uppercase">Display Name</label>
+                  <label className="text-[10px] font-bold text-zinc-555 uppercase">Display Name</label>
                   <input 
                     type="text"
                     value={col.label}
                     onChange={(e) => updateColProperty("posts", col.id, "label", e.target.value)}
-                    className="px-3 py-1.5 rounded bg-zinc-900/30 border border-zinc-850 text-zinc-200 text-xs focus:outline-none focus:border-indigo-650 w-full"
+                    className="px-3 py-1.5 rounded bg-muted border border-border text-foreground text-xs focus:outline-none focus:border-indigo-650 w-full"
                     placeholder={col.id}
                   />
                 </div>
 
                 {/* Color Styling */}
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] font-bold text-zinc-550 uppercase">Color Theme</label>
+                  <label className="text-[10px] font-bold text-zinc-555 uppercase">Color Theme</label>
                   <select 
                     value={col.color}
                     onChange={(e) => updateColProperty("posts", col.id, "color", e.target.value)}
-                    className="px-2.5 py-1.5 rounded bg-zinc-900/30 border border-zinc-850 text-zinc-300 text-xs focus:outline-none focus:border-indigo-650 w-full"
+                    className="px-2.5 py-1.5 rounded bg-muted border border-border text-foreground text-xs focus:outline-none focus:border-indigo-650 w-full"
                   >
                     {colorOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -556,8 +556,8 @@ export default function SettingsPage() {
                     onClick={() => updateColProperty("posts", col.id, "hidden", !col.hidden)}
                     className={`h-8 w-8 border ${
                       col.hidden 
-                        ? "text-zinc-555 border-zinc-800 bg-zinc-900/10 hover:text-zinc-300 hover:bg-zinc-900/30" 
-                        : "text-indigo-400 border-indigo-950 bg-indigo-500/5 hover:bg-indigo-500/10"
+                        ? "text-zinc-550 border-border bg-muted/40 hover:text-foreground hover:bg-muted/80" 
+                        : "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-950 bg-indigo-500/5 hover:bg-indigo-500/10"
                     }`}
                   >
                     {col.hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -569,7 +569,7 @@ export default function SettingsPage() {
                     variant="ghost"
                     title="Permanently delete column status"
                     onClick={() => handleDeleteColumn("posts", col.id)}
-                    className="h-8 w-8 border border-rose-950 bg-rose-500/5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                    className="h-8 w-8 border border-rose-950 bg-rose-500/5 text-rose-450 hover:text-rose-350 hover:bg-rose-500/10"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -578,9 +578,9 @@ export default function SettingsPage() {
             ))}
 
             {/* Create Custom Column Panel */}
-            <div className="p-4 rounded-lg border border-dashed border-zinc-850 bg-zinc-900/5 flex flex-col md:grid md:grid-cols-5 gap-4 items-center mt-2">
+            <div className="p-4 rounded-lg border border-dashed border-border bg-muted/20 flex flex-col md:grid md:grid-cols-5 gap-4 items-center mt-2">
               <div className="flex flex-col text-left w-full md:col-span-2">
-                <span className="text-xs font-semibold text-zinc-300">Add Custom Content Column</span>
+                <span className="text-xs font-semibold text-foreground">Add Custom Content Column</span>
                 <span className="text-[10px] text-zinc-500">Configure a brand new process status for posts.</span>
               </div>
               <div className="w-full">
@@ -589,14 +589,14 @@ export default function SettingsPage() {
                   value={newPostName}
                   onChange={(e) => setNewPostName(e.target.value)}
                   placeholder="e.g. QA, Backlog, On Hold"
-                  className="w-full px-3 py-1.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-1.5 rounded bg-muted border border-border text-foreground text-xs focus:outline-none focus:border-indigo-600"
                 />
               </div>
               <div className="w-full">
                 <select 
                   value={newPostColor}
                   onChange={(e) => setNewPostColor(e.target.value)}
-                  className="w-full px-2.5 py-1.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-xs focus:outline-none focus:border-indigo-600 cursor-pointer"
+                  className="w-full px-2.5 py-1.5 rounded bg-muted border border-border text-foreground text-xs focus:outline-none focus:border-indigo-600 cursor-pointer"
                 >
                   {colorOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -621,24 +621,24 @@ export default function SettingsPage() {
         <div className="flex flex-col gap-6 w-full">
           
           {/* Current Plan Overview Card */}
-          <div className="p-6 rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-900/60 to-indigo-950/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden group shadow-lg">
+          <div className="p-6 rounded-2xl border border-border bg-gradient-to-br from-card to-indigo-50/10 dark:from-zinc-900/60 dark:to-indigo-950/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden group shadow-lg">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none group-hover:bg-indigo-500/10 transition-all" />
             
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 text-left">
               <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Current Workspace Plan</span>
               <div className="flex items-center gap-2.5">
-                <span className="text-3xl font-extrabold tracking-tight text-white capitalize">{workspace.plan} Plan</span>
+                <span className="text-3xl font-extrabold tracking-tight text-foreground capitalize">{workspace.plan} Plan</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
                   workspace.plan === "free" 
-                    ? "bg-zinc-800/40 text-zinc-400 border-zinc-700" 
+                    ? "bg-muted text-zinc-500 border-border" 
                     : workspace.plan === "pro"
-                    ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/25 animate-pulse"
-                    : "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
+                    ? "bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/25 animate-pulse"
+                    : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
                 }`}>
                   {workspace.plan === "free" ? "Default Tier" : "Active Subscription"}
                 </span>
               </div>
-              <p className="text-xs text-zinc-400 mt-1 max-w-md">
+              <p className="text-xs text-zinc-550 dark:text-zinc-400 mt-1 max-w-md">
                 {workspace.plan === "free" && "Enjoy basic scheduling and management features. Upgrade to unlock agency workflows, client portals, and multi-channel ledger entries."}
                 {workspace.plan === "pro" && "Your workspace is subscribed to the Pro plan. Manage your team, publish multiple posts, and track campaign investments."}
                 {workspace.plan === "agency" && "Enterprise-grade workflow enabled. Enjoy unlimited social channels, custom client-facing portals, and priority performance metrics."}
@@ -650,7 +650,7 @@ export default function SettingsPage() {
                 <Button 
                   onClick={handleDevUpgrade}
                   disabled={loadingDevUpgrade}
-                  className="bg-[#05ffc4]/15 hover:bg-[#05ffc4]/25 border border-[#05ffc4]/35 text-[#05ffc4] text-xs font-semibold shadow-md shadow-[#05ffc4]/5"
+                  className="bg-[#00f5a0]/15 hover:bg-[#00f5a0]/25 border border-[#00d9f5]/35 text-teal-600 dark:text-[#05ffc4] text-xs font-semibold shadow-md shadow-[#05ffc4]/5"
                 >
                   {loadingDevUpgrade ? (
                     <>
@@ -670,7 +670,7 @@ export default function SettingsPage() {
                 <Button 
                   onClick={handleOpenPortal}
                   disabled={redirectingStripe !== null}
-                  className="bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-200 text-xs font-semibold"
+                  className="bg-muted hover:bg-muted/80 border border-border text-foreground text-xs font-semibold"
                 >
                   {redirectingStripe === "portal" ? (
                     <>
@@ -692,32 +692,32 @@ export default function SettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             {/* Free Card */}
-            <div className={`p-6 rounded-2xl border ${workspace.plan === "free" ? "border-indigo-650 bg-indigo-950/5 relative shadow-indigo-950/20 shadow-lg" : "border-zinc-900 bg-zinc-950/40"} flex flex-col justify-between gap-6`}>
+            <div className={`p-6 rounded-2xl border ${workspace.plan === "free" ? "border-indigo-600 bg-indigo-50/10 dark:bg-indigo-950/5 relative shadow-indigo-950/20 shadow-lg" : "border-border bg-card"} flex flex-col justify-between gap-6`}>
               <div className="flex flex-col gap-4 text-left">
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-bold text-zinc-300">Starter / Free</span>
-                  <span className="text-[10px] text-zinc-500">Perfect for exploring the platform.</span>
+                  <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Starter / Free</span>
+                  <span className="text-[10px] text-zinc-550 dark:text-zinc-500">Perfect for exploring the platform.</span>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-white">$0</span>
-                  <span className="text-xs text-zinc-500">/ forever</span>
+                  <span className="text-3xl font-extrabold text-foreground">$0</span>
+                  <span className="text-xs text-zinc-550 dark:text-zinc-500">/ forever</span>
                 </div>
-                <div className="border-t border-zinc-900 my-1" />
-                <ul className="flex flex-col gap-2.5 text-xs text-zinc-400">
+                <div className="border-t border-border my-1" />
+                <ul className="flex flex-col gap-2.5 text-xs text-zinc-600 dark:text-zinc-400">
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                     <span>1 Active Client Portfolio</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                     <span>1 Connected Social Page</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                     <span>5 Scheduled Posts / month</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                     <span>Basic Media Uploads (100MB)</span>
                   </li>
                 </ul>
@@ -726,45 +726,45 @@ export default function SettingsPage() {
               <Button 
                 variant="ghost"
                 disabled={true}
-                className="w-full text-zinc-500 bg-zinc-900/50 border border-zinc-900 text-xs"
+                className="w-full text-zinc-500 bg-muted border border-border text-xs"
               >
                 {workspace.plan === "free" ? "Current Tier" : "Starter Account"}
               </Button>
             </div>
 
             {/* Pro Card */}
-            <div className={`p-6 rounded-2xl border ${workspace.plan === "pro" ? "border-indigo-650 bg-indigo-950/5 relative shadow-indigo-950/20 shadow-lg" : "border-zinc-900 bg-zinc-950/40"} flex flex-col justify-between gap-6`}>
+            <div className={`p-6 rounded-2xl border ${workspace.plan === "pro" ? "border-indigo-600 bg-indigo-50/10 dark:bg-indigo-950/5 relative shadow-indigo-950/20 shadow-lg" : "border-border bg-card"} flex flex-col justify-between gap-6`}>
               <div className="flex flex-col gap-4 text-left">
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-bold text-zinc-300 flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4 text-indigo-400" /> Pro Creator
+                  <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
+                    <Sparkles className="h-4 w-4 text-indigo-500 dark:text-indigo-400" /> Pro Creator
                   </span>
-                  <span className="text-[10px] text-zinc-500">Ideal for growing creators & professionals.</span>
+                  <span className="text-[10px] text-zinc-550 dark:text-zinc-500">Ideal for growing creators & professionals.</span>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-white">$29</span>
-                  <span className="text-xs text-zinc-500">/ month</span>
+                  <span className="text-3xl font-extrabold text-foreground">$29</span>
+                  <span className="text-xs text-zinc-550 dark:text-zinc-500">/ month</span>
                 </div>
-                <div className="border-t border-zinc-900 my-1" />
-                <ul className="flex flex-col gap-2.5 text-xs text-zinc-400">
+                <div className="border-t border-border my-1" />
+                <ul className="flex flex-col gap-2.5 text-xs text-zinc-600 dark:text-zinc-400">
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
-                    <span className="font-semibold text-zinc-300">Unlimited Clients</span>
+                    <CheckCircle2 className="h-4 w-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-300">Unlimited Clients</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-indigo-550 dark:text-indigo-400 shrink-0" />
                     <span>5 Connected Social Pages</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-indigo-550 dark:text-indigo-400 shrink-0" />
                     <span>Unlimited Scheduled Posts</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-indigo-550 dark:text-indigo-400 shrink-0" />
                     <span>10 GB Media Library Storage</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-indigo-550 dark:text-indigo-400 shrink-0" />
                     <span>Multi-Currency P&L Tracking</span>
                   </li>
                 </ul>
@@ -775,7 +775,7 @@ export default function SettingsPage() {
                 disabled={workspace.plan === "pro" || redirectingStripe !== null}
                 className={`w-full text-xs font-semibold ${
                   workspace.plan === "pro" 
-                    ? "bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed" 
+                    ? "bg-muted border border-border text-zinc-500 cursor-not-allowed" 
                     : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20"
                 }`}
               >
@@ -790,40 +790,40 @@ export default function SettingsPage() {
             </div>
 
             {/* Agency Card */}
-            <div className={`p-6 rounded-2xl border ${workspace.plan === "agency" ? "border-indigo-650 bg-indigo-950/5 relative shadow-indigo-950/20 shadow-lg" : "border-zinc-900 bg-zinc-950/40"} flex flex-col justify-between gap-6`}>
+            <div className={`p-6 rounded-2xl border ${workspace.plan === "agency" ? "border-indigo-600 bg-indigo-50/10 dark:bg-indigo-950/5 relative shadow-indigo-950/20 shadow-lg" : "border-border bg-card"} flex flex-col justify-between gap-6`}>
               <div className="flex flex-col gap-4 text-left">
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-sm font-bold text-zinc-300">Agency / Brand</span>
-                  <span className="text-[10px] text-zinc-500">For teams & marketing agencies.</span>
+                  <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">Agency / Brand</span>
+                  <span className="text-[10px] text-zinc-550 dark:text-zinc-500">For teams & marketing agencies.</span>
                 </div>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-extrabold text-white">$79</span>
-                  <span className="text-xs text-zinc-500">/ month</span>
+                  <span className="text-3xl font-extrabold text-foreground">$79</span>
+                  <span className="text-xs text-zinc-555 dark:text-zinc-500">/ month</span>
                 </div>
-                <div className="border-t border-zinc-900 my-1" />
-                <ul className="flex flex-col gap-2.5 text-xs text-zinc-400">
+                <div className="border-t border-border my-1" />
+                <ul className="flex flex-col gap-2.5 text-xs text-zinc-600 dark:text-zinc-400">
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
-                    <span className="font-semibold text-zinc-300">Unlimited Clients</span>
+                    <CheckCircle2 className="h-4 w-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-300">Unlimited Clients</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
-                    <span className="font-semibold text-zinc-300">Unlimited Social Channels</span>
+                    <CheckCircle2 className="h-4 w-4 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-300">Unlimited Social Channels</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-indigo-550 dark:text-indigo-400 shrink-0" />
                     <span>Unlimited Scheduled Posts</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-indigo-550 dark:text-indigo-400 shrink-0" />
                     <span>100 GB Media Storage</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-indigo-550 dark:text-indigo-400 shrink-0" />
                     <span>Client Share Links & Portals</span>
                   </li>
                   <li className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-indigo-400 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-indigo-550 dark:text-indigo-400 shrink-0" />
                     <span>Priority Support response</span>
                   </li>
                 </ul>
@@ -834,7 +834,7 @@ export default function SettingsPage() {
                 disabled={workspace.plan === "agency" || redirectingStripe !== null}
                 className={`w-full text-xs font-semibold ${
                   workspace.plan === "agency" 
-                    ? "bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed" 
+                    ? "bg-muted border border-border text-zinc-500 cursor-not-allowed" 
                     : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20"
                 }`}
               >

@@ -37,13 +37,13 @@ import Link from "next/link";
 import { toast } from "sonner";
 
 const defaultPostColumns = [
-  { id: "draft", label: "Draft", color: "bg-zinc-900/60 border-zinc-800", hidden: false },
-  { id: "internal_review", label: "Internal Review", color: "bg-indigo-950/20 border-indigo-900/30", hidden: false },
-  { id: "client_review", label: "Client Review", color: "bg-amber-950/10 border-amber-900/20", hidden: false },
-  { id: "changes_requested", label: "Changes Requested", color: "bg-rose-950/10 border-rose-900/20", hidden: false },
-  { id: "approved", label: "Approved", color: "bg-emerald-950/10 border-emerald-900/20", hidden: false },
-  { id: "scheduled", label: "Scheduled", color: "bg-sky-950/10 border-sky-900/20", hidden: false },
-  { id: "published", label: "Published", color: "bg-teal-950/10 border-teal-900/20", hidden: false },
+  { id: "draft", label: "Draft", color: "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800", hidden: false },
+  { id: "internal_review", label: "Internal Review", color: "bg-indigo-50/50 dark:bg-indigo-950/20 border-indigo-200/50 dark:border-indigo-900/30", hidden: false },
+  { id: "client_review", label: "Client Review", color: "bg-amber-50/50 dark:bg-amber-950/10 border-amber-200/50 dark:border-amber-900/20", hidden: false },
+  { id: "changes_requested", label: "Changes Requested", color: "bg-rose-50/50 dark:bg-rose-955/10 border-rose-200/50 dark:border-rose-900/20", hidden: false },
+  { id: "approved", label: "Approved", color: "bg-emerald-50/50 dark:bg-emerald-950/10 border-emerald-200/50 dark:border-emerald-900/20", hidden: false },
+  { id: "scheduled", label: "Scheduled", color: "bg-sky-50/50 dark:bg-sky-950/10 border-sky-200/50 dark:border-sky-900/20", hidden: false },
+  { id: "published", label: "Published", color: "bg-teal-50/50 dark:bg-teal-950/10 border-teal-200/50 dark:border-teal-900/20", hidden: false },
 ];
 
 type PostStatus = "draft" | "internal_review" | "client_review" | "changes_requested" | "approved" | "scheduled" | "published" | "failed";
@@ -440,14 +440,14 @@ export default function ContentWorkflowPage() {
                 <button
                   key={post._id}
                   onClick={() => openInspectModal(post)}
-                  className="w-full text-left p-1 rounded border border-zinc-900 bg-zinc-950 text-[10px] truncate leading-tight flex items-center gap-1 group"
+                  className="w-full text-left p-1 rounded border border-border bg-card text-[10px] truncate leading-tight flex items-center gap-1 group"
                 >
                   <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${
                     post.status === "published" ? "bg-teal-500" :
                     post.status === "client_review" ? "bg-amber-500" :
                     post.status === "approved" ? "bg-emerald-500" : "bg-zinc-500"
                   }`} />
-                  <span className="text-zinc-300 truncate group-hover:text-indigo-400 transition-colors">
+                  <span className="text-zinc-600 dark:text-zinc-300 truncate group-hover:text-indigo-650 dark:group-hover:text-indigo-400 transition-colors">
                     {page ? `@${page.handle}: ` : ""}{post.caption}
                   </span>
                 </button>
@@ -488,11 +488,11 @@ export default function ContentWorkflowPage() {
 
       {/* Main Tab Controls */}
       <div className="flex items-center justify-between">
-        <div className="p-0.5 bg-zinc-900 rounded-lg flex border border-zinc-850">
+        <div className="p-0.5 bg-muted rounded-lg flex border border-border">
           <button 
             onClick={() => setActiveTab("kanban")}
             className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-              activeTab === "kanban" ? "bg-zinc-800 text-white shadow" : "text-zinc-400 hover:text-zinc-200"
+              activeTab === "kanban" ? "bg-background text-foreground shadow" : "text-zinc-500 dark:text-zinc-400 hover:text-foreground"
             }`}
           >
             <KanbanIcon className="h-3.5 w-3.5" /> Kanban Board
@@ -500,7 +500,7 @@ export default function ContentWorkflowPage() {
           <button 
             onClick={() => setActiveTab("calendar")}
             className={`px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-              activeTab === "calendar" ? "bg-zinc-800 text-white shadow" : "text-zinc-400 hover:text-zinc-200"
+              activeTab === "calendar" ? "bg-background text-foreground shadow" : "text-zinc-500 dark:text-zinc-400 hover:text-foreground"
             }`}
           >
             <CalendarIcon className="h-3.5 w-3.5" /> Content Calendar
@@ -510,12 +510,12 @@ export default function ContentWorkflowPage() {
 
       {projects.length === 0 || socialPages.length === 0 ? (
         /* Empty states */
-        <div className="p-12 rounded-2xl border border-zinc-900 border-dashed bg-zinc-950/20 text-center flex flex-col items-center gap-4">
-          <div className="h-12 w-12 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-500 border border-zinc-850">
+        <div className="p-12 rounded-2xl border border-border border-dashed bg-card/30 text-center flex flex-col items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-zinc-500 border border-border">
             <AlertCircle className="h-6 w-6" />
           </div>
           <div className="flex flex-col gap-1 text-left items-center max-w-sm">
-            <h4 className="text-base font-semibold text-white">Prerequisites Missing</h4>
+            <h4 className="text-base font-semibold text-foreground">Prerequisites Missing</h4>
             <p className="text-xs text-zinc-500 text-center leading-relaxed">
               You must set up at least one **Campaign/Project** and connect one **Social Page** under the "Clients & Pages" tab first to compose social content.
             </p>
@@ -549,11 +549,11 @@ export default function ContentWorkflowPage() {
                 }`}
               >
                 {/* Header */}
-                <div className="flex justify-between items-center pb-2 border-b border-zinc-900/60">
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-zinc-300 truncate max-w-[130px]">
+                <div className="flex justify-between items-center pb-2 border-b border-border">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 truncate max-w-[130px]">
                     {col.label}
                   </h4>
-                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-zinc-900 border border-zinc-800 text-zinc-400">
+                  <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-zinc-100 dark:bg-zinc-900 border border-border text-zinc-650 dark:text-zinc-400">
                     {colPosts.length}
                   </span>
                 </div>
@@ -578,14 +578,14 @@ export default function ContentWorkflowPage() {
                           draggable
                           onDragStart={(e) => handleDragStart(e, post._id)}
                           onDragEnd={handleDragEnd}
-                          className={`p-3 rounded-lg border border-zinc-900 bg-zinc-950 hover:border-indigo-600/40 cursor-grab active:cursor-grabbing transition-all duration-200 flex flex-col gap-2.5 text-left group ${
-                            draggedPostId === post._id ? "opacity-40 border-dashed border-zinc-800 scale-95" : ""
+                          className={`p-3 rounded-lg border border-border bg-card hover:border-indigo-600/40 cursor-grab active:cursor-grabbing transition-all duration-200 flex flex-col gap-2.5 text-left group ${
+                            draggedPostId === post._id ? "opacity-40 border-dashed border-zinc-300 dark:border-zinc-800 scale-95" : ""
                           }`}
                         >
                           {/* Project + Platform tags */}
                           <div className="flex flex-wrap items-center gap-1.5">
                             {project && (
-                              <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-zinc-900 text-zinc-500 border border-zinc-850">
+                              <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 rounded bg-muted text-zinc-600 dark:text-zinc-500 border border-border">
                                 {project.name}
                               </span>
                             )}
@@ -598,7 +598,7 @@ export default function ContentWorkflowPage() {
 
                           {/* Media Preview (If attached) */}
                           {postAsset && postAsset.url && (
-                            <div className="w-full h-24 rounded-md overflow-hidden bg-zinc-950 border border-zinc-900 mb-0.5 shrink-0 relative">
+                            <div className="w-full h-24 rounded-md overflow-hidden bg-muted border border-border mb-0.5 shrink-0 relative">
                               <img 
                                 src={postAsset.url} 
                                 alt={post.caption} 
@@ -612,20 +612,20 @@ export default function ContentWorkflowPage() {
                           <div className="flex justify-between items-start gap-1">
                             <span 
                               onClick={() => openInspectModal(post)}
-                              className="text-xs font-medium text-zinc-300 group-hover:text-white transition-colors cursor-pointer leading-snug line-clamp-3"
+                              className="text-xs font-medium text-zinc-800 dark:text-zinc-300 group-hover:text-indigo-650 dark:group-hover:text-indigo-400 transition-colors cursor-pointer leading-snug line-clamp-3"
                             >
                               {post.caption}
                             </span>
                           </div>
 
                           {/* Info row */}
-                          <div className="flex items-center justify-between text-[9px] text-zinc-500 border-t border-zinc-900/60 pt-2 mt-0.5">
+                          <div className="flex items-center justify-between text-[9px] text-zinc-500 border-t border-border pt-2 mt-0.5">
                             <div className="flex items-center gap-1.5 min-w-0">
                               {/* Assignee Avatar */}
                               {assignee ? (
                                 assignee.pictureUrl ? (
                                   assignee.pictureUrl.startsWith("http://") || assignee.pictureUrl.startsWith("https://") || assignee.pictureUrl.startsWith("/") ? (
-                                    <div className="h-[15px] w-[15px] rounded-full overflow-hidden shrink-0 border border-zinc-800" title={assignee.userName || "Teammate"}>
+                                    <div className="h-[15px] w-[15px] rounded-full overflow-hidden shrink-0 border border-border" title={assignee.userName || "Teammate"}>
                                       <img 
                                         src={assignee.pictureUrl} 
                                         alt="Assignee Avatar" 
@@ -678,10 +678,10 @@ export default function ContentWorkflowPage() {
       ) : (
         
         /* 2. CALENDAR MONTH GRID VIEW */
-        <div className="flex flex-col gap-4 border border-zinc-900 bg-zinc-950/20 rounded-xl p-4 w-full">
+        <div className="flex flex-col gap-4 border border-border bg-card/50 rounded-xl p-4 w-full">
           {/* Calendar month selector header */}
-          <div className="flex items-center justify-between pb-3 border-b border-zinc-900">
-            <h3 className="text-sm font-bold text-zinc-200 capitalize">
+          <div className="flex items-center justify-between pb-3 border-b border-border">
+            <h3 className="text-sm font-bold text-foreground capitalize">
               {calendarDate.toLocaleString("default", { month: "long", year: "numeric" })}
             </h3>
             
@@ -689,7 +689,7 @@ export default function ContentWorkflowPage() {
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-8 w-8 border border-zinc-900 text-zinc-400 hover:text-white"
+                className="h-8 w-8 border border-border text-zinc-500 hover:text-foreground"
                 onClick={() => changeMonth("prev")}
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -697,7 +697,7 @@ export default function ContentWorkflowPage() {
               <Button 
                 size="sm" 
                 variant="outline" 
-                className="h-8 text-xs border-zinc-900 text-zinc-300"
+                className="h-8 text-xs border-border text-zinc-700 dark:text-zinc-300"
                 onClick={() => setCalendarDate(new Date())}
               >
                 Today
@@ -705,7 +705,7 @@ export default function ContentWorkflowPage() {
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-8 w-8 border border-zinc-900 text-zinc-400 hover:text-white"
+                className="h-8 w-8 border border-border text-zinc-500 hover:text-foreground"
                 onClick={() => changeMonth("next")}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -736,10 +736,10 @@ export default function ContentWorkflowPage() {
       {/* 1. Create Post Composer Modal */}
       {activeModal === "create" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
-              <h3 className="font-bold text-white text-base">Compose Social Post</h3>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
+          <div className="w-full max-w-lg bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+              <h3 className="font-bold text-foreground text-base">Compose Social Post</h3>
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-350">
                 <CloseIcon className="h-5 w-5" />
               </button>
             </div>
@@ -748,11 +748,11 @@ export default function ContentWorkflowPage() {
               
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-xs font-semibold text-zinc-400">Campaign / Project</label>
+                  <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Campaign / Project</label>
                   <select 
                     value={postProject} 
                     onChange={(e) => setPostProject(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                     required
                   >
                     {projects.map(p => (
@@ -762,11 +762,11 @@ export default function ContentWorkflowPage() {
                 </div>
 
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-xs font-semibold text-zinc-400">Target Social Page</label>
+                  <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Target Social Page</label>
                   <select 
                     value={postPage} 
                     onChange={(e) => setPostPage(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                     required
                   >
                     {socialPages.map(page => (
@@ -779,21 +779,21 @@ export default function ContentWorkflowPage() {
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Caption / Copy</label>
+                <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Caption / Copy</label>
                 <textarea 
                   value={postCaption} 
                   onChange={(e) => setPostCaption(e.target.value)}
                   placeholder="Draft your social copy, hashtags, or threads..." 
                   rows={4}
-                  className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-250 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                   required
                 />
               </div>
 
               {/* Optional Media Attachment */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Media Attachment (Optional)</label>
-                <div className="border border-dashed border-zinc-800 bg-zinc-900/10 rounded-xl p-4 text-center flex flex-col items-center gap-2">
+                <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Media Attachment (Optional)</label>
+                <div className="border border-dashed border-border bg-muted/40 rounded-xl p-4 text-center flex flex-col items-center gap-2">
                   <input 
                     type="file" 
                     id="composer-media-file"
@@ -819,7 +819,7 @@ export default function ContentWorkflowPage() {
                     ) : (
                       <label 
                         htmlFor="composer-media-file"
-                        className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-850 border border-zinc-850 text-zinc-300 text-[10px] font-semibold rounded cursor-pointer transition-colors"
+                        className="px-2.5 py-1 bg-muted hover:bg-muted/80 border border-border text-foreground text-[10px] font-semibold rounded cursor-pointer transition-colors"
                       >
                         Browse File
                       </label>
@@ -830,31 +830,31 @@ export default function ContentWorkflowPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="flex flex-col gap-1.5 text-left col-span-2">
-                  <label className="text-xs font-semibold text-zinc-400">Scheduled Date</label>
+                  <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Scheduled Date</label>
                   <input 
                     type="date" 
                     value={postScheduledDate} 
                     onChange={(e) => setPostScheduledDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-350 text-sm focus:outline-none focus:border-indigo-600"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-xs font-semibold text-zinc-400">Time</label>
+                  <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Time</label>
                   <input 
                     type="time" 
                     value={postScheduledTime} 
                     onChange={(e) => setPostScheduledTime(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-350 text-sm focus:outline-none focus:border-indigo-600"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Assign Member / Editor</label>
+                <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Assign Member / Editor</label>
                 <select 
                   value={postAssignee} 
                   onChange={(e) => setPostAssignee(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-350 text-sm focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                 >
                   <option value="">👤 Unassigned</option>
                   {members.map(m => {
@@ -890,15 +890,15 @@ export default function ContentWorkflowPage() {
       {/* 2. Inspect Post (Details + Share + Comments) Modal */}
       {activeModal === "inspect" && selectedPost && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-[calc(100%-2rem)] md:max-w-[90vw] lg:max-w-[85vw] xl:max-w-7xl h-[95vh] bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
-            <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
+          <div className="w-full max-w-[calc(100%-2rem)] md:max-w-[90vw] lg:max-w-[85vw] xl:max-w-7xl h-[95vh] bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <Layers className="h-5 w-5 text-indigo-400" />
-                <h3 className="font-bold text-white text-sm">Post Inspector</h3>
+                <h3 className="font-bold text-foreground text-sm">Post Inspector</h3>
               </div>
               <button 
                 onClick={() => { setActiveModal(null); setSelectedPost(null); }} 
-                className="text-zinc-500 hover:text-zinc-300"
+                className="text-zinc-500 hover:text-zinc-350"
               >
                 <CloseIcon className="h-5 w-5" />
               </button>
@@ -907,26 +907,26 @@ export default function ContentWorkflowPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 flex-1 min-h-0 overflow-y-auto md:overflow-visible">
               
               {/* Left Column: Form Details */}
-              <form onSubmit={handleInspectSaveSubmit} className="p-6 border-b md:border-b-0 md:border-r border-zinc-900 flex flex-col gap-4 h-auto md:h-full overflow-y-visible md:overflow-y-auto">
+              <form onSubmit={handleInspectSaveSubmit} className="p-6 border-b md:border-b-0 md:border-r border-border flex flex-col gap-4 h-auto md:h-full overflow-y-visible md:overflow-y-auto">
                 
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-xs font-semibold text-zinc-400">Caption / Copy</label>
+                  <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Caption / Copy</label>
                   <textarea 
                     value={postCaption} 
                     onChange={(e) => setPostCaption(e.target.value)}
                     rows={4}
-                    className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                     required
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1.5 text-left">
-                    <label className="text-xs font-semibold text-zinc-400">Social Channel</label>
+                    <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Social Channel</label>
                     <select 
                       value={postPage} 
                       onChange={(e) => setPostPage(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                       required
                     >
                       {socialPages.map(page => (
@@ -938,11 +938,11 @@ export default function ContentWorkflowPage() {
                   </div>
 
                   <div className="flex flex-col gap-1.5 text-left">
-                    <label className="text-xs font-semibold text-zinc-400">Assign Member</label>
+                    <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Assign Member</label>
                     <select 
                       value={postAssignee} 
                       onChange={(e) => setPostAssignee(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-350 text-sm focus:outline-none focus:border-indigo-600"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                     >
                       <option value="">👤 Unassigned</option>
                       {members.map(m => {
@@ -964,31 +964,31 @@ export default function ContentWorkflowPage() {
 
                 <div className="grid grid-cols-3 gap-4">
                   <div className="flex flex-col gap-1.5 text-left col-span-2">
-                    <label className="text-xs font-semibold text-zinc-400">Scheduled Date</label>
+                    <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Scheduled Date</label>
                     <input 
                       type="date" 
                       value={postScheduledDate} 
                       onChange={(e) => setPostScheduledDate(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5 text-left">
-                    <label className="text-xs font-semibold text-zinc-400">Time</label>
+                    <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Time</label>
                     <input 
                       type="time" 
                       value={postScheduledTime} 
                       onChange={(e) => setPostScheduledTime(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-xs font-semibold text-zinc-400">Post Status</label>
+                  <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Post Status</label>
                   <select 
                     value={postStatus} 
                     onChange={(e) => setPostStatus(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600 cursor-pointer"
+                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 cursor-pointer"
                   >
                     {activeColumns.map((col) => (
                       <option key={col.id} value={col.id}>{col.label}</option>
@@ -997,14 +997,14 @@ export default function ContentWorkflowPage() {
                 </div>
 
                 {/* Attached Media Section */}
-                <div className="flex flex-col gap-2 border-t border-zinc-900/60 pt-4 mt-2">
-                  <label className="text-xs font-semibold text-zinc-400">Attached Media</label>
+                <div className="flex flex-col gap-2 border-t border-border pt-4 mt-2">
+                  <label className="text-xs font-semibold text-zinc-550 dark:text-zinc-400">Attached Media</label>
                   
                   {/* List of currently attached assets */}
                   {postAssets.length > 0 && (
                     <div className="grid grid-cols-2 gap-2 mb-2">
                       {postAssets.map((asset) => (
-                        <div key={asset._id} className="relative group border border-zinc-900 bg-zinc-950 rounded-lg p-2 flex items-center gap-2">
+                        <div key={asset._id} className="relative group border border-border bg-card rounded-lg p-2 flex items-center gap-2">
                           {asset.type === "image" && asset.url ? (
                             <img src={asset.url} className="h-8 w-8 object-cover rounded" />
                           ) : asset.type === "video" ? (
@@ -1012,7 +1012,7 @@ export default function ContentWorkflowPage() {
                           ) : (
                             <DocIcon className="h-8 w-8 text-amber-500 p-1.5 bg-amber-500/10 rounded" />
                           )}
-                          <span className="text-[10px] text-zinc-300 truncate flex-1">{asset.fileName}</span>
+                          <span className="text-[10px] text-zinc-600 dark:text-zinc-300 truncate flex-1">{asset.fileName}</span>
                           
                           <button
                             type="button"
@@ -1076,7 +1076,7 @@ export default function ContentWorkflowPage() {
                     />
                     <label 
                       htmlFor="inspector-media-upload"
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 border border-dashed border-zinc-800 hover:border-zinc-700 bg-zinc-900/10 hover:bg-zinc-900/20 text-zinc-400 hover:text-zinc-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 border border-dashed border-border hover:border-zinc-400 dark:hover:border-zinc-700 bg-muted hover:bg-muted/80 text-zinc-550 dark:text-zinc-400 hover:text-foreground rounded-lg text-xs font-semibold cursor-pointer transition-colors"
                     >
                       {uploadingInspectorFile ? (
                         <>
@@ -1095,11 +1095,11 @@ export default function ContentWorkflowPage() {
 
                 {/* Client approval link section */}
                 {postStatus === "client_review" && selectedPost.approvalToken && (
-                  <div className="p-3 rounded-lg border border-amber-900/30 bg-amber-950/5 flex flex-col gap-2 text-left mt-2">
-                    <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                  <div className="p-3 rounded-lg border border-amber-500/20 bg-amber-500/5 dark:bg-amber-955/5 flex flex-col gap-2 text-left mt-2">
+                    <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
                       <Globe className="h-3 w-3" /> Client Approval Link Exists
                     </span>
-                    <p className="text-[10px] text-zinc-400 leading-normal">
+                    <p className="text-[10px] text-zinc-500 dark:text-zinc-400 leading-normal">
                       Share the link below with your client. They can approve the post or request changes without creating a login.
                     </p>
                     <div className="flex gap-1.5 mt-1">
@@ -1107,7 +1107,7 @@ export default function ContentWorkflowPage() {
                         type="button"
                         onClick={() => handleCopyLink(selectedPost.approvalToken)}
                         className={`text-[9px] h-7 flex-1 ${
-                          copiedToken ? "bg-emerald-600 hover:bg-emerald-500 text-white" : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
+                          copiedToken ? "bg-emerald-600 hover:bg-emerald-500 text-white" : "bg-muted border border-border text-foreground hover:bg-muted/80"
                         }`}
                       >
                         {copiedToken ? (
@@ -1121,7 +1121,7 @@ export default function ContentWorkflowPage() {
                         )}
                       </Button>
                       <Link href={`/share/${selectedPost.approvalToken}`} target="_blank" className="shrink-0">
-                        <Button type="button" size="icon" className="h-7 w-7 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white">
+                        <Button type="button" size="icon" className="h-7 w-7 bg-muted hover:bg-muted/80 border border-border text-zinc-500 hover:text-foreground">
                           <Eye className="h-3.5 w-3.5" />
                         </Button>
                       </Link>
@@ -1129,7 +1129,7 @@ export default function ContentWorkflowPage() {
                   </div>
                 )}
 
-                <div className="flex gap-2 justify-between border-t border-zinc-900/60 pt-4 mt-3">
+                <div className="flex gap-2 justify-between border-t border-border pt-4 mt-3">
                   <Button 
                     type="button" 
                     variant="ghost" 
@@ -1161,8 +1161,8 @@ export default function ContentWorkflowPage() {
               </form>
 
               {/* Right Column: Comments Threads */}
-              <div className="p-6 bg-zinc-950/40 flex flex-col gap-4 h-[500px] md:h-full overflow-hidden shrink-0 md:shrink">
-                <h4 className="text-xs font-bold uppercase text-zinc-400 tracking-wider flex items-center gap-1.5 border-b border-zinc-900 pb-2 text-left">
+              <div className="p-6 bg-zinc-100/30 dark:bg-zinc-950/40 flex flex-col gap-4 h-[500px] md:h-full overflow-hidden shrink-0 md:shrink">
+                <h4 className="text-xs font-bold uppercase text-zinc-550 dark:text-zinc-400 tracking-wider flex items-center gap-1.5 border-b border-border pb-2 text-left">
                   <MessageSquare className="h-3.5 w-3.5 text-indigo-400" /> Collaboration Thread
                 </h4>
 
@@ -1191,14 +1191,14 @@ export default function ContentWorkflowPage() {
                               </span>
                             )}
                           </div>
-                          <div className="p-2.5 rounded-lg border border-zinc-900 bg-zinc-900/20 max-w-[90%] flex flex-col gap-2">
+                          <div className="p-2.5 rounded-lg border border-border bg-card max-w-[90%] flex flex-col gap-2">
                             {c.body && (
-                              <p className="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                              <p className="text-xs text-zinc-800 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
                                 {c.body}
                               </p>
                             )}
                             {c.imageUrl && (
-                              <div className="relative max-w-full rounded-md overflow-hidden border border-zinc-800/80 bg-black/40">
+                              <div className="relative max-w-full rounded-md overflow-hidden border border-border bg-black/40">
                                 <img 
                                   src={c.imageUrl} 
                                   alt="Comment attachment" 
@@ -1215,16 +1215,16 @@ export default function ContentWorkflowPage() {
 
                 {/* Comment File Preview */}
                 {commentFile && (
-                  <div className="flex items-center justify-between gap-2 p-1.5 rounded-lg border border-zinc-900 bg-zinc-950/60 text-xs mt-2">
+                  <div className="flex items-center justify-between gap-2 p-1.5 rounded-lg border border-border bg-card text-xs mt-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <div className="relative h-8 w-8 rounded overflow-hidden border border-zinc-900 bg-black shrink-0">
+                      <div className="relative h-8 w-8 rounded overflow-hidden border border-border bg-muted shrink-0">
                         <img 
                           src={URL.createObjectURL(commentFile)} 
                           alt="preview" 
                           className="h-full w-full object-cover" 
                         />
                       </div>
-                      <span className="text-[10px] text-zinc-300 truncate">{commentFile.name}</span>
+                      <span className="text-[10px] text-zinc-650 dark:text-zinc-300 truncate">{commentFile.name}</span>
                     </div>
                     <button
                       type="button"
@@ -1237,7 +1237,7 @@ export default function ContentWorkflowPage() {
                 )}
 
                 {/* Comment Input */}
-                <form onSubmit={handlePostCommentSubmit} className="flex items-center gap-2 border-t border-zinc-900/60 pt-3">
+                <form onSubmit={handlePostCommentSubmit} className="flex items-center gap-2 border-t border-border pt-3">
                   <input
                     type="file"
                     accept="image/*"
@@ -1251,18 +1251,18 @@ export default function ContentWorkflowPage() {
                   />
                   <label 
                     htmlFor="comment-image-upload"
-                    className="h-8 w-8 rounded-lg flex items-center justify-center border border-zinc-900 bg-zinc-900/20 text-zinc-400 hover:text-zinc-200 cursor-pointer shrink-0"
+                    className="h-8 w-8 rounded-lg flex items-center justify-center border border-border bg-muted text-zinc-550 dark:text-zinc-400 hover:text-foreground cursor-pointer shrink-0"
                     title="Attach image"
                   >
                     <ImageIcon className="h-4 w-4" />
                   </label>
-
+ 
                   <input
                     type="text"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder="Ask a question or request copy edits..."
-                    className="flex-1 px-3 py-1.5 rounded-lg border border-zinc-900 bg-zinc-900/20 text-zinc-200 text-xs focus:outline-none focus:border-indigo-600"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-border bg-muted text-foreground text-xs focus:outline-none focus:border-indigo-600"
                     required={!commentFile}
                   />
                   <Button 

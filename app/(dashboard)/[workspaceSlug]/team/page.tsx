@@ -176,7 +176,7 @@ export default function TeamPage() {
 
         {/* Active Members (2 cols) */}
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <h3 className="text-sm font-semibold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
+          <h3 className="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400 tracking-wider flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-indigo-400" /> Active Members ({activeMembers.length})
           </h3>
 
@@ -184,7 +184,7 @@ export default function TeamPage() {
             {activeMembers.map((member) => (
               <div
                 key={member.userId}
-                className="p-4 rounded-xl border border-zinc-900 bg-zinc-900/10 flex items-start justify-between hover:border-zinc-800 transition-colors"
+                className="p-4 rounded-xl border border-border bg-card flex items-start justify-between hover:border-zinc-300 dark:hover:border-zinc-800 transition-colors"
               >
                 <div className="flex items-start gap-4">
                   <div className="h-10 w-10 rounded-full bg-indigo-600/10 flex items-center justify-center text-indigo-400 border border-indigo-500/25 overflow-hidden shrink-0">
@@ -242,7 +242,7 @@ export default function TeamPage() {
                     {(() => {
                       const memberTasks = tasks?.filter(t => t.assigneeId === member.userId && t.status !== "done") || [];
                       return (
-                        <div className="mt-2.5 pt-2 border-t border-zinc-900/40 flex flex-col gap-1.5">
+                        <div className="mt-2.5 pt-2 border-t border-border flex flex-col gap-1.5">
                           <div className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-500 uppercase tracking-wider">
                             <Briefcase className="h-3 w-3 text-indigo-500/80" />
                             <span>Assigned Tasks ({memberTasks.length})</span>
@@ -252,7 +252,7 @@ export default function TeamPage() {
                               {memberTasks.slice(0, 3).map(task => (
                                 <span
                                   key={task._id}
-                                  className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors cursor-default"
+                                  className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-950 border border-border text-[10px] text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors cursor-default"
                                   title={task.title}
                                 >
                                   {task.title.length > 20 ? `${task.title.substring(0, 20)}...` : task.title}
@@ -260,7 +260,7 @@ export default function TeamPage() {
                               ))}
                               {memberTasks.length > 3 && (
                                 <span
-                                  className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-[10px] text-indigo-400 font-bold cursor-help"
+                                  className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-950 border border-border text-[10px] text-indigo-650 dark:text-indigo-400 font-bold cursor-help"
                                   title={memberTasks.slice(3).map(t => t.title).join("\n")}
                                 >
                                   +{memberTasks.length - 3} more
@@ -279,7 +279,7 @@ export default function TeamPage() {
                 </div>
 
                 <div className="flex items-center gap-3 mt-1 shrink-0">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-zinc-900 text-zinc-400 border border-zinc-800 font-semibold uppercase tracking-wider">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-border font-semibold uppercase tracking-wider">
                     {member.role}
                   </span>
                 </div>
@@ -289,8 +289,8 @@ export default function TeamPage() {
         </div>
 
         {/* Pending Invites (1 col) */}
-        <div className="flex flex-col gap-6 border-l-0 lg:border-l border-zinc-900 pl-0 lg:pl-8">
-          <h3 className="text-sm font-semibold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
+        <div className="flex flex-col gap-6 border-l-0 lg:border-l border-border pl-0 lg:pl-8">
+          <h3 className="text-sm font-semibold uppercase text-zinc-500 dark:text-zinc-400 tracking-wider flex items-center gap-2">
             <Clock className="h-4 w-4 text-indigo-400" /> Pending Invites ({pendingInvites.length})
           </h3>
 
@@ -301,11 +301,11 @@ export default function TeamPage() {
               {pendingInvites.map((invite) => (
                 <div
                   key={invite._id}
-                  className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 flex flex-col gap-3 text-left"
+                  className="p-4 rounded-xl border border-border bg-card flex flex-col gap-3 text-left"
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex flex-col gap-0.5 max-w-[170px]">
-                      <span className="text-xs font-semibold text-zinc-200 truncate" title={invite.invitedEmail}>
+                      <span className="text-xs font-semibold text-foreground truncate" title={invite.invitedEmail}>
                         {invite.invitedEmail}
                       </span>
                       <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-wider">
@@ -315,7 +315,7 @@ export default function TeamPage() {
 
                     <button
                       onClick={() => handleCancelInvite(invite._id)}
-                      className="text-zinc-600 hover:text-red-400 p-1 rounded hover:bg-zinc-900"
+                      className="text-zinc-500 hover:text-red-500 p-1 rounded hover:bg-muted"
                       title="Cancel Invite"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
@@ -323,7 +323,7 @@ export default function TeamPage() {
                   </div>
 
                   {/* Accept helper box */}
-                  <div className="flex flex-col gap-2 pt-2 border-t border-zinc-900/60">
+                  <div className="flex flex-col gap-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
                     <span className="text-[9px] text-zinc-500 italic">
                       Copy the join link below and open it in an incognito window to register/test the invitee account:
                     </span>
@@ -332,7 +332,7 @@ export default function TeamPage() {
                       onClick={() => handleCopyLink(invite._id)}
                       className={`w-full text-[10px] h-7 ${copiedInviteId === invite._id
                         ? "bg-emerald-600 hover:bg-emerald-500 text-white"
-                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-850"
+                        : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-zinc-700"
                         }`}
                     >
                       {copiedInviteId === invite._id ? (
@@ -377,7 +377,7 @@ export default function TeamPage() {
               )}
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Email Address</label>
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Email Address</label>
                 <div className="relative flex items-center">
                   <Mail className="absolute left-3.5 h-4 w-4 text-zinc-500" />
                   <input
@@ -385,18 +385,18 @@ export default function TeamPage() {
                     value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
                     placeholder="teammate@company.com"
-                    className="w-full pl-10 pr-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
+                    className="w-full pl-10 pr-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                     required
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Workspace Role</label>
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Workspace Role</label>
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as any)}
-                  className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                   required
                 >
                   <option value="editor">Editor (Create & edit posts/tasks)</option>
@@ -470,39 +470,39 @@ export default function TeamPage() {
 
               {/* Display Name Input */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Display Name / Nickname</label>
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Display Name / Nickname</label>
                 <input
                   type="text"
                   value={editNicknameValue}
                   onChange={(e) => setEditNicknameValue(e.target.value)}
                   placeholder="Enter display name..."
-                  className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-650 focus:ring-1 focus:ring-indigo-650"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-650 focus:ring-1 focus:ring-indigo-650"
                   required
                 />
               </div>
 
               {/* Profile Picture Input */}
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-400">Profile Picture URL or Emoji</label>
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Profile Picture URL or Emoji</label>
                 <input
                   type="text"
                   value={editPictureValue}
                   onChange={(e) => setEditPictureValue(e.target.value)}
                   placeholder="https://example.com/avatar.jpg or a single emoji 🦊"
-                  className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-650 focus:ring-1 focus:ring-indigo-650"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-655 focus:ring-1 focus:ring-indigo-655"
                 />
               </div>
 
               {/* Preset Emojis Picker */}
               <div className="flex flex-col gap-1.5 text-left">
-                <span className="text-xs font-semibold text-zinc-400">Choose a fun preset icon / emoji:</span>
-                <div className="flex flex-wrap gap-2 p-3.5 rounded-lg bg-zinc-900/25 border border-zinc-900/60">
+                <span className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Choose a fun preset icon / emoji:</span>
+                <div className="flex flex-wrap gap-2 p-3.5 rounded-lg bg-muted border border-border">
                   {["💼", "👔", "👑", "💻", "⚙️", "🎨", "✍️", "📊", "📣", "📈", "🛡️", "🤝", "🚀", "💡", "✨", "🌟", "🦊", "🦁", "🐯", "🐼", "🐨", "🍿", "🎮", "👾"].map(emoji => (
                     <button
                       key={emoji}
                       type="button"
                       onClick={() => setEditPictureValue(emoji)}
-                      className={`text-xl p-1.5 rounded-md hover:bg-zinc-800 transition-colors border ${editPictureValue === emoji ? "border-indigo-500 bg-indigo-500/10" : "border-transparent"
+                      className={`text-xl p-1.5 rounded-md hover:bg-muted transition-colors border ${editPictureValue === emoji ? "border-indigo-500 bg-indigo-500/10" : "border-transparent"
                         }`}
                     >
                       {emoji}
@@ -511,7 +511,7 @@ export default function TeamPage() {
                 </div>
               </div>
 
-              <div className="flex gap-2 justify-end pt-2 border-t border-zinc-900/50 mt-2">
+              <div className="flex gap-2 justify-end pt-2 border-t border-border mt-2">
                 <Button
                   type="button"
                   variant="ghost"
