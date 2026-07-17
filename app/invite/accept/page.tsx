@@ -81,7 +81,7 @@ function InviteAcceptContent() {
         <div className="flex flex-col gap-2">
           <h2 className="text-xl font-bold text-white">Workspace Invitation</h2>
           <p className="text-sm text-zinc-400">
-            You've been invited to join a collaborative workspace on Socials Ark.
+            You've been invited to join a collaborative workspace on Socials Arc.
           </p>
           <p className="text-xs text-zinc-500 mt-1">
             Please sign in or create an account with the email address that received the invitation to accept.
@@ -173,7 +173,7 @@ export default function InviteAcceptPage() {
           <div className="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-600/20">
             S
           </div>
-          <span className="font-semibold text-lg tracking-tight">Socials Ark</span>
+          <span className="font-semibold text-lg tracking-tight">Socials Arc</span>
         </div>
       </header>
 
@@ -194,7 +194,7 @@ export default function InviteAcceptPage() {
 
       {/* Footer */}
       <footer className="py-6 border-t border-zinc-900 bg-zinc-950 text-center text-xs text-zinc-600">
-        &copy; {new Date().getFullYear()} Socials Ark. All rights reserved.
+        &copy; {new Date().getFullYear()} Socials Arc. All rights reserved.
       </footer>
     </div>
   );

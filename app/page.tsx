@@ -71,7 +71,7 @@ export default function Home() {
             <path d="M4.5 16.5c-1.5-1.5-2.5-3.5-2.5-6s1-4.5 2.5-6S9 2 11.5 4.5s4.5 6 4.5 8.5-1 4.5-2.5 6-4.5 2.5-7 0z" />
             <path d="M19.5 7.5c1.5 1.5 2.5 3.5 2.5 6s-1 4.5-2.5 6-4.5 2.5-7 0-4.5-6-4.5-8.5 1-4.5 2.5-6 4.5-2.5 7 0z" opacity="0.8" />
           </svg>
-          <span className="font-extrabold text-base tracking-tight text-white">Socials Ark</span>
+          <span className="font-extrabold text-base tracking-tight text-white">Socials Arc</span>
         </div>
         
         <div className="flex items-center gap-4">
@@ -131,7 +131,7 @@ export default function Home() {
                 One place for planning, approving, & tracking content
               </h1>
               <p className="text-sm sm:text-base text-zinc-400 max-w-xl leading-relaxed">
-                Socials Ark is the ultimate project management platform built for social media agencies. Plan workflows, automate client approvals, manage assets, and track cents-accurate P&L.
+                Socials Arc is the ultimate project management platform built for social media agencies. Plan workflows, automate client approvals, manage assets, and track cents-accurate P&L.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-xs sm:max-w-none mt-4">
@@ -156,7 +156,7 @@ export default function Home() {
                 <span className="h-2.5 w-2.5 rounded-full bg-red-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-yellow-500/60" />
                 <span className="h-2.5 w-2.5 rounded-full bg-green-500/60" />
-                <span className="text-[10px] text-zinc-600 font-bold ml-2 uppercase font-mono tracking-wider">Socials Ark console.app</span>
+                <span className="text-[10px] text-zinc-600 font-bold ml-2 uppercase font-mono tracking-wider">Socials Arc console.app</span>
               </div>
               
               {/* Mockup layout */}
@@ -590,7 +590,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-6 border-t border-[#16181d] bg-[#0d0e12] text-center text-xs text-zinc-650">
-        &copy; {new Date().getFullYear()} Socials Ark. All rights reserved.
+        &copy; {new Date().getFullYear()} Socials Arc. All rights reserved.
       </footer>
     </div>
   );

@@ -1,6 +1,6 @@
-# 📱 Socials Ark — Social Media PM SaaS
+# 📱 Socials Arc — Social Media PM SaaS
 
-Socials Ark is a comprehensive project and content management platform built for social media teams, creators, and digital marketing agencies. It serves as a unified workspace to plan, draft, review, approve, and track the financial performance of content across multiple clients and platforms.
+Socials Arc is a comprehensive project and content management platform built for social media teams, creators, and digital marketing agencies. It serves as a unified workspace to plan, draft, review, approve, and track the financial performance of content across multiple clients and platforms.
 
 ---
 

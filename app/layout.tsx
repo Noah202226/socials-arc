@@ -11,7 +11,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Socials Ark",
+  title: "Socials Arc",
   description: "Social Media Project & Content Management SaaS",
 };
 

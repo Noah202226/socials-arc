@@ -1,6 +1,6 @@
 # UI Screenshots & Inspiration Designs Reference
 
-This directory holds visual design assets, mockups, layouts, and screenshots that serve as design targets or inspiration references for the Socials Ark platform.
+This directory holds visual design assets, mockups, layouts, and screenshots that serve as design targets or inspiration references for the Socials Arc platform.
 
 ## How to use:
 1. **Drop inspiration designs**: Put any screenshot files (`.png`, `.jpg`, `.webp`) in this folder.

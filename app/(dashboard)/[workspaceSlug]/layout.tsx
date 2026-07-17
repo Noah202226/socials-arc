@@ -113,7 +113,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
               <path d="M4.5 16.5c-1.5-1.5-2.5-3.5-2.5-6s1-4.5 2.5-6S9 2 11.5 4.5s4.5 6 4.5 8.5-1 4.5-2.5 6-4.5 2.5-7 0z" />
               <path d="M19.5 7.5c1.5 1.5 2.5 3.5 2.5 6s-1 4.5-2.5 6-4.5 2.5-7 0-4.5-6-4.5-8.5 1-4.5 2.5-6 4.5-2.5 7 0z" opacity="0.8" />
             </svg>
-            <span className="font-extrabold text-base tracking-tight text-white font-sans">Socials Ark</span>
+            <span className="font-extrabold text-base tracking-tight text-white font-sans">Socials Arc</span>
           </Link>
           <button 
             onClick={closeSidebar}

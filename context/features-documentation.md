@@ -1,6 +1,6 @@
-# Socials Ark — Features & Flows Documentation
+# Socials Arc — Features & Flows Documentation
 
-This document serves as the central technical reference for all features implemented in the Socials Ark platform. Refer to this document when onboarding, reviewing existing architecture, or planning extensions.
+This document serves as the central technical reference for all features implemented in the Socials Arc platform. Refer to this document when onboarding, reviewing existing architecture, or planning extensions.
 
 ---
 
