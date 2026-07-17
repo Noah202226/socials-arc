@@ -36,6 +36,7 @@ const defaultTaskColumns = [
 ];
 
 import { toast } from "sonner";
+import { resolveColumnColor } from "@/lib/utils";
 
 type TaskStatus = "todo" | "in_progress" | "done";
 
@@ -437,6 +438,7 @@ export default function TasksPage() {
         >
           {activeColumns.map((col) => {
             const colTasks = tasks.filter(t => t.status === col.id);
+            const { bgBorder, text: headerTextClass } = resolveColumnColor(col.color);
 
             return (
               <div
@@ -447,15 +449,15 @@ export default function TasksPage() {
                 onDrop={(e) => handleDrop(e, col.id)}
                 className={`rounded-xl border p-4 flex flex-col gap-4 w-[290px] shrink-0 h-auto md:h-[calc(100vh-340px)] md:min-h-[450px] overflow-hidden transition-all duration-200 ${activeDropCol === col.id
                   ? "border-indigo-500/60 bg-indigo-950/20 shadow-lg shadow-indigo-950/25"
-                  : col.color
+                  : bgBorder
                   }`}
               >
                 {/* Column Header */}
                 <div className="flex justify-between items-center pb-2 border-b border-border">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-800 dark:text-zinc-300">
+                  <h4 className={`text-xs font-bold uppercase tracking-wider ${headerTextClass}`}>
                     {col.label}
                   </h4>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 dark:bg-zinc-900 border border-border text-zinc-600 dark:text-zinc-400">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-zinc-100 dark:bg-zinc-900 border border-border text-zinc-650 dark:text-zinc-400">
                     {colTasks.length}
                   </span>
                 </div>

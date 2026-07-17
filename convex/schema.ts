@@ -54,6 +54,7 @@ export default defineSchema({
     userEmail: v.optional(v.string()),
     userName: v.optional(v.string()),
     pictureUrl: v.optional(v.string()),
+    themeOverride: v.optional(v.union(v.literal("pink"), v.literal("default"))),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_user", ["userId"])

@@ -121,10 +121,75 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Per-member Pastel Pink Theme
+   Applied to the <html> element via useEffect in workspace layout.
+   Reference palette: #FFF1F4 #FFE3E9 #FFD1DC #FFA2B9 #FE6E94 #F83B72
+───────────────────────────────────────────────────────────────────────── */
+html.pink {
+  /* Page background — pastel blush #FFD1DC */
+  --background: #ffd1dc;
+  /* Main text — deep wine #3D0421 */
+  --foreground: #3d0421;
+
+  /* Card surfaces — lightest blush #FFF1F4 */
+  --card: #fff1f4;
+  --card-foreground: #3d0421;
+
+  /* Popovers / dropdowns */
+  --popover: #fff1f4;
+  --popover-foreground: #3d0421;
+
+  /* Primary CTA — vivid rose #F83B72 */
+  --primary: #fc1c5b;
+  --primary-foreground: #ffffff;
+
+  /* Secondary surfaces — #FFE3E9 petal pink */
+  --secondary: #f0889f;
+  --secondary-foreground: #3d0421;
+
+  /* Muted / subtle backgrounds — #FFE3E9 */
+  --muted: #ffe3e9;
+  --muted-foreground: #c40d56;
+
+  /* Accent hover — #FFA2B9 medium rose */
+  --accent: #eb7d99;
+  --accent-foreground: #3d0421;
+
+  /* Destructive — keep standard red */
+  --destructive: #b3072c;
+
+  /* Borders — #FFA2B9 soft rose divider */
+  --border: #ffa2b9;
+  /* Input fields — lightest blush */
+  --input: #ffe3e9;
+  /* Focus ring — vivid rose */
+  --ring: #fd326b;
+
+  /* Charts — rose gradient */
+  --chart-1: #f83b72;
+  --chart-2: #e5195e;
+  --chart-3: #c20e4f;
+  --chart-4: #ffa2b9;
+  --chart-5: #ffe3e9;
+
+  /* Sidebar — petal pink #FFE3E9 */
+  --sidebar: #e61c47;
+  --sidebar-foreground: #3d0421;
+  --sidebar-primary: #fa1e5c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e7889f;
+  --sidebar-accent-foreground: #3d0421;
+  --sidebar-border: #ee3c68;
+  --sidebar-ring: #ca1c4d;
 }

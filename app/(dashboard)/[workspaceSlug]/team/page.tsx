@@ -22,7 +22,8 @@ import {
   AlertCircle,
   Edit2,
   Briefcase,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -52,6 +53,7 @@ export default function TeamPage() {
   const sendInvite = useMutation(api.members.invite);
   const cancelInvite = useMutation(api.members.cancelInvite);
   const updateNickname = useMutation(api.members.updateNickname);
+  const setThemeOverride = useMutation(api.members.setThemeOverride);
 
   // Clerk User
   const { user } = useUser();
@@ -98,6 +100,24 @@ export default function TeamPage() {
   const [copiedInviteId, setCopiedInviteId] = useState<Id<"members"> | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [togglingThemeId, setTogglingThemeId] = useState<Id<"members"> | null>(null);
+
+  const handleTogglePinkTheme = async (member: { _id: Id<"members">; themeOverride?: string }) => {
+    setTogglingThemeId(member._id);
+    try {
+      const next = member.themeOverride === "pink" ? "default" : "pink";
+      await setThemeOverride({ memberId: member._id, themeOverride: next });
+      toast.success(
+        next === "pink"
+          ? "🌸 Pink theme activated for this member!"
+          : "Pink theme removed — member is back to default."
+      );
+    } catch (err: any) {
+      toast.error(err.message || "Failed to change theme");
+    } finally {
+      setTogglingThemeId(null);
+    }
+  };
 
   if (workspace === undefined || activeMembers === undefined || pendingInvites === undefined || tasks === undefined) {
     return (
@@ -279,6 +299,26 @@ export default function TeamPage() {
                 </div>
 
                 <div className="flex items-center gap-3 mt-1 shrink-0">
+                  {/* Pink theme toggle — admins/owners only */}
+                  {isOwnerOrAdmin && (
+                    <button
+                      onClick={() => handleTogglePinkTheme(member)}
+                      disabled={togglingThemeId === member._id}
+                      title={member.themeOverride === "pink" ? "Remove pink theme" : "Assign pink theme"}
+                      className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border transition-all ${
+                        member.themeOverride === "pink"
+                          ? "bg-rose-100 dark:bg-rose-500/15 border-rose-300 dark:border-rose-400/40 text-rose-600 dark:text-rose-400 hover:bg-rose-200 dark:hover:bg-rose-500/25"
+                          : "bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-500 hover:text-rose-500 hover:border-rose-300 dark:hover:border-rose-400/40 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                      }`}
+                    >
+                      {togglingThemeId === member._id ? (
+                        <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-2.5 w-2.5" />
+                      )}
+                      {member.themeOverride === "pink" ? "Pink" : "Theme"}
+                    </button>
+                  )}
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-border font-semibold uppercase tracking-wider">
                     {member.role}
                   </span>

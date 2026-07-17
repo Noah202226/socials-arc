@@ -435,8 +435,8 @@ export default function SettingsPage() {
                     onClick={() => updateColProperty("tasks", col.id, "hidden", !col.hidden)}
                     className={`h-8 w-8 border ${
                       col.hidden 
-                        ? "text-zinc-550 border-zinc-800 bg-zinc-900/10 hover:text-zinc-300 hover:bg-zinc-900/30" 
-                        : "text-indigo-400 border-indigo-950 bg-indigo-500/5 hover:bg-indigo-500/10"
+                        ? "text-zinc-500 dark:text-zinc-400 border-border bg-muted/40 hover:text-foreground hover:bg-muted/80" 
+                        : "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-950/40 bg-indigo-500/5 hover:bg-indigo-500/10"
                     }`}
                   >
                     {col.hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -448,7 +448,7 @@ export default function SettingsPage() {
                     variant="ghost"
                     title="Permanently delete column status"
                     onClick={() => handleDeleteColumn("tasks", col.id)}
-                    className="h-8 w-8 border border-rose-950 bg-rose-500/5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                    className="h-8 w-8 border border-rose-250 dark:border-rose-950 bg-rose-500/5 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-500/10"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -556,8 +556,8 @@ export default function SettingsPage() {
                     onClick={() => updateColProperty("posts", col.id, "hidden", !col.hidden)}
                     className={`h-8 w-8 border ${
                       col.hidden 
-                        ? "text-zinc-550 border-border bg-muted/40 hover:text-foreground hover:bg-muted/80" 
-                        : "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-950 bg-indigo-500/5 hover:bg-indigo-500/10"
+                        ? "text-zinc-500 dark:text-zinc-400 border-border bg-muted/40 hover:text-foreground hover:bg-muted/80" 
+                        : "text-indigo-600 dark:text-indigo-400 border-indigo-200 dark:border-indigo-950/40 bg-indigo-500/5 hover:bg-indigo-500/10"
                     }`}
                   >
                     {col.hidden ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -569,7 +569,7 @@ export default function SettingsPage() {
                     variant="ghost"
                     title="Permanently delete column status"
                     onClick={() => handleDeleteColumn("posts", col.id)}
-                    className="h-8 w-8 border border-rose-950 bg-rose-500/5 text-rose-450 hover:text-rose-350 hover:bg-rose-500/10"
+                    className="h-8 w-8 border border-rose-250 dark:border-rose-950 bg-rose-500/5 text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-500/10"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

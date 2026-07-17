@@ -31,11 +31,11 @@ import {
 
 // Platform helper config
 const platforms = [
-  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-400 bg-pink-950/20 border-pink-900/30" },
-  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-400 bg-blue-950/20 border-blue-900/30" },
-  { value: "tiktok", label: "TikTok", icon: Globe, color: "text-[#05ffc4] bg-[#05ffc4]/10 border-[#05ffc4]/20" },
-  { value: "x", label: "X (Twitter)", icon: Globe, color: "text-zinc-300 bg-zinc-900/40 border-zinc-800" },
-  { value: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-indigo-400 bg-indigo-950/20 border-indigo-900/30" },
+  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-900/30" },
+  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/30" },
+  { value: "tiktok", label: "TikTok", icon: Globe, color: "text-teal-600 dark:text-[#05ffc4] pink:text-rose-500 bg-teal-50 dark:bg-[#05ffc4]/10 pink:bg-rose-50 border-teal-200 dark:border-[#05ffc4]/20 pink:border-rose-250" },
+  { value: "x", label: "X (Twitter)", icon: Globe, color: "text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800" },
+  { value: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/30" },
 ];
 
 export default function ClientsPage() {
@@ -328,14 +328,14 @@ export default function ClientsPage() {
                       </div>
 
                       {/* Stats */}
-                      <div className="grid grid-cols-2 gap-2 border-t border-[#16181d] pt-3 text-xs text-zinc-450 font-semibold font-mono">
+                      <div className="grid grid-cols-2 gap-2 border-t border-border pt-3 text-xs text-zinc-650 dark:text-zinc-450 font-semibold font-mono">
                         <div className="flex flex-col">
-                          <span className="text-[9px] text-zinc-550 font-bold uppercase tracking-wider">Campaigns</span>
-                          <span className="font-bold text-zinc-200">{clientProjects.length} Active</span>
+                          <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Campaigns</span>
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{clientProjects.length} Active</span>
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-[9px] text-zinc-550 font-bold uppercase tracking-wider">Social Channels</span>
-                          <span className="font-bold text-zinc-200">{clientPages.length} Connected</span>
+                          <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Social Channels</span>
+                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{clientPages.length} Connected</span>
                         </div>
                       </div>
 
@@ -371,7 +371,7 @@ export default function ClientsPage() {
         </div>
 
         {/* Channels & campaigns (1 col) */}
-        <div className="flex flex-col gap-8 border-l-0 lg:border-l border-[#16181d] pl-0 lg:pl-8">
+        <div className="flex flex-col gap-8 border-l-0 lg:border-l border-border pl-0 lg:pl-8">
           
           {/* Linked Pages */}
           <div className="flex flex-col gap-4">
@@ -401,7 +401,7 @@ export default function ClientsPage() {
                     <div key={page._id} className="relative group/page">
                       <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4] to-[#00d9f5] rounded-xl blur-xs opacity-0 group-hover/page:opacity-10 transition duration-500" />
                       
-                      <div className="relative p-3 rounded-xl border border-[#16181d] bg-[#0d0e12]/80 backdrop-blur-xs flex items-center justify-between hover:[transform:perspective(500px)_rotateX(1.5deg)_rotateY(-1.5deg)] transition-all duration-300 ease-out">
+                      <div className="relative p-3 rounded-xl border border-border bg-card/85 backdrop-blur-xs flex items-center justify-between hover:[transform:perspective(500px)_rotateX(1.5deg)_rotateY(-1.5deg)] transition-all duration-300 ease-out">
                         <div className="flex items-center gap-3">
                           <div className={`p-1.5 rounded border ${pConfig?.color || "text-zinc-500 bg-zinc-900"}`}>
                             <PIcon className="h-4 w-4" />
@@ -412,11 +412,11 @@ export default function ClientsPage() {
                               href={platformUrl} 
                               target="_blank" 
                               rel="noopener noreferrer" 
-                              className="text-xs font-bold text-zinc-205 hover:text-[#05ffc4] transition-colors flex items-center gap-0.5 group/link"
+                              className="text-xs font-bold text-foreground hover:text-[#05ffc4] transition-colors flex items-center gap-0.5 group/link"
                             >
                               @{page.handle} <span className="text-[8px] opacity-0 group-hover/link:opacity-100 transition-opacity">↗</span>
                             </a>
-                            <span className="text-[9px] text-zinc-500 font-bold uppercase">Client: {client?.name || "Unknown"}</span>
+                            <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase">Client: {client?.name || "Unknown"}</span>
                           </div>
                         </div>
 
@@ -425,8 +425,8 @@ export default function ClientsPage() {
                             onClick={() => togglePageActive({ pageId: page._id, isActive: !page.isActive })}
                             className={`text-[9px] px-2 py-0.5 rounded font-extrabold border uppercase tracking-wider ${
                               page.isActive 
-                                ? "bg-[#05ffc4]/10 text-[#05ffc4] border-[#05ffc4]/20" 
-                                : "bg-zinc-900 text-zinc-650 border-zinc-800"
+                                ? "bg-emerald-50 dark:bg-[#05ffc4]/10 text-emerald-650 dark:text-[#05ffc4] border-emerald-250 dark:border-[#05ffc4]/20" 
+                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-450 border-zinc-200 dark:border-zinc-800"
                             }`}
                           >
                             {page.isActive ? "Active" : "Paused"}
@@ -454,8 +454,8 @@ export default function ClientsPage() {
           </div>
 
           {/* Active Campaigns */}
-          <div className="flex flex-col gap-4 border-t border-[#16181d] pt-6">
-            <h3 className="text-xs font-bold uppercase text-zinc-550 tracking-wider flex items-center gap-2">
+          <div className="flex flex-col gap-4 border-t border-border pt-6">
+            <h3 className="text-xs font-bold uppercase text-zinc-555 dark:text-zinc-550 tracking-wider flex items-center gap-2">
               <FolderKanban className="h-4 w-4 text-[#05ffc4]" /> Active Projects ({projects.length})
             </h3>
 
@@ -471,12 +471,12 @@ export default function ClientsPage() {
                     <div key={project._id} className="relative group/project">
                       <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4] to-[#00d9f5] rounded-xl blur-xs opacity-0 group-hover/project:opacity-10 transition duration-500" />
                       
-                      <div className="relative p-3.5 rounded-xl border border-[#16181d] bg-[#0d0e12]/80 backdrop-blur-xs flex flex-col gap-1.5 hover:[transform:perspective(500px)_rotateX(1.5deg)_rotateY(-1.5deg)] transition-all duration-300 ease-out text-left">
+                      <div className="relative p-3.5 rounded-xl border border-border bg-card/85 backdrop-blur-xs flex flex-col gap-1.5 hover:[transform:perspective(500px)_rotateX(1.5deg)_rotateY(-1.5deg)] transition-all duration-300 ease-out text-left">
                         <div className="flex justify-between items-center">
                           {/* Clickable project name going to content board */}
                           <Link 
                             href={`/${slug}/content`}
-                            className="text-xs font-bold text-zinc-200 hover:text-[#05ffc4] transition-colors truncate max-w-[150px]"
+                            className="text-xs font-bold text-foreground hover:text-[#05ffc4] transition-colors truncate max-w-[150px]"
                           >
                             {project.name}
                           </Link>
@@ -485,7 +485,7 @@ export default function ClientsPage() {
                             <select 
                               value={project.status}
                               onChange={(e) => updateProjectStatus({ projectId: project._id, status: e.target.value as any })}
-                              className="text-[9px] font-bold uppercase tracking-wider bg-[#12141a] text-zinc-400 border border-[#1d2027] rounded-md px-1 py-0.5"
+                              className="text-[9px] font-bold uppercase tracking-wider bg-muted text-zinc-600 dark:text-zinc-400 border border-border rounded-md px-1 py-0.5 focus:outline-none"
                             >
                               <option value="active">Active</option>
                               <option value="paused">Paused</option>
@@ -527,27 +527,27 @@ export default function ClientsPage() {
       {/* 1. Add Client Modal */}
       {activeModal === "client" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0d0e12] border border-[#16181d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-[#16181d] flex justify-between items-center">
+          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
               <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider">Add Client Profile</h3>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleCreateClient} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Client Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-500">Client Name</label>
                 <input 
                   type="text" 
                   value={clientName} 
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="e.g. Acme Corporation" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 />
               </div>
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
@@ -563,20 +563,20 @@ export default function ClientsPage() {
       {/* 2. Project/Campaign Modal */}
       {activeModal === "project" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0d0e12] border border-[#16181d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-[#16181d] flex justify-between items-center">
+          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
               <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider">Initialize Campaign</h3>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleCreateProject} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Target Client</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-500">Target Client</label>
                 <select 
                   value={selectedClientId} 
                   onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 >
                   <option value="">Select a Client...</option>
@@ -586,28 +586,28 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Campaign/Project Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555 dark:text-zinc-500">Campaign/Project Name</label>
                 <input 
                   type="text" 
                   value={projectName} 
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="e.g. Summer Launch 2026" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 />
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Brief Description</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555 dark:text-zinc-500">Brief Description</label>
                 <textarea 
                   value={projectDesc} 
                   onChange={(e) => setProjectDesc(e.target.value)}
                   placeholder="Optional notes or goals..." 
                   rows={3}
-                  className="w-full px-3.5 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
                 />
               </div>
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
@@ -618,25 +618,23 @@ export default function ClientsPage() {
             </form>
           </div>
         </div>
-      )}
-
-      {/* 3. Social Page Modal */}
+      )}      {/* 3. Social Page Modal */}
       {activeModal === "page" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0d0e12] border border-[#16181d] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-[#16181d] flex justify-between items-center">
+          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
               <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider">Connect Social Page</h3>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleCreateSocialPage} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Target Client</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-500">Target Client</label>
                 <select 
                   value={selectedClientId} 
                   onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-350 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 >
                   <option value="">Select a Client...</option>
@@ -646,11 +644,11 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Social Platform</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555 dark:text-zinc-500">Social Platform</label>
                 <select 
                   value={pagePlatform} 
                   onChange={(e) => setPagePlatform(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 >
                   {platforms.map(p => (
@@ -659,7 +657,7 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Handle / Account Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555 dark:text-zinc-500">Handle / Account Name</label>
                 <div className="relative flex items-center">
                   <span className="absolute left-3.5 text-zinc-500 text-xs font-bold select-none">@</span>
                   <input 
@@ -667,13 +665,13 @@ export default function ClientsPage() {
                     value={pageHandle} 
                     onChange={(e) => setPageHandle(e.target.value)}
                     placeholder="handle" 
-                    className="w-full pl-8 pr-3.5 py-2 rounded-lg border border-[#16181d] bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
+                    className="w-full pl-8 pr-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
                     required
                   />
                 </div>
               </div>
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
@@ -689,23 +687,23 @@ export default function ClientsPage() {
       {/* 4. Delete Client Confirmation Modal */}
       {activeModal === "delete_client" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0d0e12] border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md bg-background border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-red-900/20 bg-red-950/10 flex justify-between items-center text-left">
-              <div className="flex items-center gap-2 text-red-400">
+              <div className="flex items-center gap-2 text-red-500 dark:text-red-400">
                 <AlertTriangle className="h-4 w-4" />
                 <h3 className="font-extrabold text-sm uppercase tracking-wider">Delete Client Profile</h3>
               </div>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             
             <form onSubmit={handleDeleteClient} className="p-6 flex flex-col gap-4 text-left">
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed">
                 You are about to delete client profile <strong className="text-foreground">"{deleteTargetClientName}"</strong>. 
-                This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
+                This action is <strong className="text-red-500 dark:text-red-400 uppercase">permanent</strong> and will delete:
               </p>
-              <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
+              <ul className="text-xs text-zinc-550 dark:text-zinc-500 list-disc pl-5 flex flex-col gap-1">
                 <li>All active projects/campaigns of this client</li>
                 <li>All linked social channels & credentials</li>
                 <li>All social posts, tasks, and media assets</li>
@@ -721,19 +719,19 @@ export default function ClientsPage() {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="Type DELETE" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 dark:border-red-900/40 bg-muted/40 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-red-500"
                   required
                 />
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={loadingAction || deleteConfirmText.toLowerCase() !== "delete"} 
-                  className="bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-red-950/40 dark:bg-red-950/20 hover:bg-red-900/60 dark:hover:bg-red-900/40 text-red-500 dark:text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Delete Client
@@ -747,23 +745,23 @@ export default function ClientsPage() {
       {/* 5. Delete Project Confirmation Modal */}
       {activeModal === "delete_project" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0d0e12] border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md bg-background border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-red-900/20 bg-red-950/10 flex justify-between items-center text-left">
-              <div className="flex items-center gap-2 text-red-400">
+              <div className="flex items-center gap-2 text-red-500 dark:text-red-400">
                 <AlertTriangle className="h-4 w-4" />
                 <h3 className="font-extrabold text-sm uppercase tracking-wider">Delete Campaign</h3>
               </div>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             
             <form onSubmit={handleDeleteProject} className="p-6 flex flex-col gap-4 text-left">
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed">
                 You are about to delete campaign <strong className="text-foreground">"{deleteTargetProjectName}"</strong>. 
-                This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
+                This action is <strong className="text-red-500 dark:text-red-400 uppercase">permanent</strong> and will delete:
               </p>
-              <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
+              <ul className="text-xs text-zinc-550 dark:text-zinc-500 list-disc pl-5 flex flex-col gap-1">
                 <li>All posts and tasks drafts in this campaign</li>
                 <li>All visual content and attachments</li>
                 <li>All historical comments on related posts</li>
@@ -778,19 +776,19 @@ export default function ClientsPage() {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="Type DELETE" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 dark:border-red-900/40 bg-muted/40 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-red-500"
                   required
                 />
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={loadingAction || deleteConfirmText.toLowerCase() !== "delete"} 
-                  className="bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-red-950/40 dark:bg-red-950/20 hover:bg-red-900/60 dark:hover:bg-red-900/40 text-red-500 dark:text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Delete Campaign
@@ -804,29 +802,29 @@ export default function ClientsPage() {
       {/* 6. Disconnect Page Confirmation Modal */}
       {activeModal === "delete_page" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-[#0d0e12] border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+          <div className="w-full max-w-md bg-background border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-red-900/20 bg-red-950/10 flex justify-between items-center text-left">
-              <div className="flex items-center gap-2 text-red-400">
+              <div className="flex items-center gap-2 text-red-500 dark:text-red-400">
                 <AlertTriangle className="h-4 w-4" />
                 <h3 className="font-extrabold text-sm uppercase tracking-wider">Disconnect social page</h3>
               </div>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             
             <form onSubmit={handleDeleteSocialPage} className="p-6 flex flex-col gap-4 text-left">
-              <p className="text-xs text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed">
                 You are about to disconnect account <strong className="text-foreground">@{deleteTargetPageHandle}</strong>. 
-                This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
+                This action is <strong className="text-red-500 dark:text-red-400 uppercase">permanent</strong> and will delete:
               </p>
-              <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
+              <ul className="text-xs text-zinc-550 dark:text-zinc-500 list-disc pl-5 flex flex-col gap-1">
                 <li>All posts bound to this social channel</li>
                 <li>All comments and schedules associated with this page</li>
               </ul>
               
               <div className="flex flex-col gap-1.5 pt-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">
                   Type <span className="text-foreground font-black">DISCONNECT</span> to confirm:
                 </label>
                 <input 
@@ -834,19 +832,19 @@ export default function ClientsPage() {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="Type DISCONNECT" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 bg-[#12141a] text-zinc-200 text-xs focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 dark:border-red-900/40 bg-muted/40 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-red-500"
                   required
                 />
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-550 hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={loadingAction || deleteConfirmText.toLowerCase() !== "disconnect"} 
-                  className="bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-red-950/40 dark:bg-red-950/20 hover:bg-red-900/60 dark:hover:bg-red-900/40 text-red-500 dark:text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Disconnect Account

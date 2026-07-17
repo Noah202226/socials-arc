@@ -110,45 +110,45 @@ export default function WorkspaceDashboard() {
   const platformConfigs: Record<string, { label: string; color: string; border: string; bg: string }> = {
     instagram: { 
       label: "Instagram", 
-      color: "text-pink-400", 
-      border: "border-pink-900/30", 
-      bg: "bg-pink-950/20" 
+      color: "text-pink-650 dark:text-pink-400", 
+      border: "border-pink-200 dark:border-pink-900/30", 
+      bg: "bg-pink-50 dark:bg-pink-950/20" 
     },
     facebook: { 
       label: "Facebook", 
-      color: "text-blue-400", 
-      border: "border-blue-900/30", 
-      bg: "bg-blue-950/20" 
+      color: "text-blue-600 dark:text-blue-400", 
+      border: "border-blue-200 dark:border-blue-900/30", 
+      bg: "bg-blue-50 dark:bg-blue-950/20" 
     },
     tiktok: { 
       label: "TikTok", 
-      color: "text-[#05ffc4]", 
-      border: "border-[#05ffc4]/20", 
-      bg: "bg-[#05ffc4]/5" 
+      color: "text-emerald-650 dark:text-[#05ffc4] pink:text-rose-500", 
+      border: "border-emerald-200 dark:border-[#05ffc4]/20 pink:border-rose-250", 
+      bg: "bg-emerald-50 dark:bg-[#05ffc4]/5 pink:bg-rose-50" 
     },
     x: { 
       label: "X", 
-      color: "text-zinc-300", 
-      border: "border-zinc-800", 
-      bg: "bg-zinc-900/40" 
+      color: "text-zinc-700 dark:text-zinc-300", 
+      border: "border-zinc-200 dark:border-zinc-800", 
+      bg: "bg-zinc-100 dark:bg-zinc-900/40" 
     },
     linkedin: { 
       label: "LinkedIn", 
-      color: "text-indigo-400", 
-      border: "border-indigo-900/30", 
-      bg: "bg-indigo-950/20" 
+      color: "text-indigo-650 dark:text-indigo-400", 
+      border: "border-indigo-200 dark:border-indigo-900/30", 
+      bg: "bg-indigo-50 dark:bg-indigo-950/20" 
     },
   };
 
   // Status badges matching Hynex health table status look
   const statusCapsules: Record<string, string> = {
-    draft: "bg-zinc-900 text-zinc-400 border border-zinc-800",
-    internal_review: "bg-amber-950/20 text-amber-400 border border-amber-900/30",
-    client_review: "bg-purple-950/20 text-purple-400 border border-purple-900/30",
-    changes_requested: "bg-red-950/20 text-red-400 border border-red-900/30",
-    approved: "bg-[#05ffc4]/10 text-[#05ffc4] border border-[#05ffc4]/25",
-    scheduled: "bg-indigo-950/20 text-indigo-400 border border-indigo-900/30",
-    published: "bg-sky-950/20 text-sky-400 border border-sky-900/30",
+    draft: "bg-zinc-100 dark:bg-zinc-900 text-zinc-650 dark:text-zinc-400 border border-zinc-250 dark:border-zinc-800",
+    internal_review: "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-900/30",
+    client_review: "bg-purple-50 dark:bg-purple-950/20 text-purple-650 dark:text-purple-400 border border-purple-200 dark:border-purple-900/30",
+    changes_requested: "bg-red-50 dark:bg-red-950/20 text-red-650 dark:text-red-400 border border-red-200 dark:border-red-900/30",
+    approved: "bg-[#05ffc4]/10 dark:bg-[#05ffc4]/10 text-emerald-600 dark:text-[#05ffc4] border border-emerald-250 dark:border-[#05ffc4]/25",
+    scheduled: "bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-900/30",
+    published: "bg-sky-50 dark:bg-sky-950/20 text-sky-600 dark:text-sky-400 border border-sky-200 dark:border-sky-900/30",
   };
 
   // 1. Platform counts
@@ -283,7 +283,7 @@ export default function WorkspaceDashboard() {
             </div>
 
             {/* Multi-Segmented Quota Progress Bar */}
-            <div className="h-3 w-full bg-[#12141a] rounded-full overflow-hidden flex">
+            <div className="h-3 w-full bg-zinc-150 dark:bg-zinc-950/80 rounded-full overflow-hidden flex">
               <div 
                 className="h-full bg-gradient-to-r from-emerald-500 to-[#00f5a0] transition-all duration-500" 
                 style={{ width: `${Math.max(clientsPercent, 3)}%` }} 
@@ -306,30 +306,30 @@ export default function WorkspaceDashboard() {
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase">Clients</span>
+                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase">Clients</span>
                 </div>
-                <span className="text-sm font-extrabold text-zinc-200">
-                  {clients.length} <span className="text-[10px] text-zinc-550 font-normal">/ {limits.clients === 999 ? "∞" : limits.clients}</span>
+                <span className="text-sm font-extrabold text-zinc-800 dark:text-zinc-200">
+                  {clients.length} <span className="text-[10px] text-zinc-450 dark:text-zinc-550 font-normal">/ {limits.clients === 999 ? "∞" : limits.clients}</span>
                 </span>
               </div>
 
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-cyan-400" />
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase">Channels</span>
+                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase">Channels</span>
                 </div>
-                <span className="text-sm font-extrabold text-zinc-200">
-                  {socialPages.length} <span className="text-[10px] text-zinc-550 font-normal">/ {limits.channels === 999 ? "∞" : limits.channels}</span>
+                <span className="text-sm font-extrabold text-zinc-800 dark:text-zinc-200">
+                  {socialPages.length} <span className="text-[10px] text-zinc-450 dark:text-zinc-550 font-normal">/ {limits.channels === 999 ? "∞" : limits.channels}</span>
                 </span>
               </div>
 
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-indigo-400" />
-                  <span className="text-[10px] font-bold text-zinc-400 uppercase">Posts/Mo</span>
+                  <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 uppercase">Posts/Mo</span>
                 </div>
-                <span className="text-sm font-extrabold text-zinc-200">
-                  {totalPostsCount} <span className="text-[10px] text-zinc-550 font-normal">/ {limits.posts === 999 ? "∞" : limits.posts}</span>
+                <span className="text-sm font-extrabold text-zinc-800 dark:text-zinc-200">
+                  {totalPostsCount} <span className="text-[10px] text-zinc-450 dark:text-zinc-550 font-normal">/ {limits.posts === 999 ? "∞" : limits.posts}</span>
                 </span>
               </div>
             </div>
@@ -470,14 +470,14 @@ export default function WorkspaceDashboard() {
                     <th className="py-2.5 px-3 text-right">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-zinc-900/20">
+                <tbody className="divide-y divide-border">
                   {filteredPosts.slice(0, 5).map((post) => {
                     const project = projects.find(p => p._id === post.projectId);
                     const page = socialPages.find(sp => sp._id === post.pageId);
                     const pConfig = page ? platformConfigs[page.platform] : null;
 
                     return (
-                      <tr key={post._id} className="hover:bg-[#12141a]/20 transition-colors group">
+                      <tr key={post._id} className="hover:bg-muted/50 transition-colors group">
                         <td className="py-3 px-3 max-w-[220px] truncate font-semibold text-zinc-800 dark:text-zinc-200 group-hover:text-zinc-950 dark:group-hover:text-white">
                           {post.caption}
                         </td>
@@ -492,7 +492,7 @@ export default function WorkspaceDashboard() {
                           ) : "N/A"}
                         </td>
                         <td className="py-3 px-3 text-right">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${statusCapsules[post.status] || "bg-zinc-800 text-zinc-400"}`}>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${statusCapsules[post.status] || "bg-zinc-850 text-zinc-400"}`}>
                             {post.status.replace("_", " ")}
                           </span>
                         </td>
@@ -506,7 +506,7 @@ export default function WorkspaceDashboard() {
 
           {/* See All link */}
           <Link href={`/${slug}/content`} className="w-full">
-            <Button variant="ghost" className="w-full text-xs text-zinc-500 hover:text-[#05ffc4] hover:bg-[#12141a]/40 font-bold gap-1 mt-2.5 py-2">
+            <Button variant="ghost" className="w-full text-xs text-zinc-500 hover:text-indigo-650 dark:hover:text-[#05ffc4] hover:bg-muted font-bold gap-1 mt-2.5 py-2">
               Inspect Content Workflow Pipelines <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>

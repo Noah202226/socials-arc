@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useParams, usePathname } from "next/navigation";
 import { useQuery } from "convex/react";
@@ -33,6 +33,44 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const workspace = useQuery(api.workspaces.getBySlug, { slug });
+  const myMembership = useQuery(
+    api.members.getMyMembership,
+    workspace?._id ? { workspaceId: workspace._id } : "skip"
+  );
+
+  // Determine if the pink theme is active for this user (false if still loading)
+  const isPinkTheme = myMembership?.themeOverride === "pink";
+
+  // Apply/remove the pink class on <html> so it overrides dark: Tailwind variants
+  // Must be called before any early returns to satisfy React's rules of hooks
+  useEffect(() => {
+    const html = document.documentElement;
+    if (isPinkTheme) {
+      html.classList.remove("dark");
+      html.classList.add("pink");
+    } else {
+      html.classList.remove("pink");
+      // Restore dark theme based on user's saved preference
+      const savedTheme = localStorage.getItem("theme");
+      if (
+        savedTheme === "dark" ||
+        (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        html.classList.add("dark");
+      }
+    }
+    return () => {
+      // On unmount, remove pink and restore the saved theme
+      html.classList.remove("pink");
+      const savedTheme = localStorage.getItem("theme");
+      if (
+        savedTheme === "dark" ||
+        (!savedTheme && window.matchMedia("(prefers-color-scheme: dark)").matches)
+      ) {
+        html.classList.add("dark");
+      }
+    };
+  }, [isPinkTheme]);
 
   if (workspace === undefined) {
     return (
@@ -77,10 +115,10 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   const isMediaActive = pathname.startsWith(`/${workspace.slug}/media`);
   const isFinanceActive = pathname.startsWith(`/${workspace.slug}/finance`);
 
+
   const closeSidebar = () => setIsMobileSidebarOpen(false);
 
-  // Connection indicator color matching active states
-  const activeIconClass = "text-indigo-650 dark:text-[#05ffc4]";
+  const activeIconClass = isPinkTheme ? "text-rose-500" : "text-indigo-650 dark:text-[#05ffc4]";
   const inactiveIconClass = "text-zinc-550 dark:text-zinc-550 group-hover:text-zinc-800 dark:group-hover:text-zinc-300";
 
   return (
@@ -103,7 +141,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
           <Link href={`/${workspace.slug}`} onClick={closeSidebar} className="flex items-center gap-2.5">
             {/* Custom Interlocking double loop SVG (similar to Hynex logo) */}
             <svg 
-              className="h-6 w-6 text-indigo-600 dark:text-[#05ffc4]"
+              className={`h-6 w-6 ${isPinkTheme ? "text-rose-500" : "text-indigo-600 dark:text-[#05ffc4]"}`}
               viewBox="0 0 24 24" 
               fill="none" 
               stroke="currentColor" 
@@ -128,7 +166,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
         <div className="p-3.5 mx-4 my-3 rounded-xl bg-zinc-100 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800/80 flex flex-col gap-0.5 transition-colors">
           <span className="text-[9px] uppercase font-bold text-zinc-550 tracking-wider">Active Workspace</span>
           <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200 truncate">{workspace.name}</span>
-          <span className="text-[9px] text-indigo-650 dark:text-[#05ffc4]/80 font-semibold truncate uppercase">Slug: {workspace.slug}</span>
+          <span className={`text-[9px] ${isPinkTheme ? "text-rose-500/80" : "text-indigo-650 dark:text-[#05ffc4]/80"} font-semibold truncate uppercase`}>Slug: {workspace.slug}</span>
         </div>
 
         {/* Structured Tree Navigation (Inspired by Hynex bullet connection mockup) */}
@@ -297,9 +335,18 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center gap-3.5">
             {/* Header controls (Inspired by top-right header mockup) */}
             <span className="hidden sm:inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 dark:bg-[#12141a] border border-zinc-200 dark:border-[#1d2027] text-zinc-650 dark:text-zinc-400">
-              Workspace Plan: <span className="text-indigo-650 dark:text-[#05ffc4] font-bold">{workspace.plan}</span>
+              Workspace Plan: <span className={`font-bold ${isPinkTheme ? "text-rose-500" : "text-indigo-650 dark:text-[#05ffc4]"}`}>{workspace.plan}</span>
             </span>
-            <ThemeToggle />
+            {isPinkTheme ? (
+                <span
+                  title="Theme locked to Pastel Pink 🌸"
+                  className="flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-300 bg-rose-100 text-rose-500 text-[9px] font-bold uppercase tracking-wider cursor-default select-none"
+                >
+                  🌸 Pink
+                </span>
+              ) : (
+                <ThemeToggle />
+              )}
             <button className="p-1.5 rounded-lg border border-zinc-250 dark:border-[#16181d] text-zinc-650 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-[#05ffc4] hover:bg-zinc-200/50 dark:hover:bg-[#12141a] transition-all">
               <Bell className="h-3.5 w-3.5" />
             </button>

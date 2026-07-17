@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
+import { resolveColumnColor } from "@/lib/utils";
 
 const defaultPostColumns = [
   { id: "draft", label: "Draft", color: "bg-zinc-50 dark:bg-zinc-900/60 border-zinc-200 dark:border-zinc-800", hidden: false },
@@ -534,6 +535,7 @@ export default function ContentWorkflowPage() {
         >
           {activeColumns.map((col) => {
             const colPosts = posts.filter((p) => p.status === col.id);
+            const { bgBorder, text: headerTextClass } = resolveColumnColor(col.color);
 
             return (
               <div 
@@ -545,12 +547,12 @@ export default function ContentWorkflowPage() {
                 className={`rounded-xl border p-4 flex flex-col gap-4 w-[290px] shrink-0 h-auto lg:h-[calc(100vh-270px)] lg:min-h-[450px] overflow-hidden transition-all duration-200 ${
                   activeDropCol === col.id 
                     ? "border-indigo-500/60 bg-indigo-950/20 shadow-lg shadow-indigo-950/25" 
-                    : col.color
+                    : bgBorder
                 }`}
               >
                 {/* Header */}
                 <div className="flex justify-between items-center pb-2 border-b border-border">
-                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 truncate max-w-[130px]">
+                  <h4 className={`text-[10px] font-bold uppercase tracking-wider truncate max-w-[130px] ${headerTextClass}`}>
                     {col.label}
                   </h4>
                   <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-zinc-100 dark:bg-zinc-900 border border-border text-zinc-650 dark:text-zinc-400">

@@ -253,3 +253,51 @@ export const updateNickname = mutation({
     return await ctx.db.get(args.memberId);
   },
 });
+
+/**
+ * Returns the current logged-in user's own membership record for the given workspace.
+ * Used by the workspace layout to determine per-user theme overrides.
+ */
+export const getMyMembership = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return null;
+    }
+
+    return await ctx.db
+      .query("members")
+      .withIndex("by_workspace_and_user", (q) =>
+        q.eq("workspaceId", args.workspaceId).eq("userId", identity.subject)
+      )
+      .first();
+  },
+});
+
+/**
+ * Sets or clears a theme override on a specific member.
+ * Restricted to workspace owners and admins.
+ */
+export const setThemeOverride = mutation({
+  args: {
+    memberId: v.id("members"),
+    themeOverride: v.union(v.literal("pink"), v.literal("default")),
+  },
+  handler: async (ctx, args) => {
+    const member = await ctx.db.get(args.memberId);
+    if (!member) {
+      throw new ConvexError("Member not found");
+    }
+
+    await verifyAdminMembership(ctx, member.workspaceId);
+
+    await ctx.db.patch(args.memberId, {
+      themeOverride: args.themeOverride,
+    });
+
+    return await ctx.db.get(args.memberId);
+  },
+});
