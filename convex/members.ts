@@ -195,6 +195,7 @@ export const acceptInvite = mutation({
       joinedAt: Date.now(),
       userEmail: email,
       userName: identity.name || identity.givenName || identity.nickname || "",
+      pictureUrl: identity.pictureUrl,
     });
 
     const workspace = await ctx.db.get(args.workspaceId);
@@ -214,6 +215,7 @@ export const updateNickname = mutation({
   args: {
     memberId: v.id("members"),
     nickname: v.string(),
+    pictureUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -238,13 +240,14 @@ export const updateNickname = mutation({
     const isOwnerOrAdmin = callerMembership && (callerMembership.role === "owner" || callerMembership.role === "admin");
 
     if (!isSelf && !isOwnerOrAdmin) {
-      throw new ConvexError("Unauthorized: You cannot change this member's nickname");
+      throw new ConvexError("Unauthorized: You cannot change this member's profile");
     }
 
     const cleanedNickname = args.nickname.trim();
 
     await ctx.db.patch(args.memberId, {
       userName: cleanedNickname || undefined,
+      pictureUrl: args.pictureUrl !== undefined ? args.pictureUrl.trim() || undefined : undefined,
     });
 
     return await ctx.db.get(args.memberId);

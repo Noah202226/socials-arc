@@ -6,20 +6,23 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
-import { 
-  Loader2, 
-  UserPlus, 
-  Mail, 
-  ShieldCheck, 
-  Trash2, 
-  Copy, 
-  Check, 
-  Clock, 
+import { useUser } from "@clerk/nextjs";
+import {
+  Loader2,
+  UserPlus,
+  Mail,
+  ShieldCheck,
+  Trash2,
+  Copy,
+  Check,
+  Clock,
   User,
   X as CloseIcon,
   HelpCircle,
   AlertCircle,
-  Edit2
+  Edit2,
+  Briefcase,
+  CheckCircle2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -29,14 +32,19 @@ export default function TeamPage() {
 
   // Convex Queries
   const workspace = useQuery(api.workspaces.getBySlug, { slug });
-  
+
   const activeMembers = useQuery(
     api.members.listActiveMembers,
     workspace ? { workspaceId: workspace._id } : "skip"
   );
-  
+
   const pendingInvites = useQuery(
     api.members.listPendingInvites,
+    workspace ? { workspaceId: workspace._id } : "skip"
+  );
+
+  const tasks = useQuery(
+    api.tasks.listByWorkspace,
     workspace ? { workspaceId: workspace._id } : "skip"
   );
 
@@ -45,21 +53,39 @@ export default function TeamPage() {
   const cancelInvite = useMutation(api.members.cancelInvite);
   const updateNickname = useMutation(api.members.updateNickname);
 
+  // Clerk User
+  const { user } = useUser();
+
   // Local States
   const [editingMemberId, setEditingMemberId] = useState<Id<"members"> | null>(null);
   const [editNicknameValue, setEditNicknameValue] = useState("");
+  const [editPictureValue, setEditPictureValue] = useState("");
   const [updatingNicknameId, setUpdatingNicknameId] = useState<Id<"members"> | null>(null);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
 
-  const handleSaveNickname = async (memberId: Id<"members">) => {
-    if (!editNicknameValue.trim()) return;
-    setUpdatingNicknameId(memberId);
+  // Compute permissions
+  const currentUserMember = activeMembers?.find(m => m.userId === user?.id);
+  const isOwnerOrAdmin = currentUserMember && (currentUserMember.role === "owner" || currentUserMember.role === "admin");
+  const canEdit = (memberUserId: string) => {
+    return user?.id === memberUserId || isOwnerOrAdmin;
+  };
+
+  const handleSaveNicknameModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMemberId || !editNicknameValue.trim()) return;
+    setUpdatingNicknameId(editingMemberId);
     try {
-      await updateNickname({ memberId, nickname: editNicknameValue.trim() });
-      toast.success("Teammate nickname updated successfully!");
+      await updateNickname({
+        memberId: editingMemberId,
+        nickname: editNicknameValue.trim(),
+        pictureUrl: editPictureValue.trim() || undefined
+      });
+      toast.success("Teammate profile updated successfully!");
+      setShowEditProfileModal(false);
       setEditingMemberId(null);
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to update nickname");
+      toast.error(err.message || "Failed to update profile");
     } finally {
       setUpdatingNicknameId(null);
     }
@@ -73,7 +99,7 @@ export default function TeamPage() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  if (workspace === undefined || activeMembers === undefined || pendingInvites === undefined) {
+  if (workspace === undefined || activeMembers === undefined || pendingInvites === undefined || tasks === undefined) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mb-4" />
@@ -134,12 +160,12 @@ export default function TeamPage() {
             Invite colleagues, manage assistant roles, and control client dashboard visibility.
           </p>
         </div>
-        
-        <Button 
+
+        <Button
           onClick={() => {
             setErrorMsg("");
             setShowInviteModal(true);
-          }} 
+          }}
           className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 text-xs font-semibold"
         >
           <UserPlus className="h-4 w-4 mr-1.5" /> Invite Teammate
@@ -148,7 +174,7 @@ export default function TeamPage() {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Active Members (2 cols) */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           <h3 className="text-sm font-semibold uppercase text-zinc-400 tracking-wider flex items-center gap-2">
@@ -157,13 +183,30 @@ export default function TeamPage() {
 
           <div className="flex flex-col gap-3">
             {activeMembers.map((member) => (
-              <div 
+              <div
                 key={member.userId}
-                className="p-4 rounded-xl border border-zinc-900 bg-zinc-900/10 flex items-center justify-between hover:border-zinc-800 transition-colors"
+                className="p-4 rounded-xl border border-zinc-900 bg-zinc-900/10 flex items-start justify-between hover:border-zinc-800 transition-colors"
               >
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-indigo-600/10 flex items-center justify-center text-indigo-400 border border-indigo-500/25">
-                    <User className="h-5 w-5" />
+                <div className="flex items-start gap-4">
+                  <div className="h-10 w-10 rounded-full bg-indigo-600/10 flex items-center justify-center text-indigo-400 border border-indigo-500/25 overflow-hidden shrink-0">
+                    {member.pictureUrl ? (
+                      member.pictureUrl.startsWith("http://") || member.pictureUrl.startsWith("https://") || member.pictureUrl.startsWith("/") ? (
+                        <img
+                          src={member.pictureUrl}
+                          alt={member.userName || "Avatar"}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-lg">{member.pictureUrl}</span>
+                      )
+                    ) : (
+                      <span className="text-xs font-semibold uppercase tracking-wider">
+                        {member.userName
+                          ? member.userName.split(" ").map((n: string) => n[0]).join("").substring(0, 2)
+                          : <User className="h-5 w-5" />
+                        }
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col text-left">
                     <div className="flex items-baseline gap-2">
@@ -176,54 +219,67 @@ export default function TeamPage() {
                         </span>
                       )}
                     </div>
-                    {editingMemberId === member._id ? (
-                      <div className="flex items-center gap-2 mt-1">
-                        <input
-                          type="text"
-                          value={editNicknameValue}
-                          onChange={(e) => setEditNicknameValue(e.target.value)}
-                          className="px-2 py-1 text-xs rounded bg-zinc-900 border border-zinc-800 text-zinc-200 focus:outline-none focus:border-indigo-650"
-                          placeholder="Enter nickname..."
-                          autoFocus
-                        />
-                        <Button
-                          size="sm"
-                          onClick={() => handleSaveNickname(member._id)}
-                          disabled={updatingNicknameId === member._id || !editNicknameValue.trim()}
-                          className="bg-indigo-600 hover:bg-indigo-500 px-2 py-0.5 h-6 text-[10px] text-white font-semibold"
-                        >
-                          {updatingNicknameId === member._id ? "Saving..." : "Save"}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setEditingMemberId(null)}
-                          className="px-2 py-0.5 h-6 text-[10px] text-zinc-400 hover:text-zinc-200"
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-xs text-zinc-500">
-                          {member.userEmail || member.invitedEmail || "No email registered"}
-                        </span>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs text-zinc-500">
+                        {member.userEmail || member.invitedEmail || "No email registered"}
+                      </span>
+                      {canEdit(member.userId) && (
                         <button
                           onClick={() => {
                             setEditingMemberId(member._id);
                             setEditNicknameValue(member.userName || "");
+                            setEditPictureValue(member.pictureUrl || "");
+                            setShowEditProfileModal(true);
                           }}
                           className="text-zinc-600 hover:text-indigo-400 transition-colors p-0.5"
-                          title="Edit Nickname"
+                          title="Edit Profile"
                         >
                           <Edit2 className="h-3 w-3" />
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
+                    {/* Assigned Tasks list */}
+                    {(() => {
+                      const memberTasks = tasks?.filter(t => t.assigneeId === member.userId && t.status !== "done") || [];
+                      return (
+                        <div className="mt-2.5 pt-2 border-t border-zinc-900/40 flex flex-col gap-1.5">
+                          <div className="flex items-center gap-1.5 text-[9px] font-bold text-zinc-500 uppercase tracking-wider">
+                            <Briefcase className="h-3 w-3 text-indigo-500/80" />
+                            <span>Assigned Tasks ({memberTasks.length})</span>
+                          </div>
+                          {memberTasks.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {memberTasks.slice(0, 3).map(task => (
+                                <span
+                                  key={task._id}
+                                  className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-[10px] text-zinc-400 hover:text-zinc-200 transition-colors cursor-default"
+                                  title={task.title}
+                                >
+                                  {task.title.length > 20 ? `${task.title.substring(0, 20)}...` : task.title}
+                                </span>
+                              ))}
+                              {memberTasks.length > 3 && (
+                                <span
+                                  className="px-2 py-0.5 rounded bg-zinc-950 border border-zinc-850 text-[10px] text-indigo-400 font-bold cursor-help"
+                                  title={memberTasks.slice(3).map(t => t.title).join("\n")}
+                                >
+                                  +{memberTasks.length - 3} more
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-zinc-600 italic flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3 text-zinc-650" /> No active tasks
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 mt-1 shrink-0">
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] bg-zinc-900 text-zinc-400 border border-zinc-800 font-semibold uppercase tracking-wider">
                     {member.role}
                   </span>
@@ -244,7 +300,7 @@ export default function TeamPage() {
           ) : (
             <div className="flex flex-col gap-3">
               {pendingInvites.map((invite) => (
-                <div 
+                <div
                   key={invite._id}
                   className="p-4 rounded-xl border border-zinc-900 bg-zinc-950/40 flex flex-col gap-3 text-left"
                 >
@@ -257,8 +313,8 @@ export default function TeamPage() {
                         Role: {invite.role}
                       </span>
                     </div>
-                    
-                    <button 
+
+                    <button
                       onClick={() => handleCancelInvite(invite._id)}
                       className="text-zinc-600 hover:text-red-400 p-1 rounded hover:bg-zinc-900"
                       title="Cancel Invite"
@@ -272,14 +328,13 @@ export default function TeamPage() {
                     <span className="text-[9px] text-zinc-500 italic">
                       Copy the join link below and open it in an incognito window to register/test the invitee account:
                     </span>
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       onClick={() => handleCopyLink(invite._id)}
-                      className={`w-full text-[10px] h-7 ${
-                        copiedInviteId === invite._id 
-                          ? "bg-emerald-600 hover:bg-emerald-500 text-white" 
-                          : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-850"
-                      }`}
+                      className={`w-full text-[10px] h-7 ${copiedInviteId === invite._id
+                        ? "bg-emerald-600 hover:bg-emerald-500 text-white"
+                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-850"
+                        }`}
                     >
                       {copiedInviteId === invite._id ? (
                         <>
@@ -306,14 +361,14 @@ export default function TeamPage() {
           <div className="w-full max-w-md bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
               <h3 className="font-bold text-white text-base">Invite Teammate</h3>
-              <button 
-                onClick={() => setShowInviteModal(false)} 
+              <button
+                onClick={() => setShowInviteModal(false)}
                 className="text-zinc-500 hover:text-zinc-300"
               >
                 <CloseIcon className="h-5 w-5" />
               </button>
             </div>
-            
+
             <form onSubmit={handleInviteSubmit} className="p-6 flex flex-col gap-4">
               {errorMsg && (
                 <div className="p-3 rounded-lg bg-red-950/20 border border-red-900/30 text-red-400 text-xs flex items-center gap-2 text-left">
@@ -326,11 +381,11 @@ export default function TeamPage() {
                 <label className="text-xs font-semibold text-zinc-400">Email Address</label>
                 <div className="relative flex items-center">
                   <Mail className="absolute left-3.5 h-4 w-4 text-zinc-500" />
-                  <input 
-                    type="email" 
-                    value={inviteEmail} 
+                  <input
+                    type="email"
+                    value={inviteEmail}
                     onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="teammate@company.com" 
+                    placeholder="teammate@company.com"
                     className="w-full pl-10 pr-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600"
                     required
                   />
@@ -339,8 +394,8 @@ export default function TeamPage() {
 
               <div className="flex flex-col gap-1.5 text-left">
                 <label className="text-xs font-semibold text-zinc-400">Workspace Role</label>
-                <select 
-                  value={inviteRole} 
+                <select
+                  value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as any)}
                   className="w-full px-3 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-300 text-sm focus:outline-none focus:border-indigo-600"
                   required
@@ -352,21 +407,126 @@ export default function TeamPage() {
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  onClick={() => setShowInviteModal(false)} 
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setShowInviteModal(false)}
                   className="text-zinc-500 text-xs"
                 >
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
-                  disabled={loadingAction} 
+                <Button
+                  type="submit"
+                  disabled={loadingAction}
                   className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs"
                 >
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Send Invitation
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* --- EDIT PROFILE MODAL --- */}
+      {showEditProfileModal && editingMemberId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-zinc-900 flex justify-between items-center">
+              <h3 className="font-bold text-white text-base">Customize Member Profile</h3>
+              <button
+                onClick={() => { setShowEditProfileModal(false); setEditingMemberId(null); }}
+                className="text-zinc-500 hover:text-zinc-300"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveNicknameModal} className="p-6 flex flex-col gap-4">
+
+              {/* Profile Avatar Preview */}
+              <div className="flex flex-col items-center gap-2 mb-2">
+                <div className="h-16 w-16 rounded-full bg-indigo-950/20 flex items-center justify-center text-indigo-400 border border-indigo-500/30 overflow-hidden shadow-inner">
+                  {editPictureValue ? (
+                    editPictureValue.startsWith("http://") || editPictureValue.startsWith("https://") || editPictureValue.startsWith("/") ? (
+                      <img
+                        src={editPictureValue}
+                        alt="Avatar Preview"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-3xl">{editPictureValue}</span>
+                    )
+                  ) : (
+                    <span className="text-xl font-semibold uppercase tracking-wider">
+                      {editNicknameValue
+                        ? editNicknameValue.split(" ").map((n: string) => n[0]).join("").substring(0, 2)
+                        : <User className="h-8 w-8" />
+                      }
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] text-zinc-500 font-medium">Avatar Preview</span>
+              </div>
+
+              {/* Display Name Input */}
+              <div className="flex flex-col gap-1.5 text-left">
+                <label className="text-xs font-semibold text-zinc-400">Display Name / Nickname</label>
+                <input
+                  type="text"
+                  value={editNicknameValue}
+                  onChange={(e) => setEditNicknameValue(e.target.value)}
+                  placeholder="Enter display name..."
+                  className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-650 focus:ring-1 focus:ring-indigo-650"
+                  required
+                />
+              </div>
+
+              {/* Profile Picture Input */}
+              <div className="flex flex-col gap-1.5 text-left">
+                <label className="text-xs font-semibold text-zinc-400">Profile Picture URL or Emoji</label>
+                <input
+                  type="text"
+                  value={editPictureValue}
+                  onChange={(e) => setEditPictureValue(e.target.value)}
+                  placeholder="https://example.com/avatar.jpg or a single emoji 🦊"
+                  className="w-full px-3.5 py-2 rounded-lg border border-zinc-900 bg-zinc-900/30 text-zinc-200 text-sm focus:outline-none focus:border-indigo-650 focus:ring-1 focus:ring-indigo-650"
+                />
+              </div>
+
+              {/* Preset Emojis Picker */}
+              <div className="flex flex-col gap-1.5 text-left">
+                <span className="text-xs font-semibold text-zinc-400">Choose a fun preset icon / emoji:</span>
+                <div className="flex flex-wrap gap-2 p-3.5 rounded-lg bg-zinc-900/25 border border-zinc-900/60">
+                  {["🦊", "🦁", "🐯", "🐼", "🐨", "🚀", "💻", "🎨", "💡", "👑", "🔥", "✨", "🍿", "🎮", "🌟", "👾"].map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setEditPictureValue(emoji)}
+                      className={`text-xl p-1.5 rounded-md hover:bg-zinc-800 transition-colors border ${editPictureValue === emoji ? "border-indigo-500 bg-indigo-500/10" : "border-transparent"
+                        }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2 border-t border-zinc-900/50 mt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => { setShowEditProfileModal(false); setEditingMemberId(null); }}
+                  className="text-zinc-500 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={updatingNicknameId === editingMemberId}
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                >
+                  {updatingNicknameId === editingMemberId ? "Saving..." : "Save Changes"}
                 </Button>
               </div>
             </form>

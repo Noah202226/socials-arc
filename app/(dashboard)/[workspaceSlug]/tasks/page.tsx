@@ -274,9 +274,16 @@ export default function TasksPage() {
                 className="p-3.5 rounded-lg border border-zinc-900 bg-zinc-950/50 flex items-center justify-between text-xs"
               >
                 <div className="flex flex-col gap-1">
-                  {/* Mock names since we show UserID */}
-                  <span className="font-semibold text-zinc-200 truncate max-w-[130px]">
-                    {member.userId === workspace.ownerId ? "Owner (You)" : `Assistant: ${member.userId.substring(0, 10)}...`}
+                  <span 
+                    className="font-semibold text-zinc-200 truncate max-w-[170px]" 
+                    title={member.userName || member.userEmail || member.invitedEmail || member.userId}
+                  >
+                    {member.userId === workspace.ownerId 
+                      ? (member.userName 
+                          ? `${member.userName} (You)` 
+                          : (member.userEmail || member.invitedEmail ? `${member.userEmail || member.invitedEmail} (You)` : "Owner (You)")
+                        ) 
+                      : (member.userName || member.userEmail || member.invitedEmail || `Assistant: ${member.userId.substring(0, 10)}...`)}
                   </span>
                   <span className="text-[10px] text-zinc-500 uppercase font-medium">{member.role}</span>
                 </div>
@@ -398,11 +405,34 @@ export default function TasksPage() {
                           {/* Info row */}
                           <div className="flex items-center justify-between text-[10px] text-zinc-500 border-t border-zinc-900/60 pt-2.5 mt-1">
                             {/* Assignee */}
-                            <div className="flex items-center gap-1">
-                              <UserIcon className="h-3 w-3 text-zinc-600" />
-                              <span className="truncate max-w-[80px]">
+                            <div className="flex items-center gap-1.5">
+                              {assignee?.pictureUrl ? (
+                                assignee.pictureUrl.startsWith("http://") || assignee.pictureUrl.startsWith("https://") || assignee.pictureUrl.startsWith("/") ? (
+                                  <div className="h-[18px] w-[18px] rounded-full overflow-hidden shrink-0 border border-zinc-800">
+                                    <img 
+                                      src={assignee.pictureUrl} 
+                                      alt="Assignee Avatar" 
+                                      className="h-full w-full object-cover"
+                                    />
+                                  </div>
+                                ) : (
+                                  <span className="text-xs leading-none shrink-0">{assignee.pictureUrl}</span>
+                                )
+                              ) : (
+                                <UserIcon className="h-3 w-3 text-zinc-650 shrink-0" />
+                              )}
+                              <span 
+                                className="truncate max-w-[130px]"
+                                title={
+                                  assignee
+                                    ? (assignee.userName || assignee.userEmail || assignee.invitedEmail || assignee.userId)
+                                    : (task.assigneeId === workspace.ownerId ? "Me" : "Unassigned")
+                                }
+                              >
                                 {task.assigneeId ? (
-                                  task.assigneeId === workspace.ownerId ? "Me" : `ID: ${task.assigneeId.substring(0, 5)}`
+                                  assignee 
+                                    ? (assignee.userName || assignee.userEmail || assignee.invitedEmail || assignee.userId.substring(0, 8))
+                                    : (task.assigneeId === workspace.ownerId ? "Me" : `ID: ${task.assigneeId.substring(0, 5)}`)
                                 ) : "Unassigned"}
                               </span>
                             </div>

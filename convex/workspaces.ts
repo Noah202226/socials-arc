@@ -76,6 +76,7 @@ export const getOrCreate = mutation({
       joinedAt: Date.now(),
       userEmail: identity.email,
       userName: identity.name || identity.givenName || identity.nickname || "",
+      pictureUrl: identity.pictureUrl,
     });
 
     const newWorkspace = await ctx.db.get(workspaceId);
