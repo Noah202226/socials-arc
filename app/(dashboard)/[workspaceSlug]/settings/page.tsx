@@ -21,7 +21,8 @@ import {
   CreditCard,
   Sparkles,
   CheckCircle2,
-  ShieldAlert
+  ShieldAlert,
+  GripVertical
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -151,6 +152,40 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+
+  // Draggable Column Customization States & Handlers
+  const [draggedColId, setDraggedColId] = useState<string | null>(null);
+  const [draggedColType, setDraggedColType] = useState<"tasks" | "posts" | null>(null);
+
+  const handleColDragStart = (type: "tasks" | "posts", id: string) => {
+    setDraggedColId(id);
+    setDraggedColType(type);
+  };
+
+  const handleColDragEnter = (type: "tasks" | "posts", targetId: string) => {
+    if (draggedColType !== type || !draggedColId || draggedColId === targetId) return;
+
+    const list = type === "tasks" ? [...taskCols] : [...postCols];
+    const dragIndex = list.findIndex(c => c.id === draggedColId);
+    const hoverIndex = list.findIndex(c => c.id === targetId);
+
+    if (dragIndex !== -1 && hoverIndex !== -1) {
+      const temp = list[dragIndex];
+      list.splice(dragIndex, 1);
+      list.splice(hoverIndex, 0, temp);
+      
+      if (type === "tasks") {
+        setTaskCols(list);
+      } else {
+        setPostCols(list);
+      }
+    }
+  };
+
+  const handleColDragEnd = () => {
+    setDraggedColId(null);
+    setDraggedColType(null);
+  };
 
   // Add Column Inputs
   const [newTaskName, setNewTaskName] = useState("");
@@ -391,8 +426,24 @@ export default function SettingsPage() {
             {taskCols.map((col) => (
               <div 
                 key={col.id}
-                className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg border items-center ${col.hidden ? "border-border bg-muted/40 opacity-60" : "border-border bg-card"}`}
+                draggable
+                onDragStart={() => handleColDragStart("tasks", col.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnter={() => handleColDragEnter("tasks", col.id)}
+                onDragEnd={handleColDragEnd}
+                className={`flex flex-col md:grid md:grid-cols-5 gap-4 p-4 rounded-lg border items-center transition-all duration-200 cursor-grab active:cursor-grabbing relative pl-10 ${
+                  draggedColId === col.id 
+                    ? "border-dashed border-indigo-500 bg-indigo-500/5 dark:bg-indigo-950/5 scale-[0.98] opacity-40" 
+                    : col.hidden 
+                      ? "border-border bg-muted/40 opacity-60 hover:border-zinc-350 dark:hover:border-zinc-800" 
+                      : "border-border bg-card hover:border-zinc-350 dark:hover:border-zinc-800"
+                }`}
               >
+                {/* Drag Handle Icon */}
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600 cursor-grab active:cursor-grabbing">
+                  <GripVertical className="h-4 w-4" />
+                </div>
+
                 {/* ID Tag */}
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-zinc-550 uppercase font-bold tracking-wider">Database Status Key</span>
@@ -512,8 +563,24 @@ export default function SettingsPage() {
             {postCols.map((col) => (
               <div 
                 key={col.id}
-                className={`grid grid-cols-1 md:grid-cols-5 gap-4 p-4 rounded-lg border items-center ${col.hidden ? "border-border bg-muted/40 opacity-60" : "border-border bg-card"}`}
+                draggable
+                onDragStart={() => handleColDragStart("posts", col.id)}
+                onDragOver={(e) => e.preventDefault()}
+                onDragEnter={() => handleColDragEnter("posts", col.id)}
+                onDragEnd={handleColDragEnd}
+                className={`flex flex-col md:grid md:grid-cols-5 gap-4 p-4 rounded-lg border items-center transition-all duration-200 cursor-grab active:cursor-grabbing relative pl-10 ${
+                  draggedColId === col.id 
+                    ? "border-dashed border-indigo-500 bg-indigo-500/5 dark:bg-indigo-950/5 scale-[0.98] opacity-40" 
+                    : col.hidden 
+                      ? "border-border bg-muted/40 opacity-60 hover:border-zinc-350 dark:hover:border-zinc-800" 
+                      : "border-border bg-card hover:border-zinc-350 dark:hover:border-zinc-800"
+                }`}
               >
+                {/* Drag Handle Icon */}
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-600 cursor-grab active:cursor-grabbing">
+                  <GripVertical className="h-4 w-4" />
+                </div>
+
                 {/* ID Tag */}
                 <div className="flex flex-col gap-0.5">
                   <span className="text-[10px] text-zinc-550 uppercase font-bold tracking-wider">Database Status Key</span>

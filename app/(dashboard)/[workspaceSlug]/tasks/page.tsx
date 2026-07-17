@@ -351,9 +351,6 @@ export default function TasksPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {members.map((member) => {
             const memberTasks = tasks.filter(t => t.assigneeId === member.userId);
-            const todoCount = memberTasks.filter(t => t.status === "todo").length;
-            const inProgCount = memberTasks.filter(t => t.status === "in_progress").length;
-            const doneCount = memberTasks.filter(t => t.status === "done").length;
 
             return (
               <div
@@ -396,16 +393,20 @@ export default function TasksPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 font-mono">
-                  <span className="px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border border-border" title="To Do">
-                    {todoCount}
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold" title="In Progress">
-                    {inProgCount}
-                  </span>
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" title="Done">
-                    {doneCount}
-                  </span>
+                <div className="flex flex-wrap items-center gap-1.5 font-mono justify-end max-w-[170px]">
+                  {activeColumns.map((col) => {
+                    const count = memberTasks.filter(t => t.status === col.id).length;
+                    const { bgBorder, text: textClass } = resolveColumnColor(col.color);
+                    return (
+                      <span
+                        key={col.id}
+                        className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold flex items-center justify-center min-w-[20px] transition-all duration-200 ${bgBorder} ${textClass}`}
+                        title={`${col.label}: ${count} tasks`}
+                      >
+                        {count}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             );
