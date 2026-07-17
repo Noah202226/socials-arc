@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { 
   Loader2, 
@@ -45,11 +46,11 @@ export default function TeamPage() {
   const updateNickname = useMutation(api.members.updateNickname);
 
   // Local States
-  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingMemberId, setEditingMemberId] = useState<Id<"members"> | null>(null);
   const [editNicknameValue, setEditNicknameValue] = useState("");
-  const [updatingNicknameId, setUpdatingNicknameId] = useState<string | null>(null);
+  const [updatingNicknameId, setUpdatingNicknameId] = useState<Id<"members"> | null>(null);
 
-  const handleSaveNickname = async (memberId: string) => {
+  const handleSaveNickname = async (memberId: Id<"members">) => {
     if (!editNicknameValue.trim()) return;
     setUpdatingNicknameId(memberId);
     try {
@@ -68,7 +69,7 @@ export default function TeamPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<"admin" | "editor" | "client">("editor");
   const [loadingAction, setLoadingAction] = useState(false);
-  const [copiedInviteId, setCopiedInviteId] = useState<string | null>(null);
+  const [copiedInviteId, setCopiedInviteId] = useState<Id<"members"> | null>(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -106,7 +107,7 @@ export default function TeamPage() {
   };
 
   // Copy mock invite link helper
-  const handleCopyLink = (memberId: string) => {
+  const handleCopyLink = (memberId: Id<"members">) => {
     const inviteUrl = `${window.location.origin}/invite/accept?workspaceId=${workspace._id}`;
     navigator.clipboard.writeText(inviteUrl);
     setCopiedInviteId(memberId);
@@ -114,7 +115,7 @@ export default function TeamPage() {
   };
 
   // Handle invite deletion
-  const handleCancelInvite = async (memberId: any) => {
+  const handleCancelInvite = async (memberId: Id<"members">) => {
     if (!confirm("Are you sure you want to cancel this invitation?")) return;
     try {
       await cancelInvite({ memberId });
