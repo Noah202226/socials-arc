@@ -38,7 +38,7 @@ const defaultTaskColumns = [
 import { toast } from "sonner";
 import { resolveColumnColor } from "@/lib/utils";
 
-type TaskStatus = "todo" | "in_progress" | "done";
+
 
 export default function TasksPage() {
   const params = useParams();
