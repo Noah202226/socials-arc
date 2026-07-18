@@ -24,6 +24,7 @@ import {
   Layers
 } from "lucide-react";
 import { toast } from "sonner";
+import { deduplicateIncomingFiles } from "@/lib/file-utils";
 
 export default function MediaLibraryPage() {
   const params = useParams();
@@ -94,7 +95,15 @@ export default function MediaLibraryPage() {
   // Handle Drag Over / Drop UI helper
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const existingNames = assets ? assets.map(a => a.fileName) : [];
+      const validFiles = deduplicateIncomingFiles([e.target.files[0]], {
+        existingFileNames: existingNames,
+      });
+      if (validFiles.length > 0) {
+        setFile(validFiles[0]);
+      } else {
+        e.target.value = "";
+      }
     }
   };
 

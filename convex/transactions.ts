@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { ConvexError, v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Helper to verify workspace membership associated with a social page.
@@ -100,6 +101,7 @@ export const create = mutation({
       v.union(v.literal("weekly"), v.literal("monthly"), v.literal("yearly"))
     ),
     receiptStorageId: v.optional(v.id("_storage")),
+    receiptStorageIds: v.optional(v.array(v.id("_storage"))),
   },
   handler: async (ctx, args) => {
     const { identity } = await verifyMembershipByPage(ctx, args.pageId);
@@ -117,6 +119,9 @@ export const create = mutation({
       }
     }
 
+    const primaryReceiptId = args.receiptStorageId || args.receiptStorageIds?.[0];
+    const allReceiptIds = args.receiptStorageIds || (args.receiptStorageId ? [args.receiptStorageId] : undefined);
+
     const transactionId = await ctx.db.insert("transactions", {
       pageId: args.pageId,
       postId: args.postId,
@@ -128,7 +133,8 @@ export const create = mutation({
       description: args.description,
       recurring: args.recurring,
       recurrenceInterval: args.recurrenceInterval,
-      receiptStorageId: args.receiptStorageId,
+      receiptStorageId: primaryReceiptId,
+      receiptStorageIds: allReceiptIds,
       createdBy: identity.subject,
     });
 
@@ -153,6 +159,7 @@ export const update = mutation({
       v.union(v.literal("weekly"), v.literal("monthly"), v.literal("yearly"))
     ),
     receiptStorageId: v.optional(v.id("_storage")),
+    receiptStorageIds: v.optional(v.array(v.id("_storage"))),
   },
   handler: async (ctx, args) => {
     const transaction = await ctx.db.get(args.transactionId);
@@ -175,16 +182,23 @@ export const update = mutation({
       }
     }
 
-    // Delete old receipt if it is changing
-    if (
-      transaction.receiptStorageId &&
-      args.receiptStorageId !== undefined &&
-      transaction.receiptStorageId !== args.receiptStorageId
-    ) {
-      try {
-        await ctx.storage.delete(transaction.receiptStorageId);
-      } catch (err) {
-        console.error("Failed to delete old receipt from storage:", err);
+    const primaryReceiptId = args.receiptStorageId || args.receiptStorageIds?.[0];
+    const allReceiptIds = args.receiptStorageIds || (args.receiptStorageId ? [args.receiptStorageId] : undefined);
+
+    // Delete any storage files that were removed during edit
+    const oldStorageIds = new Set<Id<"_storage">>();
+    if (transaction.receiptStorageId) oldStorageIds.add(transaction.receiptStorageId);
+    if (transaction.receiptStorageIds) {
+      for (const id of transaction.receiptStorageIds) oldStorageIds.add(id);
+    }
+    const newStorageSet = new Set<string>(allReceiptIds || []);
+    for (const oldId of oldStorageIds) {
+      if (!newStorageSet.has(oldId)) {
+        try {
+          await ctx.storage.delete(oldId);
+        } catch (err) {
+          console.error("Failed to delete removed receipt from storage:", err);
+        }
       }
     }
 
@@ -197,7 +211,8 @@ export const update = mutation({
       description: args.description,
       recurring: args.recurring,
       recurrenceInterval: args.recurrenceInterval,
-      receiptStorageId: args.receiptStorageId,
+      receiptStorageId: primaryReceiptId,
+      receiptStorageIds: allReceiptIds,
     });
 
     return await ctx.db.get(args.transactionId);
@@ -205,7 +220,7 @@ export const update = mutation({
 });
 
 /**
- * Deletes a transaction and its receipt.
+ * Deletes a transaction and its receipt(s).
  */
 export const deleteTransaction = mutation({
   args: {
@@ -219,9 +234,15 @@ export const deleteTransaction = mutation({
 
     await verifyMembershipByPage(ctx, transaction.pageId);
 
-    if (transaction.receiptStorageId) {
+    const storageIds = new Set<Id<"_storage">>();
+    if (transaction.receiptStorageId) storageIds.add(transaction.receiptStorageId);
+    if (transaction.receiptStorageIds) {
+      for (const id of transaction.receiptStorageIds) storageIds.add(id);
+    }
+
+    for (const sId of storageIds) {
       try {
-        await ctx.storage.delete(transaction.receiptStorageId);
+        await ctx.storage.delete(sId);
       } catch (err) {
         console.error("Failed to delete receipt from storage:", err);
       }
@@ -262,10 +283,22 @@ export const listByPage = query({
       .collect();
 
     return await Promise.all(
-      txs.map(async (t) => ({
-        ...t,
-        receiptUrl: t.receiptStorageId ? await ctx.storage.getUrl(t.receiptStorageId) : null,
-      }))
+      txs.map(async (t) => {
+        const ids = t.receiptStorageIds && t.receiptStorageIds.length > 0
+          ? t.receiptStorageIds
+          : (t.receiptStorageId ? [t.receiptStorageId] : []);
+        const rawUrls = await Promise.all(ids.map(id => ctx.storage.getUrl(id)));
+        const receiptUrls = rawUrls.filter((url): url is string => Boolean(url));
+        const receiptUrl = t.receiptStorageId 
+          ? await ctx.storage.getUrl(t.receiptStorageId) 
+          : (receiptUrls[0] || null);
+
+        return {
+          ...t,
+          receiptUrl,
+          receiptUrls,
+        };
+      })
     );
   },
 });
@@ -311,10 +344,22 @@ export const listByWorkspace = query({
     allTxs.sort((a, b) => b.date - a.date);
 
     return await Promise.all(
-      allTxs.map(async (t) => ({
-        ...t,
-        receiptUrl: t.receiptStorageId ? await ctx.storage.getUrl(t.receiptStorageId) : null,
-      }))
+      allTxs.map(async (t) => {
+        const ids = t.receiptStorageIds && t.receiptStorageIds.length > 0
+          ? t.receiptStorageIds
+          : (t.receiptStorageId ? [t.receiptStorageId] : []);
+        const rawUrls = await Promise.all(ids.map(id => ctx.storage.getUrl(id)));
+        const receiptUrls = rawUrls.filter((url): url is string => Boolean(url));
+        const receiptUrl = t.receiptStorageId 
+          ? await ctx.storage.getUrl(t.receiptStorageId) 
+          : (receiptUrls[0] || null);
+
+        return {
+          ...t,
+          receiptUrl,
+          receiptUrls,
+        };
+      })
     );
   },
 });

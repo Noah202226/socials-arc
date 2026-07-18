@@ -1,6 +1,6 @@
 # Current Feature
 
-SaaS Stripe Billing Setup
+Finance Client Selection & Responsive 2-Column Modal
 
 ## Status
 
@@ -8,20 +8,20 @@ Completed
 
 ## Goals
 
-1. [x] Install `stripe` and `@stripe/stripe-js` npm packages.
-2. [x] Implement Stripe Checkout and Customer Portal integration in Convex actions (generating session links).
-3. [x] Set up a Convex HTTP Webhook handler to receive Stripe subscription events (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`) and update the workspace plan tier in the database.
-4. [x] Design a premium **Billing & Plans** tab/section in the Settings page (`app/(dashboard)/[workspaceSlug]/settings/page.tsx`) that displays tier statuses and triggers subscription checkouts.
-5. [x] Enforce Free, Pro, and Agency plan limits (clients, connected social channels, monthly scheduled posts budget) across all Convex creation mutations.
+1. [x] Fix TypeScript variable reference bug (`selectedTaskAssets` -> `taskAssets`) on Tasks page.
+2. [x] Introduce Client selection flow in Finance transaction modal with cascading social channel dropdown filtering.
+3. [x] Enable context-aware pre-selection of active client filter when opening Finance modal.
+4. [x] Transform Finance transaction modal into a wider 2-column desktop layout (`max-w-4xl`) with responsive mobile stacking.
 
 ## Notes
 
-- Workspace tiers are: `free`, `pro`, and `agency`.
-- Webhooks must verify Stripe signature using webhook secret to ensure security.
-- HTTP action routing in Convex lives in `convex/http.ts`.
+- Transactions continue linking to `pageId`, ensuring full backward compatibility and zero database migration risk.
+- Modal uses `grid grid-cols-1 md:grid-cols-2` for responsive desktop/mobile layouts.
 
 ## History
 
+- Finance Client Selection & Responsive 2-Column Modal implementation
+- Kanban Task Multiple File & Image Attachments implementation
 - SaaS Stripe Billing Setup implementation
 - Financial Tracking (P&L Ledger) implementation
 - Media Library (Asset Management) implementation
@@ -33,3 +33,5 @@ Completed
 - Responsive design updates
 - Content Workflow & Calendar implementation
 - Kanban Customization & Settings Page implementation
+
+

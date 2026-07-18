@@ -25,9 +25,16 @@ import {
   Repeat, 
   Eye, 
   Search,
-  Filter
+  Filter,
+  Paperclip,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  FileText as DocIcon,
+  Edit2,
+  AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
+import { deduplicateIncomingFiles } from "@/lib/file-utils";
 
 export default function FinancePage() {
   const params = useParams();
@@ -63,6 +70,7 @@ export default function FinancePage() {
 
   // Mutations
   const createTx = useMutation(api.transactions.create);
+  const updateTx = useMutation(api.transactions.update);
   const deleteTx = useMutation(api.transactions.deleteTransaction);
   const generateReceiptUrl = useMutation(api.transactions.generateReceiptUploadUrl);
 
@@ -73,8 +81,11 @@ export default function FinancePage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Modals & Form State
-  const [activeModal, setActiveModal] = useState<null | "create">(null);
+  const [activeModal, setActiveModal] = useState<null | "create" | "edit" | "delete">(null);
+  const [selectedTx, setSelectedTx] = useState<any>(null);
+
   const [txType, setTxType] = useState<"income" | "expense">("income");
+  const [txClientId, setTxClientId] = useState<string>("all");
   const [txPageId, setTxPageId] = useState("");
   const [txPostId, setTxPostId] = useState("");
   const [txCategory, setTxCategory] = useState("");
@@ -85,9 +96,75 @@ export default function FinancePage() {
   const [txRecurring, setTxRecurring] = useState(false);
   const [txInterval, setTxInterval] = useState<"weekly" | "monthly" | "yearly">("monthly");
   
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
+  const [existingReceipts, setExistingReceipts] = useState<{ storageId: string; url: string }[]>([]);
+  const [isDraggingReceiptDropzone, setIsDraggingReceiptDropzone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const availableModalPages = socialPages?.filter(p => txClientId === "all" || p.clientId === txClientId) || [];
+
+  const openCreateModal = () => {
+    setSelectedTx(null);
+    setTxType("income");
+    const initialClientId = selectedClientFilter !== "all" ? selectedClientFilter : "all";
+    setTxClientId(initialClientId);
+    const matchingPages = socialPages?.filter(p => initialClientId === "all" || p.clientId === initialClientId) || [];
+    setTxPageId(matchingPages[0]?._id || socialPages?.[0]?._id || "");
+    setTxPostId("");
+    setTxCategory(INCOME_CATEGORIES[0]?.id || "");
+    setTxAmount("");
+    setTxCurrency("USD");
+    setTxDate(new Date().toISOString().split("T")[0]);
+    setTxDescription("");
+    setTxRecurring(false);
+    setTxInterval("monthly");
+    setExistingReceipts([]);
+    setReceiptFiles([]);
+    setActiveModal("create");
+  };
+
+  const openEditModal = (t: any) => {
+    setSelectedTx(t);
+    setTxType(t.type);
+    const currentPage = socialPages?.find(p => p._id === t.pageId);
+    setTxClientId(currentPage?.clientId || "all");
+    setTxPageId(t.pageId);
+    setTxPostId(t.postId || "");
+    setTxCategory(t.category);
+    setTxAmount((t.amount / 100).toString());
+    setTxCurrency(t.currency || "USD");
+    setTxDate(new Date(t.date).toISOString().split("T")[0]);
+    setTxDescription(t.description || "");
+    setTxRecurring(!!t.recurring);
+    setTxInterval(t.recurrenceInterval || "monthly");
+    
+    // Parse existing receipt attachments
+    const receipts: { storageId: string; url: string }[] = [];
+    if (t.receiptStorageIds && t.receiptUrls && t.receiptStorageIds.length === t.receiptUrls.length) {
+      for (let i = 0; i < t.receiptStorageIds.length; i++) {
+        if (t.receiptUrls[i]) {
+          receipts.push({ storageId: t.receiptStorageIds[i], url: t.receiptUrls[i] });
+        }
+      }
+    } else if (t.receiptStorageId && t.receiptUrl) {
+      receipts.push({ storageId: t.receiptStorageId, url: t.receiptUrl });
+    }
+    setExistingReceipts(receipts);
+    setReceiptFiles([]);
+    setActiveModal("edit");
+  };
+
+  const openDeleteModal = (t: any) => {
+    setSelectedTx(t);
+    setActiveModal("delete");
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   if (workspace === undefined || transactions === undefined || clients === undefined || socialPages === undefined || posts === undefined) {
     return (
@@ -167,20 +244,22 @@ export default function FinancePage() {
 
     setSubmitting(true);
     try {
-      let receiptStorageId: string | undefined = undefined;
+      const receiptStorageIds: string[] = [];
 
-      // Handle optional receipt upload
-      if (receiptFile) {
-        toast.info("Uploading receipt file...");
-        const uploadUrl = await generateReceiptUrl({ pageId: txPageId as any });
-        const res = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": receiptFile.type },
-          body: receiptFile,
-        });
-        if (!res.ok) throw new Error("Receipt upload failed.");
-        const json = await res.json();
-        receiptStorageId = json.storageId;
+      // Handle batch receipt uploads
+      if (receiptFiles.length > 0) {
+        toast.info(`Uploading ${receiptFiles.length} receipt/attachment(s)...`);
+        for (const file of receiptFiles) {
+          const uploadUrl = await generateReceiptUrl({ pageId: txPageId as any });
+          const res = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+          if (!res.ok) throw new Error(`Receipt upload failed for ${file.name}`);
+          const json = await res.json();
+          receiptStorageIds.push(json.storageId);
+        }
       }
 
       await createTx({
@@ -194,7 +273,8 @@ export default function FinancePage() {
         description: txDescription.trim() || undefined,
         recurring: txRecurring,
         recurrenceInterval: txRecurring ? txInterval : undefined,
-        receiptStorageId: receiptStorageId as any,
+        receiptStorageId: receiptStorageIds[0] as any,
+        receiptStorageIds: receiptStorageIds as any,
       });
 
       toast.success("Transaction recorded successfully.");
@@ -206,7 +286,7 @@ export default function FinancePage() {
       setTxAmount("");
       setTxDescription("");
       setTxRecurring(false);
-      setReceiptFile(null);
+      setReceiptFiles([]);
       setActiveModal(null);
     } catch (err: any) {
       console.error(err);
@@ -216,12 +296,78 @@ export default function FinancePage() {
     }
   };
 
-  const handleDelete = async (id: any) => {
-    if (!confirm("Are you sure you want to delete this transaction record?")) return;
-    setDeletingId(id);
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTx || !txCategory || !txAmount || !txCurrency || !txDate) {
+      toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    const floatAmount = parseFloat(txAmount);
+    if (isNaN(floatAmount) || floatAmount <= 0) {
+      toast.error("Please enter a valid amount.");
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      await deleteTx({ transactionId: id });
-      toast.success("Transaction entry removed.");
+      const newStorageIds: string[] = [];
+
+      if (receiptFiles.length > 0) {
+        toast.info(`Uploading ${receiptFiles.length} new receipt attachment(s)...`);
+        for (const file of receiptFiles) {
+          const uploadUrl = await generateReceiptUrl({ pageId: txPageId as any });
+          const res = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+          if (!res.ok) throw new Error(`Receipt upload failed for ${file.name}`);
+          const json = await res.json();
+          newStorageIds.push(json.storageId);
+        }
+      }
+
+      const finalStorageIds = [
+        ...existingReceipts.map(r => r.storageId),
+        ...newStorageIds,
+      ];
+
+      await updateTx({
+        transactionId: selectedTx._id,
+        postId: txPostId ? (txPostId as any) : undefined,
+        category: txCategory,
+        amount: Math.round(floatAmount * 100), // convert to cents integer
+        currency: txCurrency,
+        date: new Date(txDate).getTime(),
+        description: txDescription.trim() || undefined,
+        recurring: txRecurring,
+        recurrenceInterval: txRecurring ? txInterval : undefined,
+        receiptStorageId: finalStorageIds[0] as any,
+        receiptStorageIds: finalStorageIds as any,
+      });
+
+      toast.success("Transaction entry updated successfully.");
+      setActiveModal(null);
+      setSelectedTx(null);
+      setExistingReceipts([]);
+      setReceiptFiles([]);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update transaction");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedTx) return;
+    setDeletingId(selectedTx._id);
+    try {
+      await deleteTx({ transactionId: selectedTx._id });
+      toast.success("Transaction entry removed successfully.");
+      setActiveModal(null);
+      setSelectedTx(null);
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to delete transaction");
@@ -248,14 +394,7 @@ export default function FinancePage() {
         
         {socialPages.length > 0 && (
           <Button 
-            onClick={() => {
-              setTxPageId(socialPages[0]?._id || "");
-              setTxPostId("");
-              setTxCategory(INCOME_CATEGORIES[0]?.id || "");
-              setTxAmount("");
-              setReceiptFile(null);
-              setActiveModal("create");
-            }}
+            onClick={openCreateModal}
             className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 text-xs font-semibold"
           >
             <Plus className="h-4 w-4 mr-1.5" /> Log Transaction
@@ -462,31 +601,59 @@ export default function FinancePage() {
                         {t.type === "income" ? "+" : "-"}{t.currency} {(t.amount / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                       <td className="p-4 text-center">
-                        {t.receiptUrl ? (
+                        {(t as any).receiptUrls && (t as any).receiptUrls.length > 0 ? (
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
+                            {(t as any).receiptUrls.map((url: string, idx: number) => (
+                              <a 
+                                key={idx}
+                                href={url} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-muted border border-border text-zinc-500 hover:text-indigo-400 transition-colors"
+                                title={`View Attachment #${idx + 1}`}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </a>
+                            ))}
+                          </div>
+                        ) : t.receiptUrl ? (
                           <a 
                             href={t.receiptUrl} 
                             target="_blank" 
                             rel="noreferrer"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-muted border border-border text-zinc-500 hover:text-foreground"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-muted border border-border text-zinc-500 hover:text-indigo-400 transition-colors"
+                            title="View Receipt"
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </a>
                         ) : "—"}
                       </td>
                       <td className="p-4 text-right">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          disabled={deletingId === t._id}
-                          onClick={() => handleDelete(t._id)}
-                          className="h-8 w-8 text-zinc-550 hover:text-red-400 hover:bg-red-500/10"
-                        >
-                          {deletingId === t._id ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => openEditModal(t)}
+                            className="h-7 w-7 text-zinc-400 hover:text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+                            title="Edit Transaction"
+                          >
+                            <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            disabled={deletingId === t._id}
+                            onClick={() => openDeleteModal(t)}
+                            className="h-7 w-7 text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                            title="Delete Transaction"
+                          >
+                            {deletingId === t._id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -499,32 +666,32 @@ export default function FinancePage() {
 
       {/* --- MODALS OVERLAYS --- */}
 
-      {/* 1. Log Transaction Modal */}
-      {activeModal === "create" && (
+      {/* 1. Log / Edit Transaction Modal */}
+      {(activeModal === "create" || activeModal === "edit") && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-            <div className="px-6 py-4 border-b border-border flex justify-between items-center">
+          <div className="w-full max-w-4xl bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/30">
               <h3 className="font-bold text-foreground text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-indigo-400" /> Log Campaign Transaction
+                <Sparkles className="h-4 w-4 text-indigo-400" /> {activeModal === "edit" ? "Edit Campaign Transaction" : "Log Campaign Transaction"}
               </h3>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-350">
+              <button onClick={() => { setActiveModal(null); setSelectedTx(null); setExistingReceipts([]); setReceiptFiles([]); }} className="text-zinc-500 hover:text-zinc-350 transition-colors">
                 <CloseIcon className="h-5 w-5" />
               </button>
             </div>
             
-            <form onSubmit={handleCreateSubmit} className="p-6 flex flex-col gap-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={activeModal === "edit" ? handleEditSubmit : handleCreateSubmit} className="p-6 flex flex-col gap-5 max-h-[85vh] overflow-y-auto">
               
-              {/* Type Switcher */}
-              <div className="flex bg-muted p-1 rounded-lg border border-border">
+              {/* Type Switcher (Full Width) */}
+              <div className="flex bg-muted p-1 rounded-xl border border-border">
                 <button
                   type="button"
                   onClick={() => {
                     setTxType("income");
                     setTxCategory(INCOME_CATEGORIES[0]?.id || "");
                   }}
-                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
                     txType === "income"
-                      ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/10"
+                      ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
                       : "text-zinc-500 hover:text-foreground"
                   }`}
                 >
@@ -536,9 +703,9 @@ export default function FinancePage() {
                     setTxType("expense");
                     setTxCategory(EXPENSE_CATEGORIES[0]?.id || "");
                   }}
-                  className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-colors ${
+                  className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
                     txType === "expense"
-                      ? "bg-red-550 text-white shadow-md shadow-red-550/10"
+                      ? "bg-red-550 text-white shadow-md shadow-red-550/20"
                       : "text-zinc-500 hover:text-foreground"
                   }`}
                 >
@@ -546,212 +713,445 @@ export default function FinancePage() {
                 </button>
               </div>
 
-              {/* Target Channel */}
-              <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Target Social Channel *</label>
-                <select 
-                  value={txPageId} 
-                  onChange={(e) => {
-                    setTxPageId(e.target.value);
-                    setTxPostId(""); // Reset post association
-                  }}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
-                  required
-                >
-                  {socialPages.map(page => (
-                    <option key={page._id} value={page._id}>
-                      @{page.handle} ({page.platform})
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {/* Two Column Grid on Desktop, Single Column on Mobile */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                
+                {/* Left Column: Classification & Financial Details */}
+                <div className="flex flex-col gap-4 text-left">
+                  {/* Target Client */}
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Target Client *</label>
+                    <select 
+                      value={txClientId} 
+                      onChange={(e) => {
+                        const newClientId = e.target.value;
+                        setTxClientId(newClientId);
+                        const filtered = socialPages?.filter(p => newClientId === "all" || p.clientId === newClientId) || [];
+                        setTxPageId(filtered[0]?._id || "");
+                        setTxPostId(""); // Reset post association
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 cursor-pointer"
+                      required
+                    >
+                      <option value="all">All Clients (Show all channels)</option>
+                      {clients?.map(c => (
+                        <option key={c._id} value={c._id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              {/* Category */}
-              <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Classification Category *</label>
-                <select 
-                  value={txCategory} 
-                  onChange={(e) => setTxCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
-                  required
-                >
-                  {availableCategories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.label}</option>
-                  ))}
-                </select>
-              </div>
+                  {/* Target Channel */}
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Target Social Channel *</label>
+                    <select 
+                      value={txPageId} 
+                      onChange={(e) => {
+                        setTxPageId(e.target.value);
+                        setTxPostId(""); // Reset post association
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 cursor-pointer"
+                      required
+                    >
+                      {availableModalPages.length === 0 ? (
+                        <option value="" disabled>No channels available for selected client</option>
+                      ) : (
+                        availableModalPages.map(page => {
+                          const client = clients?.find(c => c._id === page.clientId);
+                          return (
+                            <option key={page._id} value={page._id}>
+                              @{page.handle} ({page.platform}){client && txClientId === "all" ? ` — ${client.name}` : ""}
+                            </option>
+                          );
+                        })
+                      )}
+                    </select>
+                  </div>
 
-              {/* Amount & Currency */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="flex flex-col gap-1.5 text-left col-span-2">
-                  <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Amount *</label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-2 text-zinc-500 text-sm font-semibold select-none">$</span>
+                  {/* Category */}
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Classification Category *</label>
+                    <select 
+                      value={txCategory} 
+                      onChange={(e) => setTxCategory(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 cursor-pointer"
+                      required
+                    >
+                      {availableCategories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Amount & Currency */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="flex flex-col gap-1.5 text-left col-span-2">
+                      <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Amount *</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-zinc-500 text-sm font-semibold select-none">$</span>
+                        <input 
+                          type="number"
+                          step="0.01"
+                          placeholder="0.00"
+                          value={txAmount}
+                          onChange={(e) => setTxAmount(e.target.value)}
+                          className="w-full pl-7 pr-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 font-mono"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Currency *</label>
+                      <select 
+                        value={txCurrency} 
+                        onChange={(e) => setTxCurrency(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 font-mono cursor-pointer"
+                        required
+                      >
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="PHP">PHP (₱)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Date */}
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Transaction Date *</label>
                     <input 
-                      type="number"
-                      step="0.01"
-                      placeholder="0.00"
-                      value={txAmount}
-                      onChange={(e) => setTxAmount(e.target.value)}
-                      className="w-full pl-7 pr-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 font-mono"
+                      type="date"
+                      value={txDate}
+                      onChange={(e) => setTxDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
                       required
                     />
                   </div>
-                </div>
 
-                <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Currency *</label>
-                  <select 
-                    value={txCurrency} 
-                    onChange={(e) => setTxCurrency(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 font-mono"
-                    required
-                  >
-                    <option value="USD">USD ($)</option>
-                    <option value="EUR">EUR (€)</option>
-                    <option value="GBP">GBP (£)</option>
-                    <option value="PHP">PHP (₱)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Date */}
-              <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Transaction Date *</label>
-                <input 
-                  type="date"
-                  value={txDate}
-                  onChange={(e) => setTxDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
-                  required
-                />
-              </div>
-
-              {/* Optional Post Connection */}
-              <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Link to Content Post (Optional)</label>
-                <select 
-                  value={txPostId} 
-                  onChange={(e) => setTxPostId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 disabled:opacity-50"
-                  disabled={!txPageId}
-                >
-                  <option value="">Do not link to post</option>
-                  {(() => {
-                    const activePage = socialPages.find(p => p._id === txPageId);
-                    if (!activePage) return null;
-                    return posts
-                      .filter(post => {
-                        const postProj = projects?.find(proj => proj._id === post.projectId);
-                        return !!(postProj && postProj.clientId === activePage.clientId);
-                      })
-                      .map(post => (
-                        <option key={post._id} value={post._id}>
-                          {post.caption.substring(0, 40)}{post.caption.length > 40 ? "..." : ""} ({post.status})
-                        </option>
-                      ));
-                  })()}
-                </select>
-              </div>
-
-              {/* Description */}
-              <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Memo / Description</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. Meta Q3 Ads Payment or retainer fee" 
-                  value={txDescription}
-                  onChange={(e) => setTxDescription(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
-                />
-              </div>
-
-              {/* Recurrence Toggle */}
-              <div className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-muted/40 text-left">
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <Repeat className="h-3.5 w-3.5 text-indigo-400 animate-spin-slow" /> Recurring Transaction
-                    </span>
-                    <span className="text-[10px] text-zinc-500 mt-0.5">Automate logging at schedule intervals</span>
-                  </div>
-                  <input 
-                    type="checkbox"
-                    checked={txRecurring}
-                    onChange={(e) => setTxRecurring(e.target.checked)}
-                    className="h-4.5 w-4.5 rounded border-border text-indigo-600 bg-muted focus:ring-indigo-600 cursor-pointer"
-                  />
-                </div>
-
-                {txRecurring && (
-                  <div className="flex flex-col gap-1.5 mt-2 border-t border-border pt-2">
-                    <label className="text-[10px] font-semibold text-zinc-555 dark:text-zinc-400">Interval</label>
-                    <select
-                      value={txInterval}
-                      onChange={(e: any) => setTxInterval(e.target.value)}
-                      className="px-3.5 py-1.5 rounded bg-muted border border-border text-xs text-foreground focus:outline-none focus:border-indigo-600"
+                  {/* Optional Post Connection */}
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Link to Content Post (Optional)</label>
+                    <select 
+                      value={txPostId} 
+                      onChange={(e) => setTxPostId(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 disabled:opacity-50 cursor-pointer"
+                      disabled={!txPageId}
                     >
-                      <option value="weekly">Every Week</option>
-                      <option value="monthly">Every Month</option>
-                      <option value="yearly">Every Year</option>
+                      <option value="">Do not link to post</option>
+                      {(() => {
+                        const activePage = socialPages.find(p => p._id === txPageId);
+                        if (!activePage) return null;
+                        return posts
+                          .filter(post => {
+                            const postProj = projects?.find(proj => proj._id === post.projectId);
+                            return !!(postProj && postProj.clientId === activePage.clientId);
+                          })
+                          .map(post => (
+                            <option key={post._id} value={post._id}>
+                              {post.caption.substring(0, 40)}{post.caption.length > 40 ? "..." : ""} ({post.status})
+                            </option>
+                          ));
+                      })()}
                     </select>
                   </div>
-                )}
-              </div>
+                </div>
 
-              {/* Optional Receipt Attachment */}
-              <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Receipt Attachment (Optional)</label>
-                <div className="border border-dashed border-border bg-muted/40 rounded-xl p-4 text-center flex flex-col items-center gap-2">
-                  <input 
-                    type="file" 
-                    id="tx-receipt-picker"
-                    className="hidden" 
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setReceiptFile(e.target.files[0]);
-                      }
-                    }}
-                  />
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-xs text-zinc-500 truncate max-w-[200px]">
-                      {receiptFile ? receiptFile.name : "No receipt attached"}
-                    </span>
-                    {receiptFile ? (
-                      <button 
-                        type="button" 
-                        onClick={() => setReceiptFile(null)}
-                        className="text-zinc-500 hover:text-red-450 text-xs font-bold"
-                      >
-                        Remove
-                      </button>
-                    ) : (
-                      <label 
-                        htmlFor="tx-receipt-picker"
-                        className="px-2.5 py-1 bg-muted hover:bg-muted/80 border border-border text-foreground text-[10px] font-semibold rounded cursor-pointer transition-colors"
-                      >
-                        Upload file
+                {/* Right Column: Memo, Automation & Attachments */}
+                <div className="flex flex-col gap-4 text-left">
+                  {/* Description */}
+                  <div className="flex flex-col gap-1.5 text-left">
+                    <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Memo / Description</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Meta Q3 Ads Payment or retainer fee" 
+                      value={txDescription}
+                      onChange={(e) => setTxDescription(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600"
+                    />
+                  </div>
+
+                  {/* Recurrence Toggle */}
+                  <div className="flex flex-col gap-2 p-3 rounded-lg border border-border bg-muted/40 text-left">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                          <Repeat className="h-3.5 w-3.5 text-indigo-400 animate-spin-slow" /> Recurring Transaction
+                        </span>
+                        <span className="text-[10px] text-zinc-500 mt-0.5">Automate logging at schedule intervals</span>
+                      </div>
+                      <input 
+                        type="checkbox"
+                        checked={txRecurring}
+                        onChange={(e) => setTxRecurring(e.target.checked)}
+                        className="h-4.5 w-4.5 rounded border-border text-indigo-600 bg-muted focus:ring-indigo-600 cursor-pointer"
+                      />
+                    </div>
+
+                    {txRecurring && (
+                      <div className="flex flex-col gap-1.5 mt-2 border-t border-border pt-2">
+                        <label className="text-[10px] font-semibold text-zinc-555 dark:text-zinc-400">Interval</label>
+                        <select
+                          value={txInterval}
+                          onChange={(e: any) => setTxInterval(e.target.value)}
+                          className="px-3.5 py-1.5 rounded bg-muted border border-border text-xs text-foreground focus:outline-none focus:border-indigo-600 cursor-pointer"
+                        >
+                          <option value="weekly">Every Week</option>
+                          <option value="monthly">Every Month</option>
+                          <option value="yearly">Every Year</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Multi-File Receipt Attachment Dropzone */}
+                  <div className="flex flex-col gap-2 text-left">
+                    
+                    {/* Previously Attached Receipts (Visible & Editable) */}
+                    {existingReceipts.length > 0 && (
+                      <div className="flex flex-col gap-1.5 mb-1">
+                        <span className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">
+                          Currently Attached Proofs ({existingReceipts.length})
+                        </span>
+                        <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                          {existingReceipts.map((r, idx) => (
+                            <div
+                              key={r.storageId || idx}
+                              className="relative group border border-border bg-card rounded-lg p-2 flex items-center justify-between gap-2 overflow-hidden shadow-sm"
+                            >
+                              <a
+                                href={r.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-2 min-w-0 flex-1 hover:opacity-80 transition-opacity"
+                                title="View receipt"
+                              >
+                                <DocIcon className="h-7 w-7 text-indigo-400 p-1 bg-indigo-500/10 rounded shrink-0" />
+                                <span className="text-[11px] font-medium text-foreground truncate">
+                                  Proof #{idx + 1}
+                                </span>
+                              </a>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <a
+                                  href={r.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="p-1 text-zinc-400 hover:text-indigo-400 rounded-full hover:bg-indigo-500/10 transition-colors"
+                                  title="View Full File"
+                                >
+                                  <Eye className="h-3.5 w-3.5" />
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => setExistingReceipts(prev => prev.filter((_, i) => i !== idx))}
+                                  className="p-1 text-zinc-400 hover:text-red-500 rounded-full hover:bg-red-500/10 transition-colors"
+                                  title="Remove Attachment"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-between items-center">
+                      <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">
+                        {existingReceipts.length > 0 ? "Upload Additional Attachments" : "Receipt / Invoice Attachments (Multiple)"}
                       </label>
+                      {receiptFiles.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setReceiptFiles([])}
+                          className="text-[10px] text-zinc-500 hover:text-red-500 font-semibold transition-colors"
+                        >
+                          Clear new ({receiptFiles.length})
+                        </button>
+                      )}
+                    </div>
+
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingReceiptDropzone(true);
+                      }}
+                      onDragLeave={() => setIsDraggingReceiptDropzone(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingReceiptDropzone(false);
+                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                          const validFiles = deduplicateIncomingFiles(e.dataTransfer.files, {
+                            existingFiles: receiptFiles,
+                          });
+                          if (validFiles.length > 0) {
+                            setReceiptFiles((prev) => [...prev, ...validFiles]);
+                          }
+                        }
+                      }}
+                      className={`p-3.5 rounded-xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                        isDraggingReceiptDropzone
+                          ? "border-indigo-500 bg-indigo-500/10 scale-[1.01]"
+                          : "border-border hover:border-zinc-400 dark:hover:border-zinc-700 bg-muted/30 hover:bg-muted/50"
+                      }`}
+                    >
+                      <input 
+                        type="file" 
+                        id="tx-receipt-picker"
+                        className="hidden" 
+                        multiple
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            const validFiles = deduplicateIncomingFiles(e.target.files, {
+                              existingFiles: receiptFiles,
+                            });
+                            if (validFiles.length > 0) {
+                              setReceiptFiles((prev) => [...prev, ...validFiles]);
+                            }
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                      <label htmlFor="tx-receipt-picker" className="cursor-pointer flex flex-col items-center gap-1 w-full">
+                        <div className="h-7 w-7 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                          <Paperclip className="h-3.5 w-3.5" />
+                        </div>
+                        <div className="flex items-center gap-1 text-xs">
+                          <span className="font-semibold text-indigo-500 dark:text-indigo-400">Click to upload receipts</span>
+                          <span className="text-zinc-500">or drag & drop</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500">
+                          Upload PDF invoices, images, or document proofs
+                        </p>
+                      </label>
+                    </div>
+
+                    {/* Selected File Previews Grid */}
+                    {receiptFiles.length > 0 && (
+                      <div className="grid grid-cols-2 gap-2 mt-1 max-h-36 overflow-y-auto pr-1">
+                        {receiptFiles.map((file, idx) => {
+                          const isImage = file.type.startsWith("image/");
+                          const isVideo = file.type.startsWith("video/");
+
+                          return (
+                            <div
+                              key={`${file.name}-${idx}`}
+                              className="relative group border border-border bg-card rounded-lg p-1.5 flex items-center gap-2 overflow-hidden shadow-sm text-left"
+                            >
+                              {isImage ? (
+                                <img
+                                  src={URL.createObjectURL(file)}
+                                  alt={file.name}
+                                  className="h-8 w-8 object-cover rounded shrink-0 border border-border"
+                                />
+                              ) : isVideo ? (
+                                <VideoIcon className="h-8 w-8 text-indigo-400 p-1.5 bg-indigo-500/10 rounded shrink-0" />
+                              ) : (
+                                <DocIcon className="h-8 w-8 text-amber-500 p-1.5 bg-amber-500/10 rounded shrink-0" />
+                              )}
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <span className="text-[10.5px] font-medium text-foreground truncate">{file.name}</span>
+                                <span className="text-[9px] text-zinc-500 font-mono">{formatFileSize(file.size)}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setReceiptFiles(prev => prev.filter((_, i) => i !== idx))}
+                                className="text-zinc-400 hover:text-red-500 p-1 rounded-full hover:bg-red-500/10 transition-colors shrink-0"
+                                title="Remove file"
+                              >
+                                <CloseIcon className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
                 </div>
+
               </div>
 
-              {/* Submit Buttons */}
-              <div className="flex gap-2 justify-end pt-3 border-t border-border mt-2">
-                <Button type="button" variant="ghost" onClick={() => setActiveModal(null)} className="text-zinc-500 text-xs">
+              {/* Submit Buttons (Full Width) */}
+              <div className="flex gap-2 justify-end pt-4 border-t border-border mt-1">
+                <Button type="button" variant="ghost" onClick={() => { setActiveModal(null); setSelectedTx(null); setExistingReceipts([]); setReceiptFiles([]); }} className="text-zinc-500 text-xs">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={submitting} 
-                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-5"
                 >
                   {submitting && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
-                  {submitting ? "Saving..." : "Save Record"}
+                  {submitting ? "Saving..." : activeModal === "edit" ? "Update Record" : "Save Record"}
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Delete Confirmation Security Modal */}
+      {activeModal === "delete" && selectedTx && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center bg-red-500/10">
+              <h3 className="font-bold text-red-500 text-base flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-red-500" /> Delete Transaction Entry?
+              </h3>
+              <button onClick={() => { setActiveModal(null); setSelectedTx(null); }} className="text-zinc-500 hover:text-zinc-350">
+                <CloseIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-4 text-left">
+              <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed">
+                Are you sure you want to delete this transaction record? This action cannot be undone and will permanently remove this entry and all attached receipt proofs from the financial ledger.
+              </p>
+
+              <div className="p-3.5 rounded-xl border border-border bg-muted/50 flex flex-col gap-2 font-mono text-xs">
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 font-sans">Date:</span>
+                  <span className="text-foreground">{new Date(selectedTx.date).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-zinc-500 font-sans">Category:</span>
+                  <span className="text-foreground">{getCategoryLabel(selectedTx.category)}</span>
+                </div>
+                {selectedTx.description && (
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500 font-sans">Description:</span>
+                    <span className="text-foreground truncate max-w-[180px]">{selectedTx.description}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-border pt-2 font-bold">
+                  <span className="text-zinc-500 font-sans">Amount:</span>
+                  <span className={selectedTx.type === "income" ? "text-emerald-400" : "text-red-400"}>
+                    {selectedTx.type === "income" ? "+" : "-"}{selectedTx.currency} {(selectedTx.amount / 100).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex gap-2 justify-end pt-3 border-t border-border mt-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => { setActiveModal(null); setSelectedTx(null); }}
+                  className="text-zinc-400 text-xs"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  disabled={deletingId === selectedTx._id}
+                  className="bg-red-600 hover:bg-red-500 text-white text-xs font-semibold px-4"
+                >
+                  {deletingId === selectedTx._id && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                  Confirm Delete
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}

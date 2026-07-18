@@ -368,6 +368,19 @@ export default function ContentWorkflowPage() {
     setTimeout(() => setCopiedToken(false), 2000);
   };
 
+  const openCreateModal = (defaultStatus?: string) => {
+    setSelectedPost(null);
+    setPostCaption("");
+    setPostProject(projects?.[0]?._id || "");
+    setPostPage(socialPages?.[0]?._id || "");
+    setPostAssignee("");
+    setPostScheduledDate("");
+    setPostScheduledTime("");
+    setPostStatus(defaultStatus || activeColumns[0]?.id || "draft");
+    setComposerFile(null);
+    setActiveModal("create");
+  };
+
   const openInspectModal = (post: any) => {
     setSelectedPost(post);
     setPostCaption(post.caption);
@@ -474,12 +487,7 @@ export default function ContentWorkflowPage() {
 
         {projects.length > 0 && socialPages.length > 0 && (
           <Button 
-            onClick={() => {
-              setPostProject(projects[0]?._id || "");
-              setPostPage(socialPages[0]?._id || "");
-              setPostStatus(activeColumns[0]?.id || "draft");
-              setActiveModal("create");
-            }}
+            onClick={() => openCreateModal()}
             className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 text-xs font-semibold"
           >
             <Plus className="h-4 w-4 mr-1.5" /> Create Post

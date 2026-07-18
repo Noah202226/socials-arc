@@ -37,6 +37,7 @@ const defaultTaskColumns = [
 
 import { toast } from "sonner";
 import { resolveColumnColor } from "@/lib/utils";
+import { deduplicateIncomingFiles } from "@/lib/file-utils";
 
 
 
@@ -59,6 +60,11 @@ export default function TasksPage() {
 
   const members = useQuery(
     api.workspaces.listMembers,
+    workspace ? { workspaceId: workspace._id } : "skip"
+  );
+
+  const workspaceAssets = useQuery(
+    api.assets.listByWorkspace,
     workspace ? { workspaceId: workspace._id } : "skip"
   );
 
@@ -102,7 +108,9 @@ export default function TasksPage() {
   const [loadingComment, setLoadingComment] = useState(false);
 
   // File Upload / Attachment States
-  const [taskFile, setTaskFile] = useState<File | null>(null);
+  const [taskFiles, setTaskFiles] = useState<File[]>([]);
+  const [isDraggingDropzone, setIsDraggingDropzone] = useState(false);
+  const [isDraggingEditDropzone, setIsDraggingEditDropzone] = useState(false);
   const [uploadingInspectorFile, setUploadingInspectorFile] = useState(false);
   const [commentFile, setCommentFile] = useState<File | null>(null);
 
@@ -110,7 +118,13 @@ export default function TasksPage() {
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [activeDropCol, setActiveDropCol] = useState<string | null>(null);
 
-  if (workspace === undefined || tasks === undefined || projects === undefined || members === undefined) {
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  if (workspace === undefined || tasks === undefined || projects === undefined || members === undefined || workspaceAssets === undefined) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-500 mb-4" />
@@ -176,29 +190,31 @@ export default function TasksPage() {
       });
       toast.success(`Task "${taskTitle.trim()}" created successfully.`);
 
-      if (taskFile && newTask) {
-        toast.info("Uploading attached file...");
-        const uploadUrl = await generateUploadUrl({ projectId: taskProject as any });
-        const res = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": taskFile.type },
-          body: taskFile,
-        });
-        if (!res.ok) throw new Error("File upload failed.");
-        const { storageId } = await res.json();
+      if (taskFiles.length > 0 && newTask) {
+        toast.info(`Uploading ${taskFiles.length} file(s)...`);
+        for (const file of taskFiles) {
+          const uploadUrl = await generateUploadUrl({ projectId: taskProject as any });
+          const res = await fetch(uploadUrl, {
+            method: "POST",
+            headers: { "Content-Type": file.type },
+            body: file,
+          });
+          if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
+          const { storageId } = await res.json();
 
-        let assetType: "image" | "video" | "document" = "document";
-        if (taskFile.type.startsWith("image/")) assetType = "image";
-        else if (taskFile.type.startsWith("video/")) assetType = "video";
+          let assetType: "image" | "video" | "document" = "document";
+          if (file.type.startsWith("image/")) assetType = "image";
+          else if (file.type.startsWith("video/")) assetType = "video";
 
-        await saveAsset({
-          projectId: taskProject as any,
-          taskId: newTask._id,
-          storageId,
-          type: assetType,
-          fileName: taskFile.name,
-        });
-        toast.success("File attached successfully.");
+          await saveAsset({
+            projectId: taskProject as any,
+            taskId: newTask._id,
+            storageId,
+            type: assetType,
+            fileName: file.name,
+          });
+        }
+        toast.success(`${taskFiles.length} file(s) attached successfully.`);
       }
 
       // Reset Form
@@ -207,7 +223,7 @@ export default function TasksPage() {
       setTaskProject("");
       setTaskAssignee("");
       setTaskDueDate("");
-      setTaskFile(null);
+      setTaskFiles([]);
       setActiveModal(null);
     } catch (err: any) {
       console.error(err);
@@ -275,6 +291,48 @@ export default function TasksPage() {
     }
   };
 
+  const handleBatchUploadEditFiles = async (files: FileList | File[]) => {
+    if (!files || files.length === 0 || !selectedTask) return;
+    const existingNames = taskAssets ? taskAssets.map(a => a.fileName) : [];
+    const validFiles = deduplicateIncomingFiles(files, {
+      existingFileNames: existingNames,
+    });
+    if (validFiles.length === 0) return;
+
+    setUploadingInspectorFile(true);
+    toast.info(`Uploading ${validFiles.length} attachment(s)...`);
+    try {
+      for (const fileToUpload of validFiles) {
+        const uploadUrl = await generateUploadUrl({ projectId: selectedTask.projectId });
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": fileToUpload.type },
+          body: fileToUpload,
+        });
+        if (!res.ok) throw new Error(`Upload failed for ${fileToUpload.name}`);
+        const { storageId } = await res.json();
+
+        let assetType: "image" | "video" | "document" = "document";
+        if (fileToUpload.type.startsWith("image/")) assetType = "image";
+        else if (fileToUpload.type.startsWith("video/")) assetType = "video";
+
+        await saveAsset({
+          projectId: selectedTask.projectId,
+          taskId: selectedTask._id,
+          storageId,
+          type: assetType,
+          fileName: fileToUpload.name,
+        });
+      }
+      toast.success(`${validFiles.length} attachment(s) uploaded successfully!`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to upload attachments");
+    } finally {
+      setUploadingInspectorFile(false);
+    }
+  };
+
   const handleDeleteTask = async (taskId: any) => {
     if (!confirm("Are you sure you want to delete this task?")) return;
     try {
@@ -307,6 +365,18 @@ export default function TasksPage() {
     }
   };
 
+  const openCreateModal = (defaultStatus?: string) => {
+    setSelectedTask(null);
+    setTaskTitle("");
+    setTaskDesc("");
+    setTaskProject(projects?.[0]?._id || "");
+    setTaskAssignee("");
+    setTaskDueDate("");
+    setTaskStatus(defaultStatus || activeColumns[0]?.id || "todo");
+    setTaskFiles([]);
+    setActiveModal("create");
+  };
+
   const openEditModal = (task: any) => {
     setSelectedTask(task);
     setTaskTitle(task.title);
@@ -330,11 +400,7 @@ export default function TasksPage() {
 
         {projects.length > 0 && (
           <Button
-            onClick={() => {
-              setTaskProject(projects[0]?._id || "");
-              setTaskStatus(activeColumns[0]?.id || "todo");
-              setActiveModal("create");
-            }}
+            onClick={() => openCreateModal()}
             className="bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 text-xs font-semibold"
           >
             <Plus className="h-4 w-4 mr-1.5" /> Create Task
@@ -473,6 +539,8 @@ export default function TasksPage() {
                     colTasks.map((task) => {
                       const project = projects.find(p => p._id === task.projectId);
                       const assignee = members.find(m => m.userId === task.assigneeId);
+                      const cardAssets = workspaceAssets?.filter(a => a.taskId === task._id) || [];
+                      const cardImages = cardAssets.filter((a): a is typeof a & { url: string } => a.type === "image" && Boolean(a.url));
 
                       return (
                         <div
@@ -481,7 +549,7 @@ export default function TasksPage() {
                           onDragStart={(e) => handleDragStart(e, task._id)}
                           onDragEnd={handleDragEnd}
                           onClick={() => openEditModal(task)}
-                          className={`p-4 rounded-lg border border-border bg-zinc-50 dark:bg-zinc-950/70 hover:border-indigo-600/40 hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer transition-all duration-200 flex flex-col gap-3 text-left group ${draggedTaskId === task._id ? "opacity-40 border-dashed border-zinc-800 scale-95" : ""
+                          className={`p-4 rounded-lg border border-border bg-zinc-50 dark:bg-zinc-950/70 hover:border-indigo-600/40 hover:bg-zinc-100 dark:hover:bg-zinc-900 cursor-pointer transition-all duration-200 flex flex-col gap-2.5 text-left group ${draggedTaskId === task._id ? "opacity-40 border-dashed border-zinc-800 scale-95" : ""
                             }`}
                         >
                           {/* Project Tag */}
@@ -514,8 +582,24 @@ export default function TasksPage() {
                             </p>
                           )}
 
+                          {/* Image Attachment Preview Strip */}
+                          {cardImages.length > 0 && (
+                            <div className="flex gap-1.5 overflow-hidden rounded-md my-0.5 max-h-16">
+                              {cardImages.slice(0, 3).map((imgAsset, imgIdx) => (
+                                <div key={imgAsset._id} className="relative flex-1 h-14 rounded overflow-hidden border border-border bg-muted">
+                                  <img src={imgAsset.url ?? undefined} alt={imgAsset.fileName} className="h-full w-full object-cover" />
+                                  {imgIdx === 2 && cardImages.length > 3 && (
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-[10px] font-bold text-white">
+                                      +{cardImages.length - 3}
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           {/* Info row */}
-                          <div className="flex items-center justify-between text-[10px] text-zinc-500 border-t border-border pt-2.5 mt-1">
+                          <div className="flex items-center justify-between text-[10px] text-zinc-500 border-t border-border pt-2.5 mt-0.5">
                             {/* Assignee */}
                             <div className="flex items-center gap-1.5">
                               {assignee?.pictureUrl ? (
@@ -534,7 +618,7 @@ export default function TasksPage() {
                                 <UserIcon className="h-3 w-3 text-zinc-650 shrink-0" />
                               )}
                               <span
-                                className="truncate max-w-[130px]"
+                                className="truncate max-w-[110px]"
                                 title={
                                   assignee
                                     ? (assignee.userName || assignee.userEmail || assignee.invitedEmail || assignee.userId)
@@ -549,15 +633,28 @@ export default function TasksPage() {
                               </span>
                             </div>
 
-                            {/* Due Date */}
-                            {task.dueDate && (
-                              <div className="flex items-center gap-1 text-[9.5px]">
-                                <Clock className="h-3 w-3 text-zinc-600" />
-                                <span className={task.dueDate < Date.now() && task.status !== "done" ? "text-red-500 font-semibold" : ""}>
-                                  {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                </span>
-                              </div>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {/* Attachment Count Badge */}
+                              {cardAssets.length > 0 && (
+                                <div
+                                  className="flex items-center gap-1 text-[9.5px] font-semibold text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-900 border border-border px-1.5 py-0.5 rounded shrink-0"
+                                  title={`${cardAssets.length} attachment(s)`}
+                                >
+                                  <Paperclip className="h-3 w-3 text-indigo-400" />
+                                  <span>{cardAssets.length}</span>
+                                </div>
+                              )}
+
+                              {/* Due Date */}
+                              {task.dueDate && (
+                                <div className="flex items-center gap-1 text-[9.5px]">
+                                  <Clock className="h-3 w-3 text-zinc-600" />
+                                  <span className={task.dueDate < Date.now() && task.status !== "done" ? "text-red-500 font-semibold" : ""}>
+                                    {new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       );
@@ -611,7 +708,7 @@ export default function TasksPage() {
               </div>
 
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Task Title</label>
+                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Task Description</label>
                 <textarea
                   value={taskDesc}
                   onChange={(e) => setTaskDesc(e.target.value)}
@@ -657,42 +754,116 @@ export default function TasksPage() {
                 </div>
               </div>
 
-              {/* Attachment option for new task */}
-              <div className="flex flex-col gap-1.5 text-left border-t border-border pt-3">
-                <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Attach File/Image (Optional)</label>
-                <div className="flex items-center gap-3">
+              {/* Attachments for new task — drag & drop zone with previews */}
+              <div className="flex flex-col gap-2 text-left border-t border-border pt-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Attach Files / Images (Optional)</label>
+                  {taskFiles.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setTaskFiles([])}
+                      className="text-[10px] text-zinc-500 hover:text-red-500 font-semibold transition-colors"
+                    >
+                      Clear all ({taskFiles.length})
+                    </button>
+                  )}
+                </div>
+
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDraggingDropzone(true);
+                  }}
+                  onDragLeave={() => setIsDraggingDropzone(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDraggingDropzone(false);
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                      const validFiles = deduplicateIncomingFiles(e.dataTransfer.files, {
+                        existingFiles: taskFiles,
+                      });
+                      if (validFiles.length > 0) {
+                        setTaskFiles((prev) => [...prev, ...validFiles]);
+                      }
+                    }
+                  }}
+                  className={`p-4 rounded-xl border-2 border-dashed transition-all text-center flex flex-col items-center justify-center gap-1.5 cursor-pointer ${
+                    isDraggingDropzone
+                      ? "border-indigo-500 bg-indigo-500/10 scale-[1.01]"
+                      : "border-border hover:border-zinc-400 dark:hover:border-zinc-700 bg-muted/30 hover:bg-muted/50"
+                  }`}
+                >
                   <input
                     type="file"
                     id="new-task-attachment"
                     className="hidden"
+                    multiple
                     onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        setTaskFile(e.target.files[0]);
+                      if (e.target.files && e.target.files.length > 0) {
+                        const validFiles = deduplicateIncomingFiles(e.target.files, {
+                          existingFiles: taskFiles,
+                        });
+                        if (validFiles.length > 0) {
+                          setTaskFiles((prev) => [...prev, ...validFiles]);
+                        }
+                        e.target.value = "";
                       }
                     }}
                   />
-                  <label
-                    htmlFor="new-task-attachment"
-                    className="flex items-center gap-1.5 py-1.5 px-3 border border-border hover:border-zinc-400 dark:hover:border-zinc-700 bg-muted hover:bg-muted/80 text-foreground rounded-lg text-xs font-semibold cursor-pointer transition-colors shrink-0"
-                  >
-                    <Paperclip className="h-3.5 w-3.5" />
-                    Choose File
-                  </label>
-                  {taskFile ? (
-                    <div className="flex items-center gap-2 bg-muted border border-border rounded-lg px-2.5 py-1 text-xs min-w-0">
-                      <span className="text-zinc-350 truncate">{taskFile.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => setTaskFile(null)}
-                        className="text-zinc-500 hover:text-red-455"
-                      >
-                        <CloseIcon className="h-3.5 w-3.5" />
-                      </button>
+                  <label htmlFor="new-task-attachment" className="cursor-pointer flex flex-col items-center gap-1.5 w-full">
+                    <div className="h-8 w-8 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                      <Paperclip className="h-4 w-4" />
                     </div>
-                  ) : (
-                    <span className="text-xs text-zinc-650">No file chosen</span>
-                  )}
+                    <div className="flex items-center gap-1 text-xs">
+                      <span className="font-semibold text-indigo-500 dark:text-indigo-400">Click to upload files</span>
+                      <span className="text-zinc-500">or drag & drop</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500">
+                      Images, Videos, or Documents (Multiple allowed)
+                    </p>
+                  </label>
                 </div>
+
+                {/* File Previews Grid */}
+                {taskFiles.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 mt-1 max-h-40 overflow-y-auto pr-1">
+                    {taskFiles.map((file, idx) => {
+                      const isImage = file.type.startsWith("image/");
+                      const isVideo = file.type.startsWith("video/");
+
+                      return (
+                        <div
+                          key={`${file.name}-${idx}`}
+                          className="relative group border border-border bg-card rounded-lg p-2 flex items-center gap-2 overflow-hidden shadow-sm"
+                        >
+                          {isImage ? (
+                            <img
+                              src={URL.createObjectURL(file)}
+                              alt={file.name}
+                              className="h-9 w-9 object-cover rounded shrink-0 border border-border"
+                            />
+                          ) : isVideo ? (
+                            <VideoIcon className="h-9 w-9 text-indigo-400 p-2 bg-indigo-500/10 rounded shrink-0" />
+                          ) : (
+                            <DocIcon className="h-9 w-9 text-amber-500 p-2 bg-amber-500/10 rounded shrink-0" />
+                          )}
+                          <div className="flex flex-col min-w-0 flex-1 text-left">
+                            <span className="text-[11px] font-medium text-foreground truncate">{file.name}</span>
+                            <span className="text-[9.5px] text-zinc-500 font-mono">{formatFileSize(file.size)}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setTaskFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-zinc-400 hover:text-red-500 p-1 rounded-full hover:bg-red-500/10 transition-colors shrink-0"
+                            title="Remove file"
+                          >
+                            <CloseIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
@@ -798,27 +969,37 @@ export default function TasksPage() {
                 </div>
 
                 {/* Attached Files Section */}
-                <div className="flex flex-col gap-2 border-t border-border pt-4 mt-2">
+                <div className="flex flex-col gap-2 border-t border-border pt-4 mt-2 text-left">
                   <label className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Attached Media & Files</label>
 
                   {/* List of currently attached assets */}
                   {taskAssets && taskAssets.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div className="grid grid-cols-2 gap-2 mb-2 max-h-48 overflow-y-auto pr-1">
                       {taskAssets.map((asset) => (
-                        <div key={asset._id} className="relative group border border-border bg-card rounded-lg p-2 flex items-center gap-2">
+                        <div key={asset._id} className="relative group border border-border bg-card rounded-lg p-2 flex items-center gap-2 overflow-hidden shadow-sm">
                           {asset.type === "image" && asset.url ? (
-                            <img src={asset.url} className="h-8 w-8 object-cover rounded" />
+                            <a href={asset.url} target="_blank" rel="noopener noreferrer" className="shrink-0" title="Click to view full image">
+                              <img src={asset.url} alt={asset.fileName} className="h-8 w-8 object-cover rounded hover:opacity-80 transition-opacity" />
+                            </a>
                           ) : asset.type === "video" ? (
                             <VideoIcon className="h-8 w-8 text-indigo-400 p-1.5 bg-indigo-500/10 rounded shrink-0" />
                           ) : (
                             <DocIcon className="h-8 w-8 text-amber-500 p-1.5 bg-amber-500/10 rounded shrink-0" />
                           )}
-                          <span className="text-[10px] text-zinc-600 dark:text-zinc-300 truncate flex-1">{asset.fileName}</span>
+                          <a
+                            href={asset.url || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] text-zinc-600 dark:text-zinc-300 hover:text-indigo-500 dark:hover:text-indigo-400 truncate flex-1 font-medium"
+                            title={asset.fileName}
+                          >
+                            {asset.fileName}
+                          </a>
 
                           <button
                             type="button"
                             onClick={async () => {
-                              if (confirm("Are you sure you want to delete this attachment?")) {
+                              if (confirm(`Are you sure you want to delete "${asset.fileName}"?`)) {
                                 try {
                                   await deleteAsset({ assetId: asset._id });
                                   toast.success("Attachment deleted.");
@@ -827,7 +1008,7 @@ export default function TasksPage() {
                                 }
                               }
                             }}
-                            className="text-zinc-500 hover:text-red-400 p-1 rounded hover:bg-red-500/10 cursor-pointer shrink-0"
+                            className="text-zinc-400 hover:text-red-500 p-1 rounded hover:bg-red-500/10 cursor-pointer shrink-0 transition-colors"
                             title="Delete attachment"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -837,59 +1018,56 @@ export default function TasksPage() {
                     </div>
                   )}
 
-                  {/* Upload box */}
-                  <div className="flex items-center gap-2">
+                  {/* Batch Upload Dropzone */}
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setIsDraggingEditDropzone(true);
+                    }}
+                    onDragLeave={() => setIsDraggingEditDropzone(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDraggingEditDropzone(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                        handleBatchUploadEditFiles(e.dataTransfer.files);
+                      }
+                    }}
+                    className={`flex flex-col items-center justify-center p-3 border-2 border-dashed rounded-lg text-center transition-all cursor-pointer ${
+                      isDraggingEditDropzone
+                        ? "border-indigo-500 bg-indigo-500/10"
+                        : "border-border hover:border-zinc-400 dark:hover:border-zinc-700 bg-muted/40 hover:bg-muted/70"
+                    }`}
+                  >
                     <input
                       type="file"
                       id="task-inspector-media-upload"
                       className="hidden"
-                      onChange={async (e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          const fileToUpload = e.target.files[0];
-                          setUploadingInspectorFile(true);
-                          try {
-                            const uploadUrl = await generateUploadUrl({ projectId: selectedTask.projectId });
-                            const res = await fetch(uploadUrl, {
-                              method: "POST",
-                              headers: { "Content-Type": fileToUpload.type },
-                              body: fileToUpload,
-                            });
-                            if (!res.ok) throw new Error("Upload failed");
-                            const { storageId } = await res.json();
-
-                            let assetType: "image" | "video" | "document" = "document";
-                            if (fileToUpload.type.startsWith("image/")) assetType = "image";
-                            else if (fileToUpload.type.startsWith("video/")) assetType = "video";
-
-                            await saveAsset({
-                              projectId: selectedTask.projectId,
-                              taskId: selectedTask._id,
-                              storageId,
-                              type: assetType,
-                              fileName: fileToUpload.name,
-                            });
-                            toast.success("File uploaded and attached!");
-                          } catch (err: any) {
-                            toast.error(err.message || "Failed to upload file");
-                          } finally {
-                            setUploadingInspectorFile(false);
-                          }
+                      multiple
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          handleBatchUploadEditFiles(e.target.files);
+                          e.target.value = "";
                         }
                       }}
                     />
                     <label
                       htmlFor="task-inspector-media-upload"
-                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 border border-dashed border-border hover:border-zinc-400 dark:hover:border-zinc-700 bg-muted/50 hover:bg-muted text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                      className="w-full flex flex-col items-center gap-1 cursor-pointer"
                     >
                       {uploadingInspectorFile ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-400" />
-                          Uploading file...
-                        </>
+                        <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold py-1">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Uploading attachment(s)...
+                        </div>
                       ) : (
                         <>
-                          <Plus className="h-3.5 w-3.5" />
-                          Upload & Attach File
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-500 dark:text-indigo-400">
+                            <Plus className="h-3.5 w-3.5" />
+                            Upload & Attach Multiple Files
+                          </div>
+                          <span className="text-[10px] text-zinc-500">
+                            Click to browse or drag & drop files here
+                          </span>
                         </>
                       )}
                     </label>

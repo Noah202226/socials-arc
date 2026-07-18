@@ -187,6 +187,7 @@ export default defineSchema({
       v.union(v.literal("weekly"), v.literal("monthly"), v.literal("yearly")),
     ),
     receiptStorageId: v.optional(v.id("_storage")),
+    receiptStorageIds: v.optional(v.array(v.id("_storage"))),
     createdBy: v.string(), // Clerk user id
   })
     .index("by_page", ["pageId"])
