@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
@@ -11,10 +11,52 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
-export const metadata: Metadata = {
-  title: "Socials Arc",
-  description: "Social Media Project & Content Management SaaS",
+const APP_NAME = "Socials Arc";
+const APP_DEFAULT_TITLE = "Socials Arc";
+const APP_TITLE_TEMPLATE = "%s - Socials Arc";
+const APP_DESCRIPTION = "Social Media Project & Content Management SaaS";
+
+export const viewport: Viewport = {
+  themeColor: "#090d16",
 };
+
+export const metadata: Metadata = {
+  applicationName: APP_NAME,
+  title: {
+    default: APP_DEFAULT_TITLE,
+    template: APP_TITLE_TEMPLATE,
+  },
+  description: APP_DESCRIPTION,
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: APP_DEFAULT_TITLE,
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    siteName: APP_NAME,
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary",
+    title: {
+      default: APP_DEFAULT_TITLE,
+      template: APP_TITLE_TEMPLATE,
+    },
+    description: APP_DESCRIPTION,
+  },
+};
+
+
+
 
 export default function RootLayout({
   children,
@@ -40,6 +82,11 @@ export default function RootLayout({
                 document.documentElement.classList.remove("dark");
               }
             } catch (_) {}
+            if ('serviceWorker' in navigator && location.hostname === 'localhost') {
+              navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let r of registrations) { r.unregister(); }
+              });
+            }
           `
         }} />
       </head>
