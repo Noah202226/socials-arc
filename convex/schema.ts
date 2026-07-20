@@ -217,4 +217,52 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_and_read", ["userId", "read"]),
+
+  // ---------------------------------------------------------------------
+  // Leads & Lead Activities (SSM Lead Monitoring)
+  // ---------------------------------------------------------------------
+  leads: defineTable({
+    workspaceId: v.id("workspaces"),
+    clientId: v.optional(v.id("clients")),
+    pageId: v.optional(v.id("socialPages")),
+    name: v.string(), // Lead or Business Name
+    handle: v.optional(v.string()), // e.g. @brand_handle
+    platform: v.union(
+      v.literal("instagram"),
+      v.literal("facebook"),
+      v.literal("tiktok"),
+      v.literal("x"),
+      v.literal("linkedin"),
+      v.literal("website"),
+      v.literal("other"),
+    ),
+    contactInfo: v.optional(v.string()), // Email, phone, or WhatsApp link
+    source: v.optional(v.string()), // e.g. Inbound DM, Comment, Outbound, Ad
+    status: v.string(), // "new" | "contacted" | "discussion" | "proposal_sent" | "won" | "lost"
+    value: v.optional(v.number()), // Deal size in integer cents (e.g., $500/mo = 50000)
+    currency: v.optional(v.string()), // e.g. "USD"
+    assigneeId: v.optional(v.string()), // Clerk user id of SSM team member
+    notes: v.optional(v.string()), // General notes/requirements
+    lastContactAt: v.optional(v.number()), // timestamp
+    nextFollowUpAt: v.optional(v.number()), // timestamp
+    createdBy: v.string(), // Clerk user id
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_workspace_and_status", ["workspaceId", "status"])
+    .index("by_assignee", ["assigneeId"])
+    .index("by_client", ["clientId"]),
+
+  leadActivities: defineTable({
+    leadId: v.id("leads"),
+    authorId: v.string(),
+    authorName: v.string(),
+    type: v.union(
+      v.literal("note"),
+      v.literal("status_change"),
+      v.literal("response"),
+    ),
+    message: v.string(),
+    previousStatus: v.optional(v.string()),
+    newStatus: v.optional(v.string()),
+  }).index("by_lead", ["leadId"]),
 });

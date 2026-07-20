@@ -183,3 +183,25 @@ toast.success("Action completed successfully!");
 toast.error("Operation failed.");
 toast.info("General notification alert.");
 ```
+
+---
+
+## 🎯 10. Lead Monitoring & CRM Pipeline
+### Overview
+Enables social media outreach managers and agency team members to input prospective client leads, track social platform DMs and invitations, manage follow-up schedules, monitor pipeline status stages (`new`, `contacted`, `discussion`, `proposal_sent`, `won`, `lost`), assign team members, and record activity timeline logs.
+
+### Key Files
+* **Database Schema**: [schema.ts](file:///c:/Noa%20Files/myProjects/socials-arc/convex/schema.ts) (`leads` and `leadActivities` tables)
+* **Backend Logic & Metrics**: [leads.ts](file:///c:/Noa%20Files/myProjects/socials-arc/convex/leads.ts)
+* **Dashboard Page**: [page.tsx](file:///c:/Noa%20Files/myProjects/socials-arc/app/%28dashboard%29/%5BworkspaceSlug%5D/leads/page.tsx)
+* **Modal Component**: [LeadFormModal.tsx](file:///c:/Noa%20Files/myProjects/socials-arc/components/leads/LeadFormModal.tsx)
+* **Drawer Component**: [LeadDetailsDrawer.tsx](file:///c:/Noa%20Files/myProjects/socials-arc/components/leads/LeadDetailsDrawer.tsx)
+
+### Key Rules & Architecture
+* **Estimated Deal Value Concept**: Represents prospective package pitch value or client budget target for unclosed outreach leads (not active client invoices). Team members can input standard package pricing (e.g. $500/mo) or leave it blank/optional.
+* **Integer Cents Rule**: Deal sizes (`value`) are stored strictly as integer cents in the database ($1,500.00 = 150000 cents).
+* **Pipeline Metrics Rollups**: Unclosed leads in `new`, `contacted`, `discussion`, or `proposal_sent` stages aggregate into **Active Pipeline Value**, while `won` status leads aggregate into **Won Revenue**.
+* **Automatic Activity Logging**: Updating a lead status automatically creates a `leadActivities` record recording `previousStatus` and `newStatus` with timestamp and author name.
+* **Dual View**: Supports toggleable Table view and Pipeline Kanban board view for lead management and outreach tracking.
+
+

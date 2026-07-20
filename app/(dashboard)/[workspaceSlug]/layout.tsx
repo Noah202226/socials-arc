@@ -22,7 +22,8 @@ import {
   Settings,
   Image,
   Bell,
-  Sparkles
+  Sparkles,
+  Target
 } from "lucide-react";
 import Link from "next/link";
 
@@ -114,6 +115,7 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
   const isSettingsActive = pathname.startsWith(`/${workspace.slug}/settings`);
   const isMediaActive = pathname.startsWith(`/${workspace.slug}/media`);
   const isFinanceActive = pathname.startsWith(`/${workspace.slug}/finance`);
+  const isLeadsActive = pathname.startsWith(`/${workspace.slug}/leads`);
 
 
   const closeSidebar = () => setIsMobileSidebarOpen(false);
@@ -258,6 +260,19 @@ export default function WorkspaceLayout({ children }: { children: ReactNode }) {
               >
                 <Image className={`h-4 w-4 shrink-0 transition-colors ${isMediaActive ? activeIconClass : inactiveIconClass}`} />
                 <span>Media Library</span>
+              </Link>
+
+              <Link 
+                href={`/${workspace.slug}/leads`} 
+                onClick={closeSidebar}
+                className={`flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-lg transition-all duration-200 group ${
+                  isLeadsActive 
+                    ? "bg-indigo-50/50 dark:bg-[#05ffc4]/5 text-indigo-650 dark:text-[#05ffc4] border border-indigo-200/50 dark:border-[#05ffc4]/15" 
+                    : "text-zinc-650 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-zinc-150/80 dark:hover:bg-[#12141a]/40"
+                }`}
+              >
+                <Target className={`h-4 w-4 shrink-0 transition-colors ${isLeadsActive ? activeIconClass : inactiveIconClass}`} />
+                <span>Leads & CRM</span>
               </Link>
             </div>
           </div>

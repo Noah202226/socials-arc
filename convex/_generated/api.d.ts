@@ -13,6 +13,7 @@ import type * as clients from "../clients.js";
 import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
 import type * as http from "../http.js";
+import type * as leads from "../leads.js";
 import type * as members from "../members.js";
 import type * as posts from "../posts.js";
 import type * as projects from "../projects.js";
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   comments: typeof comments;
   crons: typeof crons;
   http: typeof http;
+  leads: typeof leads;
   members: typeof members;
   posts: typeof posts;
   projects: typeof projects;
