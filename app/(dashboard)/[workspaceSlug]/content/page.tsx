@@ -31,7 +31,8 @@ import {
   Video as VideoIcon,
   FileText as DocIcon,
   Link as LinkIcon,
-  Unlink
+  Unlink,
+  Reply
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -131,6 +132,11 @@ export default function ContentWorkflowPage() {
   const [commentText, setCommentText] = useState("");
   const [loadingComment, setLoadingComment] = useState(false);
   const [commentFile, setCommentFile] = useState<File | null>(null);
+  const [replyingTo, setReplyingTo] = useState<{
+    id: any;
+    authorName: string;
+    body: string;
+  } | null>(null);
   const [loadingAction, setLoadingAction] = useState(false);
 
   // Calendar Navigation State
@@ -292,9 +298,13 @@ export default function ContentWorkflowPage() {
         postId: selectedPost._id,
         body: commentText.trim(),
         imageStorageId,
+        replyToId: replyingTo?.id,
+        replyToAuthorName: replyingTo?.authorName,
+        replyToBody: replyingTo?.body,
       });
       setCommentText("");
       setCommentFile(null);
+      setReplyingTo(null);
       toast.success("Comment posted successfully!");
     } catch (err: any) {
       console.error(err);
@@ -1183,35 +1193,81 @@ export default function ContentWorkflowPage() {
                       <Loader2 className="h-5 w-5 animate-spin text-indigo-500" />
                     </div>
                   ) : comments.length === 0 ? (
-                    <div className="text-center py-12 text-xs italic text-zinc-650 text-left">
+                    <div className="text-center py-12 text-xs italic text-zinc-500 text-left">
                       No comments posted. Teammate and client approval feedback will appear here.
                     </div>
                   ) : (
                     comments.map((c) => {
+                      const isMe = currentUser?.id ? c.authorId === currentUser.id : false;
                       const isClient = c.authorId === "client";
+
                       return (
-                        <div key={c._id} className="flex flex-col gap-1 text-left">
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] font-bold ${isClient ? "text-amber-400" : "text-indigo-400"}`}>
-                              {c.authorName}
+                        <div
+                          key={c._id}
+                          className={`group flex flex-col gap-1 my-0.5 ${
+                            isMe ? "items-end text-right ml-auto" : "items-start text-left mr-auto"
+                          } max-w-[85%]`}
+                        >
+                          {/* Author Header & Action */}
+                          <div className={`flex items-center gap-1.5 px-1 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                            <span className={`text-[10px] font-semibold ${isMe ? "text-indigo-400 dark:text-indigo-300" : isClient ? "text-amber-400" : "text-zinc-400"}`}>
+                              {isMe ? "You" : c.authorName}
                             </span>
-                            {isClient && (
+                            {isClient && !isMe && (
                               <span className="px-1 py-0.25 rounded text-[8px] bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold uppercase">
                                 External
                               </span>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => setReplyingTo({ id: c._id, authorName: c.authorName, body: c.body })}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 text-zinc-500 hover:text-indigo-400 rounded"
+                              title="Reply to message"
+                            >
+                              <Reply className="h-3 w-3" />
+                            </button>
                           </div>
-                          <div className="p-2.5 rounded-lg border border-border bg-card max-w-[90%] flex flex-col gap-2">
+
+                          {/* Chat Bubble */}
+                          <div
+                            className={`p-3 rounded-2xl flex flex-col gap-2 shadow-sm text-xs transition-all ${
+                              isMe
+                                ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-tr-xs"
+                                : "bg-zinc-800/90 text-zinc-100 border border-zinc-700/60 rounded-tl-xs"
+                            }`}
+                          >
+                            {/* Quoted Reply Preview Block */}
+                            {(c.replyToAuthorName || c.replyToBody) && (
+                              <div className={`p-2 rounded-lg text-[11px] mb-0.5 border-l-2 flex flex-col gap-0.5 ${
+                                isMe
+                                  ? "bg-black/25 border-white/60 text-indigo-100"
+                                  : "bg-zinc-900/80 border-indigo-500 text-zinc-300"
+                              }`}>
+                                <div className="flex items-center gap-1 font-bold text-[10px] opacity-90">
+                                  <Reply className="h-2.5 w-2.5 shrink-0" />
+                                  <span>{c.replyToAuthorName || "Replied message"}</span>
+                                </div>
+                                {c.replyToBody && (
+                                  <p className="line-clamp-2 italic opacity-85 text-[10px]">
+                                    "{c.replyToBody}"
+                                  </p>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Message Body */}
                             {c.body && (
-                              <p className="text-xs text-zinc-800 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
+                              <p className="leading-relaxed whitespace-pre-wrap break-words">
                                 {c.body}
                               </p>
                             )}
+
+                            {/* Attachment Image */}
                             {c.imageUrl && (
-                              <div className="relative max-w-full rounded-md overflow-hidden border border-border bg-black/40">
-                                <img 
-                                  src={c.imageUrl} 
-                                  alt="Comment attachment" 
+                              <div className="relative max-w-full rounded-lg overflow-hidden border border-white/10 bg-black/40 mt-1">
+                                <img
+                                  src={c.imageUrl}
+                                  alt="Comment attachment"
                                   className="max-h-48 object-contain rounded w-auto max-w-full block"
                                 />
                               </div>
@@ -1222,6 +1278,26 @@ export default function ContentWorkflowPage() {
                     })
                   )}
                 </div>
+
+                {/* Replying Preview Banner */}
+                {replyingTo && (
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-indigo-500/30 bg-indigo-950/30 text-xs mt-1">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Reply className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                      <div className="flex flex-col min-w-0 text-left">
+                        <span className="text-[10px] font-bold text-indigo-400">Replying to {replyingTo.authorName}</span>
+                        <span className="text-[11px] text-zinc-300 truncate">{replyingTo.body}</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setReplyingTo(null)}
+                      className="text-zinc-400 hover:text-zinc-100 p-0.5"
+                    >
+                      <CloseIcon className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
 
                 {/* Comment File Preview */}
                 {commentFile && (

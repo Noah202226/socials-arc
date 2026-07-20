@@ -146,6 +146,9 @@ export default defineSchema({
     authorName: v.string(), // denormalized for display, esp. client-facing links
     body: v.string(),
     imageStorageId: v.optional(v.id("_storage")),
+    replyToId: v.optional(v.id("comments")),
+    replyToAuthorName: v.optional(v.string()),
+    replyToBody: v.optional(v.string()),
   })
     .index("by_post", ["postId"])
     .index("by_task", ["taskId"]),

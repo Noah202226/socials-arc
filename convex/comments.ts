@@ -13,6 +13,9 @@ export const create = mutation({
     body: v.string(),
     authorName: v.optional(v.string()),
     imageStorageId: v.optional(v.id("_storage")),
+    replyToId: v.optional(v.id("comments")),
+    replyToAuthorName: v.optional(v.string()),
+    replyToBody: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     if (!args.postId && !args.taskId) {
@@ -70,6 +73,17 @@ export const create = mutation({
       }
     }
 
+    let replyToAuthorName = args.replyToAuthorName;
+    let replyToBody = args.replyToBody;
+
+    if (args.replyToId && (!replyToAuthorName || !replyToBody)) {
+      const parentComment = await ctx.db.get(args.replyToId);
+      if (parentComment) {
+        replyToAuthorName = replyToAuthorName || parentComment.authorName;
+        replyToBody = replyToBody || parentComment.body;
+      }
+    }
+
     const commentId = await ctx.db.insert("comments", {
       postId: args.postId,
       taskId: args.taskId,
@@ -77,6 +91,9 @@ export const create = mutation({
       authorName,
       body: args.body.trim(),
       imageStorageId: args.imageStorageId,
+      replyToId: args.replyToId,
+      replyToAuthorName,
+      replyToBody,
     });
 
     return await ctx.db.get(commentId);
