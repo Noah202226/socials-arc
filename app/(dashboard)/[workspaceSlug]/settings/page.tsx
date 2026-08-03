@@ -87,6 +87,46 @@ export default function SettingsPage() {
     }
   };
 
+  // Stripe Billing Handlers & State
+  const [redirectingStripe, setRedirectingStripe] = useState<string | null>(null);
+
+  const handleOpenPortal = async () => {
+    if (!workspace) return;
+    setRedirectingStripe("portal");
+    try {
+      const res = await portal({
+        workspaceId: workspace._id,
+        host: window.location.origin,
+      });
+      if (res?.url) {
+        window.location.href = res.url;
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to open billing portal");
+      setRedirectingStripe(null);
+    }
+  };
+
+  const handleSubscribe = async (plan: "pro" | "agency") => {
+    if (!workspace) return;
+    setRedirectingStripe(plan);
+    try {
+      const res = await pay({
+        workspaceId: workspace._id,
+        plan,
+        host: window.location.origin,
+      });
+      if (res?.url) {
+        window.location.href = res.url;
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to start checkout session");
+      setRedirectingStripe(null);
+    }
+  };
+
   // States
   const [activeTab, setActiveTab] = useState<"kanban" | "currency" | "billing">("kanban");
   const [currencyCode, setCurrencyCode] = useState<string>("PHP");
