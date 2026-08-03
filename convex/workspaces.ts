@@ -221,6 +221,8 @@ export const updateSettings = mutation({
   args: {
     workspaceId: v.id("workspaces"),
     settings: v.object({
+      currency: v.optional(v.string()),
+      currencySymbol: v.optional(v.string()),
       taskColumns: v.optional(
         v.array(
           v.object({

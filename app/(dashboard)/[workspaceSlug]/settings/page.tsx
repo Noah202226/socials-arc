@@ -22,9 +22,12 @@ import {
   Sparkles,
   CheckCircle2,
   ShieldAlert,
-  GripVertical
+  GripVertical,
+  Coins,
+  Globe
 } from "lucide-react";
 import { toast } from "sonner";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 // Default column configurations
 const defaultTaskColumns = [
@@ -85,68 +88,8 @@ export default function SettingsPage() {
   };
 
   // States
-  const [activeTab, setActiveTab] = useState<"kanban" | "billing">("kanban");
-  const [redirectingStripe, setRedirectingStripe] = useState<string | null>(null);
-
-  // Parse billing redirection URL parameters
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const status = urlParams.get("billing_status");
-    if (status === "success") {
-      toast.success("Plan updated successfully!");
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setActiveTab("billing");
-    } else if (status === "cancelled") {
-      toast.info("Stripe checkout cancelled.");
-      window.history.replaceState({}, document.title, window.location.pathname);
-      setActiveTab("billing");
-    }
-  }, []);
-
-  const handleSubscribe = async (tier: "pro" | "agency") => {
-    if (!workspace) return;
-    setRedirectingStripe(tier);
-    try {
-      const res = await pay({
-        workspaceId: workspace._id,
-        plan: tier,
-        host: window.location.origin,
-      });
-      if (res && res.url) {
-        window.location.href = res.url;
-      } else {
-        throw new Error("Stripe checkout URL missing");
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to start checkout");
-    } finally {
-      setRedirectingStripe(null);
-    }
-  };
-
-  const handleOpenPortal = async () => {
-    if (!workspace) return;
-    setRedirectingStripe("portal");
-    try {
-      const res = await portal({
-        workspaceId: workspace._id,
-        host: window.location.origin,
-      });
-      if (res && res.url) {
-        window.location.href = res.url;
-      } else {
-        throw new Error("Stripe customer portal URL missing");
-      }
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err.message || "Failed to open billing portal");
-    } finally {
-      setRedirectingStripe(null);
-    }
-  };
-
-  // States
+  const [activeTab, setActiveTab] = useState<"kanban" | "currency" | "billing">("kanban");
+  const [currencyCode, setCurrencyCode] = useState<string>("PHP");
   const [taskCols, setTaskCols] = useState(defaultTaskColumns);
   const [postCols, setPostCols] = useState(defaultPostColumns);
   const [loading, setLoading] = useState(false);
@@ -197,6 +140,9 @@ export default function SettingsPage() {
   // Populate local states when workspace settings load
   useEffect(() => {
     if (workspace?.settings) {
+      if (workspace.settings.currency) {
+        setCurrencyCode(workspace.settings.currency);
+      }
       if (workspace.settings.taskColumns) {
         setTaskCols(workspace.settings.taskColumns);
       }
@@ -274,16 +220,21 @@ export default function SettingsPage() {
     setLoading(true);
     setSuccessMsg("");
     setErrorMsg("");
+
+    const matchedCurrency = SUPPORTED_CURRENCIES.find(c => c.code === currencyCode) || SUPPORTED_CURRENCIES[0];
+
     try {
       await updateSettings({
         workspaceId: workspace._id,
         settings: {
+          currency: matchedCurrency.code,
+          currencySymbol: matchedCurrency.symbol,
           taskColumns: taskCols,
           postColumns: postCols,
         },
       });
-      setSuccessMsg("Kanban process configurations successfully saved!");
-      toast.success("Kanban process configurations successfully saved!");
+      setSuccessMsg("Workspace settings & currency preferences successfully saved!");
+      toast.success("Workspace settings & currency preferences successfully saved!");
     } catch (err: any) {
       console.error(err);
       setErrorMsg(err.message || "Failed to update settings.");
@@ -335,15 +286,17 @@ export default function SettingsPage() {
           </p>
         </div>
         
-        {activeTab === "kanban" && (
+        {(activeTab === "kanban" || activeTab === "currency") && (
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              onClick={handleResetDefaults}
-              className="text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-250 text-xs border border-border"
-            >
-              <Undo2 className="h-4 w-4 mr-1.5" /> Defaults
-            </Button>
+            {activeTab === "kanban" && (
+              <Button 
+                variant="ghost" 
+                onClick={handleResetDefaults}
+                className="text-zinc-650 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-250 text-xs border border-border"
+              >
+                <Undo2 className="h-4 w-4 mr-1.5" /> Defaults
+              </Button>
+            )}
             <Button 
               onClick={handleSave} 
               disabled={loading}
@@ -367,6 +320,16 @@ export default function SettingsPage() {
           }`}
         >
           <Columns className="h-3.5 w-3.5" /> Kanban Process Columns
+        </button>
+        <button
+          onClick={() => setActiveTab("currency")}
+          className={`px-4 py-2 text-xs font-semibold rounded-md flex items-center gap-1.5 transition-colors ${
+            activeTab === "currency"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-zinc-550 dark:text-zinc-400 hover:text-foreground"
+          }`}
+        >
+          <Coins className="h-3.5 w-3.5" /> Currency & Regional
         </button>
         <button
           onClick={() => setActiveTab("billing")}
@@ -684,6 +647,68 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+      ) : activeTab === "currency" ? (
+        <div className="flex flex-col gap-6 w-full text-left">
+          <div className="p-6 rounded-2xl border border-border bg-card flex flex-col gap-6 shadow-sm">
+            <div className="flex items-center gap-3 border-b border-border pb-4">
+              <div className="h-10 w-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <Coins className="h-5 w-5" />
+              </div>
+              <div className="flex flex-col">
+                <h3 className="text-base font-bold text-foreground">Workspace Currency & Financial Locale</h3>
+                <p className="text-xs text-muted-foreground">
+                  Select your primary agency currency. All lead deals, financial ledgers, and inventory asset valuations will be formatted with your chosen currency symbol.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Primary Workspace Currency</label>
+                <select
+                  value={currencyCode}
+                  onChange={(e) => setCurrencyCode(e.target.value)}
+                  className="px-3.5 py-2.5 rounded-xl bg-muted border border-border text-foreground text-sm font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  {SUPPORTED_CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.symbol} — {c.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-[11px] text-muted-foreground mt-1">
+                  Default currency for {workspace.name}. Changing this updates formatters across your dashboard and client ledgers.
+                </span>
+              </div>
+
+              {/* Currency Preview Card */}
+              <div className="p-5 rounded-xl bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border border-indigo-500/20 flex flex-col justify-between gap-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold text-indigo-400 font-mono tracking-wider">Currency Preview</span>
+                  <Globe className="h-4 w-4 text-indigo-400" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-2xl font-extrabold text-foreground font-mono">
+                    {SUPPORTED_CURRENCIES.find(c => c.code === currencyCode)?.symbol || "₱"}150,000.00
+                  </span>
+                  <span className="text-xs text-muted-foreground font-mono">
+                    Active Code: {currencyCode}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-indigo-500/10 flex justify-end">
+                  <Button
+                    onClick={handleSave}
+                    disabled={loading}
+                    className="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    {loading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1.5" />}
+                    Save Currency Preference
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="flex flex-col gap-6 w-full">
           

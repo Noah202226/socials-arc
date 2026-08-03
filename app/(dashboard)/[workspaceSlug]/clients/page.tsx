@@ -26,8 +26,11 @@ import {
   Sparkles,
   Link2,
   Trash2,
-  AlertTriangle
+  AlertTriangle,
+  Package
 } from "lucide-react";
+import ClientAssetModal from "@/components/clients/ClientAssetModal";
+import { formatCurrencyCents } from "@/lib/currency";
 
 // Platform helper config
 const platforms = [
@@ -57,6 +60,13 @@ export default function ClientsPage() {
     api.socialPages.listByWorkspace,
     workspace ? { workspaceId: workspace._id } : "skip"
   );
+  const netSummary = useQuery(
+    api.clientAssets.getClientNetSummary,
+    workspace ? { workspaceId: workspace._id } : "skip"
+  );
+
+  // Currency Code from Workspace Settings
+  const currencyCode = workspace?.settings?.currency || "PHP";
 
   // Mutations
   const createClient = useMutation(api.clients.create);
@@ -70,6 +80,11 @@ export default function ClientsPage() {
   const createSocialPage = useMutation(api.socialPages.create);
   const togglePageActive = useMutation(api.socialPages.toggleActive);
   const deleteSocialPage = useMutation(api.socialPages.remove);
+
+  // Asset Inventory Modal state
+  const [assetModalOpen, setAssetModalOpen] = useState(false);
+  const [assetModalClientId, setAssetModalClientId] = useState<any>(null);
+  const [assetModalClientName, setAssetModalClientName] = useState("");
 
   // Component local states (Modals)
   const [activeModal, setActiveModal] = useState<null | "client" | "project" | "page" | "delete_client" | "delete_project" | "delete_page">(null);
@@ -328,38 +343,65 @@ export default function ClientsPage() {
                       </div>
 
                       {/* Stats */}
-                      <div className="grid grid-cols-2 gap-2 border-t border-border pt-3 text-xs text-zinc-650 dark:text-zinc-450 font-semibold font-mono">
-                        <div className="flex flex-col">
-                          <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Campaigns</span>
-                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{clientProjects.length} Active</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Social Channels</span>
-                          <span className="font-bold text-zinc-800 dark:text-zinc-200">{clientPages.length} Connected</span>
-                        </div>
-                      </div>
+                      {(() => {
+                        const clientSummary = netSummary?.summariesByClient?.[client._id];
+                        const assetValuation = clientSummary?.assetValuation || 0;
+                        const netWorth = clientSummary?.totalClientNetWorth || 0;
+
+                        return (
+                          <div className="grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs text-zinc-650 dark:text-zinc-450 font-semibold font-mono">
+                            <div className="flex flex-col">
+                              <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Campaigns</span>
+                              <span className="font-bold text-zinc-800 dark:text-zinc-200">{clientProjects.length} Active</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Inventory Value</span>
+                              <span className="font-bold text-indigo-400">{formatCurrencyCents(assetValuation, currencyCode)}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Total Net Value</span>
+                              <span className={`font-bold ${netWorth >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                                {formatCurrencyCents(netWorth, currencyCode)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Quick Action buttons */}
-                      <div className="flex gap-2 border-t border-border pt-3 mt-auto">
+                      <div className="flex gap-1.5 border-t border-border pt-3 mt-auto flex-wrap">
                         <Button 
                           size="sm" 
                           onClick={() => {
                             setSelectedClientId(client._id);
                             setActiveModal("project");
                           }}
-                          className="text-[10px] h-7 px-2.5 bg-muted hover:bg-muted/80 border border-border text-zinc-600 dark:text-zinc-350 hover:text-foreground font-bold rounded-lg"
+                          className="text-[10px] h-7 px-2 bg-muted hover:bg-muted/80 border border-border text-zinc-600 dark:text-zinc-350 hover:text-foreground font-bold rounded-lg"
                         >
                           <Plus className="h-3 w-3 mr-1" /> Project
                         </Button>
+
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            setAssetModalClientId(client._id);
+                            setAssetModalClientName(client.name);
+                            setAssetModalOpen(true);
+                          }}
+                          className="text-[10px] h-7 px-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg"
+                        >
+                          <Package className="h-3 w-3 mr-1" /> Inventory
+                        </Button>
+
                         <Button 
                           size="sm" 
                           onClick={() => {
                             setSelectedClientId(client._id);
                             setActiveModal("page");
                           }}
-                          className="text-[10px] h-7 px-2.5 bg-muted hover:bg-muted/80 border border-border text-zinc-600 dark:text-zinc-350 hover:text-foreground font-bold rounded-lg ml-auto"
+                          className="text-[10px] h-7 px-2 bg-muted hover:bg-muted/80 border border-border text-zinc-600 dark:text-zinc-350 hover:text-foreground font-bold rounded-lg ml-auto"
                         >
-                          <Link2 className="h-3 w-3 mr-1" /> Link Channel
+                          <Link2 className="h-3 w-3 mr-1" /> Channel
                         </Button>
                       </div>
                     </div>
@@ -853,6 +895,18 @@ export default function ClientsPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* 7. Client Inventory Asset Valuation Modal */}
+      {assetModalClientId && (
+        <ClientAssetModal
+          isOpen={assetModalOpen}
+          onClose={() => setAssetModalOpen(false)}
+          workspaceId={workspace._id}
+          clientId={assetModalClientId}
+          clientName={assetModalClientName}
+          currencyCode={currencyCode}
+        />
       )}
 
     </div>

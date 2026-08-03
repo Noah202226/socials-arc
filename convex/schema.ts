@@ -14,6 +14,8 @@ export default defineSchema({
     stripeSubscriptionId: v.optional(v.string()),
     settings: v.optional(
       v.object({
+        currency: v.optional(v.string()), // e.g. "PHP", "USD"
+        currencySymbol: v.optional(v.string()), // e.g. "₱", "$"
         taskColumns: v.optional(
           v.array(
             v.object({
@@ -265,4 +267,30 @@ export default defineSchema({
     previousStatus: v.optional(v.string()),
     newStatus: v.optional(v.string()),
   }).index("by_lead", ["leadId"]),
+
+  // ---------------------------------------------------------------------
+  // Client Inventory & Physical/Digital Assets
+  // ---------------------------------------------------------------------
+  clientAssets: defineTable({
+    workspaceId: v.id("workspaces"),
+    clientId: v.id("clients"),
+    name: v.string(),
+    category: v.union(
+      v.literal("hardware"),
+      v.literal("digital_asset"),
+      v.literal("inventory_stock"),
+      v.literal("license_domain"),
+      v.literal("other"),
+    ),
+    quantity: v.number(),
+    unitValue: v.number(), // integer cents
+    totalValue: v.number(), // integer cents (quantity * unitValue)
+    currency: v.optional(v.string()), // e.g. "PHP"
+    acquisitionDate: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    createdBy: v.string(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_client", ["clientId"])
+    .index("by_client_and_category", ["clientId", "category"]),
 });

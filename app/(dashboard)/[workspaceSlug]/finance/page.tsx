@@ -31,10 +31,12 @@ import {
   Video as VideoIcon,
   FileText as DocIcon,
   Edit2,
-  AlertTriangle
+  AlertTriangle,
+  Package
 } from "lucide-react";
 import { toast } from "sonner";
 import { deduplicateIncomingFiles } from "@/lib/file-utils";
+import { formatCurrencyCents } from "@/lib/currency";
 
 export default function FinancePage() {
   const params = useParams();
@@ -42,6 +44,8 @@ export default function FinancePage() {
 
   // Convex Queries
   const workspace = useQuery(api.workspaces.getBySlug, { slug });
+
+  const currencyCode = workspace?.settings?.currency || "PHP";
   
   const transactions = useQuery(
     api.transactions.listByWorkspace,
@@ -65,6 +69,11 @@ export default function FinancePage() {
 
   const projects = useQuery(
     api.projects.listByWorkspace,
+    workspace ? { workspaceId: workspace._id } : "skip"
+  );
+
+  const netSummary = useQuery(
+    api.clientAssets.getClientNetSummary,
     workspace ? { workspaceId: workspace._id } : "skip"
   );
 
@@ -458,8 +467,43 @@ export default function FinancePage() {
           })}
         </div>
       ) : (
-        <div className="p-6 rounded-xl border border-border bg-card text-center text-xs text-zinc-550 italic">
+        <div className="p-6 rounded-xl border border-border bg-card text-center text-xs text-zinc-555 italic">
           No transaction entries logged yet. Setup your first ledger line below.
+        </div>
+      )}
+
+      {/* Inventory & Total Net Valuation Summary Card */}
+      {netSummary?.workspaceTotals && (
+        <div className="p-5 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+              <Package className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 font-mono">
+                Agency Net Valuation & Inventory Rollup
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Combined operating financial P&L + recorded hardware, master digital files, and stock inventory value.
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6 font-mono shrink-0">
+            <div className="flex flex-col text-right">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">Inventory Valuation</span>
+              <span className="text-sm font-bold text-indigo-400">
+                {formatCurrencyCents(netSummary.workspaceTotals.assetValuation, currencyCode)}
+              </span>
+            </div>
+            <div className="h-8 w-px bg-border hidden md:block" />
+            <div className="flex flex-col text-right">
+              <span className="text-[10px] uppercase font-bold text-muted-foreground">Total Client Net Worth</span>
+              <span className={`text-base font-extrabold ${netSummary.workspaceTotals.totalClientNetWorth >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                {formatCurrencyCents(netSummary.workspaceTotals.totalClientNetWorth, currencyCode)}
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
