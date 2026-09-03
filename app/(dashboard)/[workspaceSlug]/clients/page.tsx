@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -13,7 +13,6 @@ import {
   Users, 
   FolderKanban, 
   Layers, 
-  PlusCircle, 
   ToggleLeft, 
   ToggleRight, 
   Globe, 
@@ -22,23 +21,31 @@ import {
   Linkedin,
   X as CloseIcon,
   Check,
+  CheckCircle2,
+  Circle,
+  Clock,
+  ExternalLink,
   ChevronRight,
   Sparkles,
   Link2,
   Trash2,
   AlertTriangle,
-  Package
+  Package,
+  Search,
+  CheckSquare,
+  ArrowRight,
+  Building2
 } from "lucide-react";
 import ClientAssetModal from "@/components/clients/ClientAssetModal";
 import { formatCurrencyCents } from "@/lib/currency";
 
 // Platform helper config
 const platforms = [
-  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/20 border-pink-200 dark:border-pink-900/30" },
-  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900/30" },
-  { value: "tiktok", label: "TikTok", icon: Globe, color: "text-teal-600 dark:text-[#05ffc4] pink:text-rose-500 bg-teal-50 dark:bg-[#05ffc4]/10 pink:bg-rose-50 border-teal-200 dark:border-[#05ffc4]/20 pink:border-rose-250" },
-  { value: "x", label: "X (Twitter)", icon: Globe, color: "text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-900/40 border-zinc-200 dark:border-zinc-800" },
-  { value: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-900/30" },
+  { value: "instagram", label: "Instagram", icon: Instagram, color: "text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/25 border-pink-200 dark:border-pink-900/30" },
+  { value: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/25 border-blue-200 dark:border-blue-900/30" },
+  { value: "tiktok", label: "TikTok", icon: Globe, color: "text-teal-600 dark:text-[#05ffc4] bg-teal-50 dark:bg-[#05ffc4]/10 border-teal-200 dark:border-[#05ffc4]/20" },
+  { value: "x", label: "X (Twitter)", icon: Globe, color: "text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-900/50 border-zinc-200 dark:border-zinc-800" },
+  { value: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-indigo-650 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/25 border-indigo-200 dark:border-indigo-900/30" },
 ];
 
 export default function ClientsPage() {
@@ -58,6 +65,10 @@ export default function ClientsPage() {
   );
   const socialPages = useQuery(
     api.socialPages.listByWorkspace,
+    workspace ? { workspaceId: workspace._id } : "skip"
+  );
+  const tasks = useQuery(
+    api.tasks.listByWorkspace,
     workspace ? { workspaceId: workspace._id } : "skip"
   );
   const netSummary = useQuery(
@@ -81,10 +92,16 @@ export default function ClientsPage() {
   const togglePageActive = useMutation(api.socialPages.toggleActive);
   const deleteSocialPage = useMutation(api.socialPages.remove);
 
+  const updateTaskStatus = useMutation(api.tasks.updateStatus);
+
   // Asset Inventory Modal state
   const [assetModalOpen, setAssetModalOpen] = useState(false);
   const [assetModalClientId, setAssetModalClientId] = useState<any>(null);
   const [assetModalClientName, setAssetModalClientName] = useState("");
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused">("all");
 
   // Component local states (Modals)
   const [activeModal, setActiveModal] = useState<null | "client" | "project" | "page" | "delete_client" | "delete_project" | "delete_page">(null);
@@ -108,21 +125,10 @@ export default function ClientsPage() {
 
   const [loadingAction, setLoadingAction] = useState(false);
 
-  if (workspace === undefined || clients === undefined || projects === undefined || socialPages === undefined) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
-        <Loader2 className="h-8 w-8 animate-spin text-[#05ffc4] mb-4" />
-        <p className="text-sm font-medium">Fetching clients, campaigns, and page profiles...</p>
-      </div>
-    );
-  }
-
-  if (!workspace) return null;
-
   // Handlers
   const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clientName.trim()) return;
+    if (!clientName.trim() || !workspace) return;
     setLoadingAction(true);
     try {
       await createClient({
@@ -243,19 +249,96 @@ export default function ClientsPage() {
     }
   };
 
+  const handleToggleTask = async (taskId: any, currentStatus: string) => {
+    const nextStatus = currentStatus === "done" ? "todo" : "done";
+    try {
+      await updateTaskStatus({ taskId, status: nextStatus });
+      toast.success(nextStatus === "done" ? "Task marked complete!" : "Task reopened.");
+    } catch (err: any) {
+      toast.error("Failed to update task.");
+    }
+  };
+
+  // Filtered clients list
+  const filteredClients = useMemo(() => {
+    if (!clients) return [];
+    return clients.filter((client) => {
+      // Status filter
+      if (statusFilter === "active" && !client.isActive) return false;
+      if (statusFilter === "paused" && client.isActive) return false;
+
+      // Query filter
+      if (!searchQuery.trim()) return true;
+      const query = searchQuery.toLowerCase();
+      
+      const matchesClientName = client.name.toLowerCase().includes(query);
+      
+      // Match client's projects
+      const clientProjectMatches = projects?.some(
+        p => p.clientId === client._id && p.name.toLowerCase().includes(query)
+      );
+
+      // Match client's social pages
+      const clientPageMatches = socialPages?.some(
+        p => p.clientId === client._id && p.handle.toLowerCase().includes(query)
+      );
+
+      return matchesClientName || clientProjectMatches || clientPageMatches;
+    });
+  }, [clients, projects, socialPages, searchQuery, statusFilter]);
+
+  // Overall KPI statistics
+  const kpiStats = useMemo(() => {
+    const totalClientsCount = clients?.length || 0;
+    const activeClientsCount = clients?.filter(c => c.isActive).length || 0;
+    const totalChannelsCount = socialPages?.length || 0;
+    const totalProjectsCount = projects?.length || 0;
+    const totalOpenTasksCount = tasks?.filter(t => t.status !== "done").length || 0;
+    
+    // Total Inventory Valuation across all clients
+    let totalValuation = 0;
+    if (netSummary?.summariesByClient) {
+      Object.values(netSummary.summariesByClient).forEach((s: any) => {
+        totalValuation += s.assetValuation || 0;
+      });
+    }
+
+    return {
+      totalClientsCount,
+      activeClientsCount,
+      totalChannelsCount,
+      totalProjectsCount,
+      totalOpenTasksCount,
+      totalValuation,
+    };
+  }, [clients, socialPages, projects, tasks, netSummary]);
+
+  if (workspace === undefined || clients === undefined || projects === undefined || socialPages === undefined || tasks === undefined) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+        <Loader2 className="h-8 w-8 animate-spin text-[#05ffc4] mb-4" />
+        <p className="text-sm font-medium">Fetching clients, campaigns, and page profiles...</p>
+      </div>
+    );
+  }
+
+  if (!workspace) return null;
+
   return (
     <div className="flex flex-col gap-6 md:gap-8 w-full text-left">
       
       {/* Header Panel */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-6">
         <div className="flex flex-col gap-1">
-          <h2 className="text-xl md:text-2xl font-extrabold text-foreground tracking-tight">Clients & Connections</h2>
-          <p className="text-xs text-zinc-500">
-            Define client entities, configure campaigns, and link social pages for workflow & cashflow tracking.
+          <h2 className="text-xl md:text-2xl font-extrabold text-foreground tracking-tight flex items-center gap-2.5">
+            <Users className="h-6 w-6 text-[#05ffc4]" /> Clients & Connections
+          </h2>
+          <p className="text-xs text-zinc-500 max-w-2xl">
+            Unified command hub for all client accounts. Monitor campaigns, pending tasks, connected social channels, and inventory valuations in one glance.
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Button 
             onClick={() => setActiveModal("client")} 
             className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] hover:opacity-90 text-[#0b0c0e] font-extrabold text-xs shadow-lg shadow-[#05ffc4]/15 border border-[#05ffc4]/20 rounded-lg px-4 py-2"
@@ -265,304 +348,561 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Overview Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Clients list (2 cols) */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <div className="flex justify-between items-center">
-            <h3 className="text-xs font-bold uppercase text-zinc-550 tracking-wider flex items-center gap-2">
-              <Users className="h-4 w-4 text-[#05ffc4]" /> Active Clients ({clients.length})
-            </h3>
+      {/* Top Agency KPI Executive Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+        <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-[10px] uppercase font-bold tracking-wider">Total Clients</span>
+            <Building2 className="h-3.5 w-3.5 text-[#05ffc4]" />
           </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black text-foreground">{kpiStats.totalClientsCount}</span>
+            <span className="text-[10px] text-zinc-500 font-semibold">({kpiStats.activeClientsCount} active)</span>
+          </div>
+        </div>
 
-          {clients.length === 0 ? (
-            <div className="p-12 rounded-2xl border border-border border-dashed bg-card/30 text-center flex flex-col items-center gap-4">
-              <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center text-zinc-550 border border-border">
-                <Users className="h-5 w-5" />
-              </div>
-              <div className="flex flex-col gap-1 text-center items-center">
-                <h4 className="text-sm font-bold text-foreground">No clients found</h4>
-                <p className="text-xs text-zinc-500 max-w-xs leading-relaxed">
-                  Create your first client to start organizing campaigns and publishing schedules.
-                </p>
-              </div>
-              <Button onClick={() => setActiveModal("client")} className="bg-muted border border-border text-zinc-600 dark:text-zinc-350 hover:bg-muted/80 text-xs font-bold px-4">
-                Create Client Profile
-              </Button>
-            </div>
+        <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-[10px] uppercase font-bold tracking-wider">Linked Channels</span>
+            <Layers className="h-3.5 w-3.5 text-blue-400" />
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black text-foreground">{kpiStats.totalChannelsCount}</span>
+            <span className="text-[10px] text-zinc-500 font-semibold">handles connected</span>
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-[10px] uppercase font-bold tracking-wider">Campaigns</span>
+            <FolderKanban className="h-3.5 w-3.5 text-purple-400" />
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black text-foreground">{kpiStats.totalProjectsCount}</span>
+            <span className="text-[10px] text-zinc-500 font-semibold">projects running</span>
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-[10px] uppercase font-bold tracking-wider">Open Tasks</span>
+            <CheckSquare className="h-3.5 w-3.5 text-amber-400" />
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black text-amber-400">{kpiStats.totalOpenTasksCount}</span>
+            <span className="text-[10px] text-zinc-500 font-semibold">need attention</span>
+          </div>
+        </div>
+
+        <div className="col-span-2 md:col-span-4 lg:col-span-1 p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-[10px] uppercase font-bold tracking-wider">Total Inventory</span>
+            <Package className="h-3.5 w-3.5 text-indigo-400" />
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black text-indigo-400">
+              {formatCurrencyCents(kpiStats.totalValuation, currencyCode)}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-card/40 p-2.5 rounded-xl border border-border">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+          <input 
+            type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by client, campaign, or @handle..."
+            className="w-full pl-9 pr-8 py-1.5 text-xs bg-muted/40 border border-border rounded-lg text-foreground placeholder:text-zinc-500 focus:outline-none focus:border-[#05ffc4] transition-colors"
+          />
+          {searchQuery && (
+            <button 
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-foreground"
+            >
+              <CloseIcon className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Status:</span>
+          <div className="inline-flex rounded-lg border border-border bg-muted/30 p-0.5">
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${
+                statusFilter === "all" ? "bg-background text-[#05ffc4] shadow-xs" : "text-zinc-500 hover:text-foreground"
+              }`}
+            >
+              All ({clients.length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("active")}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${
+                statusFilter === "active" ? "bg-background text-emerald-400 shadow-xs" : "text-zinc-500 hover:text-foreground"
+              }`}
+            >
+              Active
+            </button>
+            <button
+              onClick={() => setStatusFilter("paused")}
+              className={`px-2.5 py-1 text-[10px] font-bold rounded-md transition-all ${
+                statusFilter === "paused" ? "bg-background text-zinc-300 shadow-xs" : "text-zinc-500 hover:text-foreground"
+              }`}
+            >
+              Paused
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Client Hub Grid */}
+      {filteredClients.length === 0 ? (
+        <div className="p-16 rounded-2xl border border-border border-dashed bg-card/30 text-center flex flex-col items-center gap-4">
+          <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center text-zinc-500 border border-border">
+            <Users className="h-6 w-6 text-zinc-400" />
+          </div>
+          <div className="flex flex-col gap-1 text-center items-center">
+            <h4 className="text-sm font-bold text-foreground">
+              {searchQuery ? "No matching clients found" : "No clients configured yet"}
+            </h4>
+            <p className="text-xs text-zinc-500 max-w-sm leading-relaxed">
+              {searchQuery 
+                ? "Try adjusting your search criteria or clear the query filter." 
+                : "Create your first client profile to start linking social media accounts, organizing campaigns, and tracking inventory."}
+            </p>
+          </div>
+          {searchQuery ? (
+            <Button onClick={() => setSearchQuery("")} className="bg-muted border border-border text-xs font-bold px-4">
+              Clear Search Query
+            </Button>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              {clients.map((client) => {
-                const clientProjects = projects.filter(p => p.clientId === client._id);
-                const clientPages = socialPages.filter(p => p.clientId === client._id);
+            <Button 
+              onClick={() => setActiveModal("client")} 
+              className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4"
+            >
+              <Plus className="h-4 w-4 mr-1.5" /> Create Client Profile
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          {filteredClients.map((client) => {
+            const clientProjects = projects.filter(p => p.clientId === client._id);
+            const clientPages = socialPages.filter(p => p.clientId === client._id);
+            
+            // Client tasks: all tasks belonging to this client's projects
+            const clientTasks = tasks.filter(t => clientProjects.some(p => p._id === t.projectId));
+            const openTasks = clientTasks.filter(t => t.status !== "done");
 
-                return (
-                  /* Premium 3D glowing glass card wrapper */
-                  <div key={client._id} className="relative group">
-                    <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4] to-[#00d9f5] rounded-xl blur-xs opacity-0 group-hover:opacity-15 transition duration-500" />
-                    
-                    <div className="relative p-5 rounded-xl border border-border bg-card/80 backdrop-blur-sm hover:border-[#05ffc4]/30 hover:[transform:perspective(800px)_rotateX(2deg)_rotateY(-2deg)] hover:shadow-xl hover:shadow-[#05ffc4]/5 transition-all duration-300 ease-out flex flex-col gap-4 min-h-[170px] text-left">
-                      {/* Header */}
-                      <div className="flex justify-between items-start">
-                        <div className="flex flex-col">
-                          <h4 className="font-extrabold text-sm text-foreground group-hover:text-[#05ffc4] transition-colors">
-                            {client.name}
-                          </h4>
-                          <span className="text-[9px] text-zinc-550 uppercase font-bold tracking-wider">
-                            Client Profile
-                          </span>
+            const clientSummary = netSummary?.summariesByClient?.[client._id];
+            const assetValuation = clientSummary?.assetValuation || 0;
+            const netWorth = clientSummary?.totalClientNetWorth || 0;
+
+            // Generate initials for avatar fallback
+            const initials = client.name
+              .split(" ")
+              .map(word => word[0])
+              .filter(Boolean)
+              .slice(0, 2)
+              .join("")
+              .toUpperCase();
+
+            return (
+              <div key={client._id} className="relative group/card">
+                {/* 3D gradient ambient glow */}
+                <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4]/20 to-[#00d9f5]/20 rounded-2xl blur-xs opacity-0 group-hover/card:opacity-100 transition duration-500 pointer-events-none" />
+
+                <div className="relative rounded-2xl border border-border bg-card/90 backdrop-blur-md hover:border-[#05ffc4]/40 hover:shadow-xl hover:shadow-[#05ffc4]/5 transition-all duration-300 flex flex-col overflow-hidden">
+                  
+                  {/* Card Top Header */}
+                  <div className="p-5 border-b border-border/80 bg-muted/15 flex flex-col gap-3">
+                    <div className="flex items-start justify-between gap-3">
+                      
+                      {/* Avatar & Title */}
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#00f5a0]/15 to-[#00d9f5]/15 border border-[#05ffc4]/30 flex items-center justify-center font-black text-sm text-[#05ffc4] shadow-xs">
+                          {initials || "CL"}
                         </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => toggleClientActive({ clientId: client._id, isActive: !client.isActive })}
-                            className={`transition-colors ${client.isActive ? "text-[#05ffc4]" : "text-zinc-650 hover:text-zinc-400"}`}
-                            title={client.isActive ? "Pause Client" : "Activate Client"}
-                          >
-                            {client.isActive ? (
-                              <ToggleRight className="h-5 w-5" />
-                            ) : (
-                              <ToggleLeft className="h-5 w-5" />
-                            )}
-                          </button>
-
-                          {/* Client Delete Trigger Button */}
-                          <button
-                            onClick={() => {
-                              setDeleteTargetClientId(client._id);
-                              setDeleteTargetClientName(client.name);
-                              setActiveModal("delete_client");
-                            }}
-                            className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                            title="Delete Client"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <h3 className="text-base font-extrabold text-foreground group-hover/card:text-[#05ffc4] transition-colors">
+                              {client.name}
+                            </h3>
+                            <span className={`text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-sm border ${
+                              client.isActive 
+                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                                : "bg-zinc-500/10 text-zinc-400 border-zinc-500/20"
+                            }`}>
+                              {client.isActive ? "Active" : "Paused"}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-zinc-500 font-semibold tracking-wider uppercase">
+                            Client Account
+                          </span>
                         </div>
                       </div>
 
-                      {/* Stats */}
-                      {(() => {
-                        const clientSummary = netSummary?.summariesByClient?.[client._id];
-                        const assetValuation = clientSummary?.assetValuation || 0;
-                        const netWorth = clientSummary?.totalClientNetWorth || 0;
-
-                        return (
-                          <div className="grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs text-zinc-650 dark:text-zinc-450 font-semibold font-mono">
-                            <div className="flex flex-col">
-                              <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Campaigns</span>
-                              <span className="font-bold text-zinc-800 dark:text-zinc-200">{clientProjects.length} Active</span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Inventory Value</span>
-                              <span className="font-bold text-indigo-400">{formatCurrencyCents(assetValuation, currencyCode)}</span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase tracking-wider">Total Net Value</span>
-                              <span className={`font-bold ${netWorth >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                                {formatCurrencyCents(netWorth, currencyCode)}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Quick Action buttons */}
-                      <div className="flex gap-1.5 border-t border-border pt-3 mt-auto flex-wrap">
-                        <Button 
-                          size="sm" 
-                          onClick={() => {
-                            setSelectedClientId(client._id);
-                            setActiveModal("project");
-                          }}
-                          className="text-[10px] h-7 px-2 bg-muted hover:bg-muted/80 border border-border text-zinc-600 dark:text-zinc-350 hover:text-foreground font-bold rounded-lg"
+                      {/* Header Actions */}
+                      <div className="flex items-center gap-1.5">
+                        <button 
+                          onClick={() => toggleClientActive({ clientId: client._id, isActive: !client.isActive })}
+                          className={`p-1.5 rounded-lg transition-colors ${client.isActive ? "text-[#05ffc4] hover:bg-[#05ffc4]/10" : "text-zinc-600 hover:text-zinc-400 hover:bg-muted"}`}
+                          title={client.isActive ? "Pause Client" : "Activate Client"}
                         >
-                          <Plus className="h-3 w-3 mr-1" /> Project
-                        </Button>
+                          {client.isActive ? <ToggleRight className="h-5 w-5" /> : <ToggleLeft className="h-5 w-5" />}
+                        </button>
 
-                        <Button 
-                          size="sm" 
+                        <button
                           onClick={() => {
-                            setAssetModalClientId(client._id);
-                            setAssetModalClientName(client.name);
-                            setAssetModalOpen(true);
+                            setDeleteTargetClientId(client._id);
+                            setDeleteTargetClientName(client.name);
+                            setActiveModal("delete_client");
                           }}
-                          className="text-[10px] h-7 px-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg"
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                          title="Delete Client Profile"
                         >
-                          <Package className="h-3 w-3 mr-1" /> Inventory
-                        </Button>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
 
-                        <Button 
-                          size="sm" 
+                    {/* Financial Rollup & Task Counter Badges */}
+                    <div className="grid grid-cols-3 gap-2.5 pt-1 text-left">
+                      <div className="bg-card/70 border border-border/80 rounded-lg p-2 flex flex-col">
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Inventory Value</span>
+                        <span className="text-xs font-bold font-mono text-indigo-400">
+                          {formatCurrencyCents(assetValuation, currencyCode)}
+                        </span>
+                      </div>
+                      
+                      <div className="bg-card/70 border border-border/80 rounded-lg p-2 flex flex-col">
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Net Valuation</span>
+                        <span className={`text-xs font-bold font-mono ${netWorth >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {formatCurrencyCents(netWorth, currencyCode)}
+                        </span>
+                      </div>
+
+                      <div className="bg-card/70 border border-border/80 rounded-lg p-2 flex flex-col">
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Pending Work</span>
+                        <span className={`text-xs font-bold font-mono flex items-center gap-1 ${
+                          openTasks.length > 0 ? "text-amber-400" : "text-zinc-400"
+                        }`}>
+                          {openTasks.length > 0 ? (
+                            <>
+                              <Clock className="h-3 w-3" /> {openTasks.length} task{openTasks.length > 1 ? "s" : ""}
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 className="h-3 w-3 text-emerald-400" /> All clear
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Body: Connected Channels */}
+                  <div className="p-5 border-b border-border/70 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5 text-[#05ffc4]" /> Linked Social Channels ({clientPages.length})
+                      </h4>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedClientId(client._id);
+                          setActiveModal("page");
+                        }}
+                        className="text-[10px] h-6 px-2 bg-muted/60 hover:bg-muted border border-border text-zinc-300 hover:text-foreground font-bold rounded-md"
+                      >
+                        <Plus className="h-3 w-3 mr-1 text-[#05ffc4]" /> Link Channel
+                      </Button>
+                    </div>
+
+                    {clientPages.length === 0 ? (
+                      <div className="p-3.5 rounded-xl border border-dashed border-border/80 bg-muted/10 flex items-center justify-between text-xs text-zinc-500">
+                        <span className="italic">No social accounts connected yet.</span>
+                        <button
                           onClick={() => {
                             setSelectedClientId(client._id);
                             setActiveModal("page");
                           }}
-                          className="text-[10px] h-7 px-2 bg-muted hover:bg-muted/80 border border-border text-zinc-600 dark:text-zinc-350 hover:text-foreground font-bold rounded-lg ml-auto"
+                          className="text-[10px] font-bold text-[#05ffc4] hover:underline flex items-center gap-1"
                         >
-                          <Link2 className="h-3 w-3 mr-1" /> Channel
-                        </Button>
+                          Connect channel now <ArrowRight className="h-3 w-3" />
+                        </button>
                       </div>
+                    ) : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {clientPages.map((page) => {
+                          const pConfig = platforms.find(p => p.value === page.platform);
+                          const PIcon = pConfig ? pConfig.icon : Globe;
+
+                          const platformUrl = 
+                            page.platform === "instagram" ? `https://instagram.com/${page.handle}` :
+                            page.platform === "facebook" ? `https://facebook.com/${page.handle}` :
+                            page.platform === "tiktok" ? `https://tiktok.com/@${page.handle}` :
+                            page.platform === "x" ? `https://x.com/${page.handle}` :
+                            `https://linkedin.com/search/results/all/?keywords=${page.handle}`;
+
+                          return (
+                            <div 
+                              key={page._id}
+                              className="p-2.5 rounded-xl border border-border/80 bg-muted/20 hover:bg-muted/35 transition-colors flex items-center justify-between gap-2"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className={`p-1.5 rounded-lg border shrink-0 ${pConfig?.color || "text-zinc-400 bg-zinc-900 border-zinc-800"}`}>
+                                  <PIcon className="h-3.5 w-3.5" />
+                                </div>
+                                <div className="flex flex-col min-w-0 text-left">
+                                  <a 
+                                    href={platformUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="text-xs font-bold text-foreground hover:text-[#05ffc4] transition-colors truncate flex items-center gap-1 group/link"
+                                  >
+                                    @{page.handle}
+                                    <ExternalLink className="h-2.5 w-2.5 opacity-40 group-hover/link:opacity-100 transition-opacity" />
+                                  </a>
+                                  <span className="text-[9px] text-zinc-500 font-medium capitalize">
+                                    {pConfig?.label || page.platform}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <button 
+                                  onClick={() => togglePageActive({ pageId: page._id, isActive: !page.isActive })}
+                                  className={`text-[9px] px-1.5 py-0.5 rounded font-bold border uppercase tracking-wider transition-colors ${
+                                    page.isActive 
+                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
+                                      : "bg-zinc-800 text-zinc-400 border-zinc-700"
+                                  }`}
+                                  title={page.isActive ? "Pause channel" : "Activate channel"}
+                                >
+                                  {page.isActive ? "Active" : "Paused"}
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setDeleteTargetPageId(page._id);
+                                    setDeleteTargetPageHandle(page.handle);
+                                    setActiveModal("delete_page");
+                                  }}
+                                  className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                  title="Disconnect Page"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Body: Campaigns & Associated Tasks */}
+                  <div className="p-5 flex-1 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                        <FolderKanban className="h-3.5 w-3.5 text-[#00d9f5]" /> Campaigns & Action Items ({clientProjects.length})
+                      </h4>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedClientId(client._id);
+                          setActiveModal("project");
+                        }}
+                        className="text-[10px] h-6 px-2 bg-muted/60 hover:bg-muted border border-border text-zinc-300 hover:text-foreground font-bold rounded-md"
+                      >
+                        <Plus className="h-3 w-3 mr-1 text-[#00d9f5]" /> New Campaign
+                      </Button>
+                    </div>
+
+                    {clientProjects.length === 0 ? (
+                      <div className="p-4 rounded-xl border border-dashed border-border/80 bg-muted/10 flex items-center justify-between text-xs text-zinc-500">
+                        <span className="italic">No campaigns initialized for this client.</span>
+                        <button
+                          onClick={() => {
+                            setSelectedClientId(client._id);
+                            setActiveModal("project");
+                          }}
+                          className="text-[10px] font-bold text-[#00d9f5] hover:underline flex items-center gap-1"
+                        >
+                          Initialize campaign <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {clientProjects.map((project) => {
+                          const projectTasks = tasks.filter(t => t.projectId === project._id);
+                          const projectOpenTasks = projectTasks.filter(t => t.status !== "done");
+
+                          return (
+                            <div 
+                              key={project._id}
+                              className="p-3.5 rounded-xl border border-border bg-card/60 hover:border-border/90 flex flex-col gap-2.5 transition-colors text-left"
+                            >
+                              {/* Campaign Title & Status */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Link 
+                                    href={`/${slug}/content`}
+                                    className="text-xs font-bold text-foreground hover:text-[#05ffc4] transition-colors truncate max-w-[220px]"
+                                    title="Open campaign content workflow"
+                                  >
+                                    {project.name}
+                                  </Link>
+                                  {project.description && (
+                                    <span className="text-[10px] text-zinc-500 italic truncate max-w-[140px]">
+                                      • {project.description}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <select 
+                                    value={project.status}
+                                    onChange={(e) => updateProjectStatus({ projectId: project._id, status: e.target.value as any })}
+                                    className="text-[9px] font-bold uppercase tracking-wider bg-muted text-zinc-300 border border-border rounded-md px-1.5 py-0.5 focus:outline-none focus:border-[#05ffc4]"
+                                  >
+                                    <option value="active">Active</option>
+                                    <option value="paused">Paused</option>
+                                    <option value="archived">Archived</option>
+                                  </select>
+
+                                  <button
+                                    onClick={() => {
+                                      setDeleteTargetProjectId(project._id);
+                                      setDeleteTargetProjectName(project.name);
+                                      setActiveModal("delete_project");
+                                    }}
+                                    className="p-1 rounded text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                    title="Delete Campaign"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Associated Campaign Tasks Preview */}
+                              <div className="pt-2 border-t border-border/50 flex flex-col gap-1.5">
+                                <div className="flex items-center justify-between text-[10px] text-zinc-500 font-semibold">
+                                  <span className="flex items-center gap-1">
+                                    <CheckSquare className="h-3 w-3 text-amber-400" /> 
+                                    {projectOpenTasks.length > 0 
+                                      ? `${projectOpenTasks.length} open task${projectOpenTasks.length > 1 ? "s" : ""}` 
+                                      : "Tasks up to date"}
+                                  </span>
+                                  <Link 
+                                    href={`/${slug}/tasks`}
+                                    className="text-[9px] font-bold text-[#05ffc4] hover:underline flex items-center gap-0.5"
+                                  >
+                                    Open Board <ChevronRight className="h-2.5 w-2.5" />
+                                  </Link>
+                                </div>
+
+                                {projectTasks.length === 0 ? (
+                                  <p className="text-[10px] text-zinc-500 italic pl-4">No tasks logged. Create tasks in Tasks Board.</p>
+                                ) : (
+                                  <div className="flex flex-col gap-1 pl-1">
+                                    {projectTasks.slice(0, 3).map((task) => {
+                                      const isDone = task.status === "done";
+                                      return (
+                                        <div 
+                                          key={task._id}
+                                          onClick={() => handleToggleTask(task._id, task.status)}
+                                          className="flex items-center gap-2 text-xs group/task cursor-pointer select-none py-0.5"
+                                        >
+                                          <button 
+                                            type="button"
+                                            className="shrink-0 text-zinc-500 hover:text-[#05ffc4] transition-colors"
+                                          >
+                                            {isDone ? (
+                                              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                                            ) : (
+                                              <Circle className="h-3.5 w-3.5 text-zinc-500 group-hover/task:text-amber-400" />
+                                            )}
+                                          </button>
+                                          <span className={`text-[11px] truncate ${
+                                            isDone ? "line-through text-zinc-500" : "text-zinc-300 group-hover/task:text-foreground font-medium"
+                                          }`}>
+                                            {task.title}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                    {projectTasks.length > 3 && (
+                                      <Link 
+                                        href={`/${slug}/tasks`}
+                                        className="text-[10px] text-zinc-500 hover:text-zinc-300 italic pl-5 pt-0.5"
+                                      >
+                                        +{projectTasks.length - 3} more tasks on board...
+                                      </Link>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Bottom Toolbar */}
+                  <div className="p-3.5 bg-muted/20 border-t border-border/80 flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setAssetModalClientId(client._id);
+                          setAssetModalClientName(client.name);
+                          setAssetModalOpen(true);
+                        }}
+                        className="text-[10px] h-7 px-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg"
+                      >
+                        <Package className="h-3 w-3 mr-1" /> Client Inventory ({netSummary?.summariesByClient?.[client._id]?.assetsCount || 0})
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedClientId(client._id);
+                          setActiveModal("project");
+                        }}
+                        className="text-[10px] h-7 px-2.5 bg-muted hover:bg-muted/80 border border-border text-zinc-300 hover:text-foreground font-bold rounded-lg"
+                      >
+                        <Plus className="h-3 w-3 mr-1" /> Campaign
+                      </Button>
+
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedClientId(client._id);
+                          setActiveModal("page");
+                        }}
+                        className="text-[10px] h-7 px-2.5 bg-muted hover:bg-muted/80 border border-border text-zinc-300 hover:text-foreground font-bold rounded-lg"
+                      >
+                        <Link2 className="h-3 w-3 mr-1" /> Channel
+                      </Button>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
-        {/* Channels & campaigns (1 col) */}
-        <div className="flex flex-col gap-8 border-l-0 lg:border-l border-border pl-0 lg:pl-8">
-          
-          {/* Linked Pages */}
-          <div className="flex flex-col gap-4">
-            <h3 className="text-xs font-bold uppercase text-zinc-550 tracking-wider flex items-center gap-2">
-              <Layers className="h-4 w-4 text-[#05ffc4]" /> Linked Channels ({socialPages.length})
-            </h3>
-
-            {socialPages.length === 0 ? (
-              <p className="text-xs text-zinc-550 italic">No social pages connected yet.</p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {socialPages.map((page) => {
-                  const client = clients.find(c => c._id === page.clientId);
-                  const pConfig = platforms.find(p => p.value === page.platform);
-                  const PIcon = pConfig ? pConfig.icon : Globe;
-
-                  // Define clickable link location based on platform
-                  const platformUrl = 
-                    page.platform === "instagram" ? `https://instagram.com/${page.handle}` :
-                    page.platform === "facebook" ? `https://facebook.com/${page.handle}` :
-                    page.platform === "tiktok" ? `https://tiktok.com/@${page.handle}` :
-                    page.platform === "x" ? `https://x.com/${page.handle}` :
-                    `https://linkedin.com/search/results/all/?keywords=${page.handle}`;
-
-                  return (
-                    /* Page row 3D card styling */
-                    <div key={page._id} className="relative group/page">
-                      <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4] to-[#00d9f5] rounded-xl blur-xs opacity-0 group-hover/page:opacity-10 transition duration-500" />
-                      
-                      <div className="relative p-3 rounded-xl border border-border bg-card/85 backdrop-blur-xs flex items-center justify-between hover:[transform:perspective(500px)_rotateX(1.5deg)_rotateY(-1.5deg)] transition-all duration-300 ease-out">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-1.5 rounded border ${pConfig?.color || "text-zinc-500 bg-zinc-900"}`}>
-                            <PIcon className="h-4 w-4" />
-                          </div>
-                          <div className="flex flex-col text-left">
-                            {/* Clickable Social handle going to actual location */}
-                            <a 
-                              href={platformUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              className="text-xs font-bold text-foreground hover:text-[#05ffc4] transition-colors flex items-center gap-0.5 group/link"
-                            >
-                              @{page.handle} <span className="text-[8px] opacity-0 group-hover/link:opacity-100 transition-opacity">↗</span>
-                            </a>
-                            <span className="text-[9px] text-zinc-500 dark:text-zinc-500 font-bold uppercase">Client: {client?.name || "Unknown"}</span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => togglePageActive({ pageId: page._id, isActive: !page.isActive })}
-                            className={`text-[9px] px-2 py-0.5 rounded font-extrabold border uppercase tracking-wider ${
-                              page.isActive 
-                                ? "bg-emerald-50 dark:bg-[#05ffc4]/10 text-emerald-650 dark:text-[#05ffc4] border-emerald-250 dark:border-[#05ffc4]/20" 
-                                : "bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-450 border-zinc-200 dark:border-zinc-800"
-                            }`}
-                          >
-                            {page.isActive ? "Active" : "Paused"}
-                          </button>
-                          
-                          {/* Page Delete Trigger Button */}
-                          <button
-                            onClick={() => {
-                              setDeleteTargetPageId(page._id);
-                              setDeleteTargetPageHandle(page.handle);
-                              setActiveModal("delete_page");
-                            }}
-                            className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                            title="Disconnect Account"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Active Campaigns */}
-          <div className="flex flex-col gap-4 border-t border-border pt-6">
-            <h3 className="text-xs font-bold uppercase text-zinc-555 dark:text-zinc-550 tracking-wider flex items-center gap-2">
-              <FolderKanban className="h-4 w-4 text-[#05ffc4]" /> Active Projects ({projects.length})
-            </h3>
-
-            {projects.length === 0 ? (
-              <p className="text-xs text-zinc-550 italic">No campaigns initialized yet.</p>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {projects.map((project) => {
-                  const client = clients.find(c => c._id === project.clientId);
-
-                  return (
-                    /* Project row 3D card styling */
-                    <div key={project._id} className="relative group/project">
-                      <div className="absolute -inset-px bg-gradient-to-tr from-[#05ffc4] to-[#00d9f5] rounded-xl blur-xs opacity-0 group-hover/project:opacity-10 transition duration-500" />
-                      
-                      <div className="relative p-3.5 rounded-xl border border-border bg-card/85 backdrop-blur-xs flex flex-col gap-1.5 hover:[transform:perspective(500px)_rotateX(1.5deg)_rotateY(-1.5deg)] transition-all duration-300 ease-out text-left">
-                        <div className="flex justify-between items-center">
-                          {/* Clickable project name going to content board */}
-                          <Link 
-                            href={`/${slug}/content`}
-                            className="text-xs font-bold text-foreground hover:text-[#05ffc4] transition-colors truncate max-w-[150px]"
-                          >
-                            {project.name}
-                          </Link>
-                          
-                          <div className="flex items-center gap-2">
-                            <select 
-                              value={project.status}
-                              onChange={(e) => updateProjectStatus({ projectId: project._id, status: e.target.value as any })}
-                              className="text-[9px] font-bold uppercase tracking-wider bg-muted text-zinc-600 dark:text-zinc-400 border border-border rounded-md px-1 py-0.5 focus:outline-none"
-                            >
-                              <option value="active">Active</option>
-                              <option value="paused">Paused</option>
-                              <option value="archived">Archived</option>
-                            </select>
-
-                            {/* Project Delete Trigger Button */}
-                            <button
-                              onClick={() => {
-                                setDeleteTargetProjectId(project._id);
-                                setDeleteTargetProjectName(project.name);
-                                setActiveModal("delete_project");
-                              }}
-                              className="p-1 rounded text-zinc-600 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                              title="Delete Project"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center text-[9px] text-zinc-500 font-medium">
-                          <span>Client: {client?.name || "Unknown"}</span>
-                          {project.description && <span className="italic truncate max-w-[120px]">{project.description}</span>}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+            );
+          })}
         </div>
-
-      </div>
+      )}
 
       {/* --- MODALS OVERLAYS --- */}
       
@@ -572,24 +912,24 @@ export default function ClientsPage() {
           <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-border flex justify-between items-center">
               <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider">Add Client Profile</h3>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleCreateClient} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-500">Client Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Client Name</label>
                 <input 
                   type="text" 
                   value={clientName} 
                   onChange={(e) => setClientName(e.target.value)}
                   placeholder="e.g. Acme Corporation" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 />
               </div>
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-foreground bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
@@ -608,17 +948,17 @@ export default function ClientsPage() {
           <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-border flex justify-between items-center">
               <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider">Initialize Campaign</h3>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleCreateProject} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-500">Target Client</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Target Client</label>
                 <select 
                   value={selectedClientId} 
                   onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 >
                   <option value="">Select a Client...</option>
@@ -628,28 +968,28 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555 dark:text-zinc-500">Campaign/Project Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Campaign/Project Name</label>
                 <input 
                   type="text" 
                   value={projectName} 
                   onChange={(e) => setProjectName(e.target.value)}
                   placeholder="e.g. Summer Launch 2026" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 />
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555 dark:text-zinc-500">Brief Description</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Brief Description</label>
                 <textarea 
                   value={projectDesc} 
                   onChange={(e) => setProjectDesc(e.target.value)}
                   placeholder="Optional notes or goals..." 
                   rows={3}
-                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-xs focus:outline-none focus:border-[#05ffc4]"
                 />
               </div>
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-foreground bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
@@ -660,23 +1000,25 @@ export default function ClientsPage() {
             </form>
           </div>
         </div>
-      )}      {/* 3. Social Page Modal */}
+      )}
+
+      {/* 3. Social Page Modal */}
       {activeModal === "page" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-border flex justify-between items-center">
               <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider">Connect Social Page</h3>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             <form onSubmit={handleCreateSocialPage} className="p-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550 dark:text-zinc-500">Target Client</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Target Client</label>
                 <select 
                   value={selectedClientId} 
                   onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 >
                   <option value="">Select a Client...</option>
@@ -686,11 +1028,11 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555 dark:text-zinc-500">Social Platform</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Social Platform</label>
                 <select 
                   value={pagePlatform} 
                   onChange={(e) => setPagePlatform(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-300 text-xs focus:outline-none focus:border-[#05ffc4]"
+                  className="w-full px-3 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-xs focus:outline-none focus:border-[#05ffc4]"
                   required
                 >
                   {platforms.map(p => (
@@ -699,7 +1041,7 @@ export default function ClientsPage() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555 dark:text-zinc-500">Handle / Account Name</label>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Handle / Account Name</label>
                 <div className="relative flex items-center">
                   <span className="absolute left-3.5 text-zinc-500 text-xs font-bold select-none">@</span>
                   <input 
@@ -707,13 +1049,13 @@ export default function ClientsPage() {
                     value={pageHandle} 
                     onChange={(e) => setPageHandle(e.target.value)}
                     placeholder="handle" 
-                    className="w-full pl-8 pr-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-[#05ffc4]"
+                    className="w-full pl-8 pr-3.5 py-2 rounded-lg border border-border bg-muted/50 text-foreground text-xs focus:outline-none focus:border-[#05ffc4]"
                     required
                   />
                 </div>
               </div>
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-foreground bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
@@ -731,21 +1073,21 @@ export default function ClientsPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-background border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-red-900/20 bg-red-950/10 flex justify-between items-center text-left">
-              <div className="flex items-center gap-2 text-red-500 dark:text-red-400">
+              <div className="flex items-center gap-2 text-red-400">
                 <AlertTriangle className="h-4 w-4" />
                 <h3 className="font-extrabold text-sm uppercase tracking-wider">Delete Client Profile</h3>
               </div>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-zinc-200">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             
             <form onSubmit={handleDeleteClient} className="p-6 flex flex-col gap-4 text-left">
-              <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 You are about to delete client profile <strong className="text-foreground">"{deleteTargetClientName}"</strong>. 
-                This action is <strong className="text-red-500 dark:text-red-400 uppercase">permanent</strong> and will delete:
+                This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
               </p>
-              <ul className="text-xs text-zinc-550 dark:text-zinc-500 list-disc pl-5 flex flex-col gap-1">
+              <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
                 <li>All active projects/campaigns of this client</li>
                 <li>All linked social channels & credentials</li>
                 <li>All social posts, tasks, and media assets</li>
@@ -753,7 +1095,7 @@ export default function ClientsPage() {
               </ul>
               
               <div className="flex flex-col gap-1.5 pt-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                   Type <span className="text-foreground font-black">DELETE</span> to confirm:
                 </label>
                 <input 
@@ -761,19 +1103,19 @@ export default function ClientsPage() {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="Type DELETE" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 dark:border-red-900/40 bg-muted/40 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-red-900/40 bg-muted/40 text-foreground text-xs focus:outline-none focus:border-red-500"
                   required
                 />
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-foreground bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={loadingAction || deleteConfirmText.toLowerCase() !== "delete"} 
-                  className="bg-red-950/40 dark:bg-red-950/20 hover:bg-red-900/60 dark:hover:bg-red-900/40 text-red-500 dark:text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Delete Client
@@ -789,28 +1131,28 @@ export default function ClientsPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-background border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-red-900/20 bg-red-950/10 flex justify-between items-center text-left">
-              <div className="flex items-center gap-2 text-red-500 dark:text-red-400">
+              <div className="flex items-center gap-2 text-red-400">
                 <AlertTriangle className="h-4 w-4" />
                 <h3 className="font-extrabold text-sm uppercase tracking-wider">Delete Campaign</h3>
               </div>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-zinc-200">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             
             <form onSubmit={handleDeleteProject} className="p-6 flex flex-col gap-4 text-left">
-              <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 You are about to delete campaign <strong className="text-foreground">"{deleteTargetProjectName}"</strong>. 
-                This action is <strong className="text-red-500 dark:text-red-400 uppercase">permanent</strong> and will delete:
+                This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
               </p>
-              <ul className="text-xs text-zinc-550 dark:text-zinc-500 list-disc pl-5 flex flex-col gap-1">
+              <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
                 <li>All posts and tasks drafts in this campaign</li>
                 <li>All visual content and attachments</li>
                 <li>All historical comments on related posts</li>
               </ul>
               
               <div className="flex flex-col gap-1.5 pt-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-550">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                   Type <span className="text-foreground font-black">DELETE</span> to confirm:
                 </label>
                 <input 
@@ -818,19 +1160,19 @@ export default function ClientsPage() {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="Type DELETE" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 dark:border-red-900/40 bg-muted/40 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-red-900/40 bg-muted/40 text-foreground text-xs focus:outline-none focus:border-red-500"
                   required
                 />
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-foreground bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={loadingAction || deleteConfirmText.toLowerCase() !== "delete"} 
-                  className="bg-red-950/40 dark:bg-red-950/20 hover:bg-red-900/60 dark:hover:bg-red-900/40 text-red-500 dark:text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Delete Campaign
@@ -846,27 +1188,27 @@ export default function ClientsPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-background border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-red-900/20 bg-red-950/10 flex justify-between items-center text-left">
-              <div className="flex items-center gap-2 text-red-500 dark:text-red-400">
+              <div className="flex items-center gap-2 text-red-400">
                 <AlertTriangle className="h-4 w-4" />
                 <h3 className="font-extrabold text-sm uppercase tracking-wider">Disconnect social page</h3>
               </div>
-              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+              <button onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-zinc-200">
                 <CloseIcon className="h-4 w-4" />
               </button>
             </div>
             
             <form onSubmit={handleDeleteSocialPage} className="p-6 flex flex-col gap-4 text-left">
-              <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed">
+              <p className="text-xs text-zinc-400 leading-relaxed">
                 You are about to disconnect account <strong className="text-foreground">@{deleteTargetPageHandle}</strong>. 
-                This action is <strong className="text-red-500 dark:text-red-400 uppercase">permanent</strong> and will delete:
+                This action is <strong className="text-red-400 uppercase">permanent</strong> and will delete:
               </p>
-              <ul className="text-xs text-zinc-550 dark:text-zinc-500 list-disc pl-5 flex flex-col gap-1">
+              <ul className="text-xs text-zinc-500 list-disc pl-5 flex flex-col gap-1">
                 <li>All posts bound to this social channel</li>
                 <li>All comments and schedules associated with this page</li>
               </ul>
               
               <div className="flex flex-col gap-1.5 pt-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-555">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
                   Type <span className="text-foreground font-black">DISCONNECT</span> to confirm:
                 </label>
                 <input 
@@ -874,19 +1216,19 @@ export default function ClientsPage() {
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}
                   placeholder="Type DISCONNECT" 
-                  className="w-full px-3.5 py-2 rounded-lg border border-red-950 dark:border-red-900/40 bg-muted/40 text-foreground dark:text-zinc-200 text-xs focus:outline-none focus:border-red-500"
+                  className="w-full px-3.5 py-2 rounded-lg border border-red-900/40 bg-muted/40 text-foreground text-xs focus:outline-none focus:border-red-500"
                   required
                 />
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
-                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 bg-transparent hover:bg-transparent text-xs font-bold">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-foreground bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
                 </Button>
                 <Button 
                   type="submit" 
                   disabled={loadingAction || deleteConfirmText.toLowerCase() !== "disconnect"} 
-                  className="bg-red-950/40 dark:bg-red-950/20 hover:bg-red-900/60 dark:hover:bg-red-900/40 text-red-500 dark:text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
+                  className="bg-red-950/30 hover:bg-red-900/40 text-red-400 border border-red-900/40 font-extrabold text-xs px-4 py-2 rounded-lg disabled:opacity-50"
                 >
                   {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
                   Disconnect Account
