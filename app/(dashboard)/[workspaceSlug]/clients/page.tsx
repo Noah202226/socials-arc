@@ -34,7 +34,11 @@ import {
   Search,
   CheckSquare,
   ArrowRight,
-  Building2
+  Building2,
+  UserCheck,
+  UserPlus,
+  Shield,
+  User
 } from "lucide-react";
 import ClientAssetModal from "@/components/clients/ClientAssetModal";
 import { formatCurrencyCents } from "@/lib/currency";
@@ -71,6 +75,10 @@ export default function ClientsPage() {
     api.tasks.listByWorkspace,
     workspace ? { workspaceId: workspace._id } : "skip"
   );
+  const members = useQuery(
+    api.workspaces.listMembers,
+    workspace ? { workspaceId: workspace._id } : "skip"
+  );
   const netSummary = useQuery(
     api.clientAssets.getClientNetSummary,
     workspace ? { workspaceId: workspace._id } : "skip"
@@ -83,6 +91,7 @@ export default function ClientsPage() {
   const createClient = useMutation(api.clients.create);
   const toggleClientActive = useMutation(api.clients.toggleActive);
   const deleteClient = useMutation(api.clients.remove);
+  const updateAssignedMembers = useMutation(api.clients.updateAssignedMembers);
 
   const createProject = useMutation(api.projects.create);
   const updateProjectStatus = useMutation(api.projects.updateStatus);
@@ -104,8 +113,13 @@ export default function ClientsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "paused">("all");
 
   // Component local states (Modals)
-  const [activeModal, setActiveModal] = useState<null | "client" | "project" | "page" | "delete_client" | "delete_project" | "delete_page">(null);
+  const [activeModal, setActiveModal] = useState<null | "client" | "project" | "page" | "assign_members" | "delete_client" | "delete_project" | "delete_page">(null);
   const [selectedClientId, setSelectedClientId] = useState<string>("");
+
+  // Assign Members Modal State
+  const [assignModalClientId, setAssignModalClientId] = useState<string>("");
+  const [assignModalClientName, setAssignModalClientName] = useState<string>("");
+  const [assignedMembersSelection, setAssignedMembersSelection] = useState<string[]>([]);
   
   // Deletion Target States
   const [deleteTargetClientId, setDeleteTargetClientId] = useState<string>("");
@@ -118,6 +132,7 @@ export default function ClientsPage() {
 
   // Form States
   const [clientName, setClientName] = useState("");
+  const [initialClientMemberIds, setInitialClientMemberIds] = useState<string[]>([]);
   const [projectName, setProjectName] = useState("");
   const [projectDesc, setProjectDesc] = useState("");
   const [pagePlatform, setPagePlatform] = useState("instagram");
@@ -134,9 +149,11 @@ export default function ClientsPage() {
       await createClient({
         workspaceId: workspace._id,
         name: clientName.trim(),
+        assignedMemberIds: initialClientMemberIds,
       });
       toast.success(`Client "${clientName.trim()}" created successfully!`);
       setClientName("");
+      setInitialClientMemberIds([]);
       setActiveModal(null);
     } catch (err: any) {
       console.error(err);
@@ -184,6 +201,25 @@ export default function ClientsPage() {
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Failed to connect social page.");
+    } finally {
+      setLoadingAction(false);
+    }
+  };
+
+  const handleSaveAssignedMembers = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignModalClientId) return;
+    setLoadingAction(true);
+    try {
+      await updateAssignedMembers({
+        clientId: assignModalClientId as any,
+        assignedMemberIds: assignedMembersSelection,
+      });
+      toast.success(`Assigned team updated for "${assignModalClientName}"!`);
+      setActiveModal(null);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Failed to update assigned members.");
     } finally {
       setLoadingAction(false);
     }
@@ -259,6 +295,14 @@ export default function ClientsPage() {
     }
   };
 
+  // Helper to open assign team modal
+  const openAssignMembersModal = (client: any) => {
+    setAssignModalClientId(client._id);
+    setAssignModalClientName(client.name);
+    setAssignedMembersSelection(client.assignedMemberIds || []);
+    setActiveModal("assign_members");
+  };
+
   // Filtered clients list
   const filteredClients = useMemo(() => {
     if (!clients) return [];
@@ -283,9 +327,17 @@ export default function ClientsPage() {
         p => p.clientId === client._id && p.handle.toLowerCase().includes(query)
       );
 
-      return matchesClientName || clientProjectMatches || clientPageMatches;
+      // Match assigned members' names
+      const assignedMemberMatches = members?.some(
+        m => (client.assignedMemberIds || []).includes(m.userId) && (
+          (m.userName && m.userName.toLowerCase().includes(query)) ||
+          (m.userEmail && m.userEmail.toLowerCase().includes(query))
+        )
+      );
+
+      return matchesClientName || clientProjectMatches || clientPageMatches || assignedMemberMatches;
     });
-  }, [clients, projects, socialPages, searchQuery, statusFilter]);
+  }, [clients, projects, socialPages, members, searchQuery, statusFilter]);
 
   // Overall KPI statistics
   const kpiStats = useMemo(() => {
@@ -313,11 +365,11 @@ export default function ClientsPage() {
     };
   }, [clients, socialPages, projects, tasks, netSummary]);
 
-  if (workspace === undefined || clients === undefined || projects === undefined || socialPages === undefined || tasks === undefined) {
+  if (workspace === undefined || clients === undefined || projects === undefined || socialPages === undefined || tasks === undefined || members === undefined) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
         <Loader2 className="h-8 w-8 animate-spin text-[#05ffc4] mb-4" />
-        <p className="text-sm font-medium">Fetching clients, campaigns, and page profiles...</p>
+        <p className="text-sm font-medium">Fetching clients, team, and campaigns...</p>
       </div>
     );
   }
@@ -334,13 +386,17 @@ export default function ClientsPage() {
             <Users className="h-6 w-6 text-[#05ffc4]" /> Clients & Connections
           </h2>
           <p className="text-xs text-zinc-500 max-w-2xl">
-            Unified command hub for all client accounts. Monitor campaigns, pending tasks, connected social channels, and inventory valuations in one glance.
+            Unified command hub for all client accounts. Monitor assigned team members, campaigns, pending tasks, connected social channels, and inventory valuations.
           </p>
         </div>
         
         <div className="flex items-center gap-2.5 flex-wrap">
           <Button 
-            onClick={() => setActiveModal("client")} 
+            onClick={() => {
+              setClientName("");
+              setInitialClientMemberIds([]);
+              setActiveModal("client");
+            }} 
             className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] hover:opacity-90 text-[#0b0c0e] font-extrabold text-xs shadow-lg shadow-[#05ffc4]/15 border border-[#05ffc4]/20 rounded-lg px-4 py-2"
           >
             <Plus className="h-4 w-4 mr-1.5" /> Add Client
@@ -415,7 +471,7 @@ export default function ClientsPage() {
             type="text" 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by client, campaign, or @handle..."
+            placeholder="Search by client, campaign, @handle, or member..."
             className="w-full pl-9 pr-8 py-1.5 text-xs bg-muted/40 border border-border rounded-lg text-foreground placeholder:text-zinc-500 focus:outline-none focus:border-[#05ffc4] transition-colors"
           />
           {searchQuery && (
@@ -472,7 +528,7 @@ export default function ClientsPage() {
             <p className="text-xs text-zinc-500 max-w-sm leading-relaxed">
               {searchQuery 
                 ? "Try adjusting your search criteria or clear the query filter." 
-                : "Create your first client profile to start linking social media accounts, organizing campaigns, and tracking inventory."}
+                : "Create your first client profile to start linking social media accounts, organizing campaigns, and assigning team members."}
             </p>
           </div>
           {searchQuery ? (
@@ -481,7 +537,11 @@ export default function ClientsPage() {
             </Button>
           ) : (
             <Button 
-              onClick={() => setActiveModal("client")} 
+              onClick={() => {
+                setClientName("");
+                setInitialClientMemberIds([]);
+                setActiveModal("client");
+              }} 
               className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4"
             >
               <Plus className="h-4 w-4 mr-1.5" /> Create Client Profile
@@ -497,6 +557,14 @@ export default function ClientsPage() {
             // Client tasks: all tasks belonging to this client's projects
             const clientTasks = tasks.filter(t => clientProjects.some(p => p._id === t.projectId));
             const openTasks = clientTasks.filter(t => t.status !== "done");
+
+            // Client Assigned Members resolution
+            const assignedIds = client.assignedMemberIds || [];
+            const assignedMembersList = members.filter(m => assignedIds.includes(m.userId));
+            
+            // Active task contributors who aren't explicitly assigned
+            const taskAssigneeUserIds = Array.from(new Set(clientTasks.map(t => t.assigneeId).filter(Boolean))) as string[];
+            const taskContributorsList = members.filter(m => !assignedIds.includes(m.userId) && taskAssigneeUserIds.includes(m.userId));
 
             const clientSummary = netSummary?.summariesByClient?.[client._id];
             const assetValuation = clientSummary?.assetValuation || 0;
@@ -603,6 +671,111 @@ export default function ClientsPage() {
                         </span>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Card Body: Assigned Team Members Section */}
+                  <div className="p-4 border-b border-border/70 bg-card/40 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-[11px] font-extrabold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                        <Users className="h-3.5 w-3.5 text-[#05ffc4]" /> Assigned Team ({assignedMembersList.length})
+                      </h4>
+                      <Button
+                        size="sm"
+                        onClick={() => openAssignMembersModal(client)}
+                        className="text-[10px] h-6 px-2 bg-muted/60 hover:bg-muted border border-border text-zinc-300 hover:text-foreground font-bold rounded-md"
+                      >
+                        <UserPlus className="h-3 w-3 mr-1 text-[#05ffc4]" /> Manage Team
+                      </Button>
+                    </div>
+
+                    {assignedMembersList.length === 0 && taskContributorsList.length === 0 ? (
+                      <div className="p-2.5 rounded-xl border border-dashed border-border/70 bg-muted/10 flex items-center justify-between text-xs text-zinc-500">
+                        <span className="italic text-[11px]">No team members assigned yet.</span>
+                        <button
+                          onClick={() => openAssignMembersModal(client)}
+                          className="text-[10px] font-bold text-[#05ffc4] hover:underline flex items-center gap-1"
+                        >
+                          Assign members <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {/* Explicitly Assigned Members */}
+                        {assignedMembersList.map((member) => {
+                          const mName = member.userName || member.userEmail?.split("@")[0] || "Team Member";
+                          const mInitials = mName
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase();
+
+                          return (
+                            <div 
+                              key={member._id}
+                              className="inline-flex items-center gap-2 px-2 py-1 rounded-lg border border-border/90 bg-muted/30 hover:bg-muted/50 transition-colors shadow-2xs"
+                              title={`${mName} (${member.role})`}
+                            >
+                              {member.pictureUrl ? (
+                                <img 
+                                  src={member.pictureUrl} 
+                                  alt={mName} 
+                                  className="h-5 w-5 rounded-full object-cover border border-[#05ffc4]/30"
+                                />
+                              ) : (
+                                <div className="h-5 w-5 rounded-full bg-gradient-to-tr from-[#05ffc4]/20 to-[#00d9f5]/20 text-[#05ffc4] border border-[#05ffc4]/30 flex items-center justify-center text-[9px] font-black">
+                                  {mInitials}
+                                </div>
+                              )}
+                              <span className="text-[11px] font-bold text-foreground">
+                                {mName}
+                              </span>
+                              <span className="text-[8px] font-extrabold uppercase px-1 py-0.2 rounded bg-muted text-zinc-400 border border-border">
+                                {member.role}
+                              </span>
+                            </div>
+                          );
+                        })}
+
+                        {/* Task Contributors */}
+                        {taskContributorsList.map((contrib) => {
+                          const cName = contrib.userName || contrib.userEmail?.split("@")[0] || "Contributor";
+                          const cInitials = cName
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase();
+
+                          return (
+                            <div 
+                              key={contrib._id}
+                              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-amber-500/20 bg-amber-500/5 transition-colors shadow-2xs"
+                              title={`${cName} (Working on tasks)`}
+                            >
+                              <div className="h-5 w-5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center text-[9px] font-black">
+                                {cInitials}
+                              </div>
+                              <span className="text-[11px] font-bold text-zinc-300">
+                                {cName}
+                              </span>
+                              <span className="text-[8px] font-bold uppercase px-1 py-0.2 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center gap-0.5">
+                                <Clock className="h-2 w-2" /> Task Contributor
+                              </span>
+                            </div>
+                          );
+                        })}
+
+                        {/* Quick Add Member trigger pill */}
+                        <button
+                          onClick={() => openAssignMembersModal(client)}
+                          className="h-7 w-7 rounded-lg border border-dashed border-border hover:border-[#05ffc4] hover:text-[#05ffc4] text-zinc-500 flex items-center justify-center transition-colors"
+                          title="Assign more team members"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Card Body: Connected Channels */}
@@ -868,11 +1041,19 @@ export default function ClientsPage() {
                         }}
                         className="text-[10px] h-7 px-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg"
                       >
-                        <Package className="h-3 w-3 mr-1" /> Client Inventory ({netSummary?.summariesByClient?.[client._id]?.assetsCount || 0})
+                        <Package className="h-3 w-3 mr-1" /> Client Inventory ({netSummary?.summariesByClient?.[client._id]?.assetCount || 0})
                       </Button>
                     </div>
 
                     <div className="flex items-center gap-1.5">
+                      <Button 
+                        size="sm" 
+                        onClick={() => openAssignMembersModal(client)}
+                        className="text-[10px] h-7 px-2.5 bg-muted hover:bg-muted/80 border border-border text-zinc-300 hover:text-[#05ffc4] font-bold rounded-lg"
+                      >
+                        <UserCheck className="h-3 w-3 mr-1" /> Team ({assignedMembersList.length})
+                      </Button>
+
                       <Button 
                         size="sm" 
                         onClick={() => {
@@ -928,6 +1109,51 @@ export default function ClientsPage() {
                   required
                 />
               </div>
+
+              {/* Assign Initial Team Members */}
+              {members.length > 0 && (
+                <div className="flex flex-col gap-1.5 text-left pt-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 flex items-center justify-between">
+                    <span>Assign Team Members (Optional)</span>
+                    <span className="text-zinc-500 text-[9px]">{initialClientMemberIds.length} selected</span>
+                  </label>
+                  <div className="max-h-36 overflow-y-auto rounded-lg border border-border bg-muted/30 p-2 flex flex-col gap-1">
+                    {members.map((m) => {
+                      const mName = m.userName || m.userEmail?.split("@")[0] || "Team Member";
+                      const isSelected = initialClientMemberIds.includes(m.userId);
+                      return (
+                        <div
+                          key={m._id}
+                          onClick={() => {
+                            if (isSelected) {
+                              setInitialClientMemberIds(initialClientMemberIds.filter(id => id !== m.userId));
+                            } else {
+                              setInitialClientMemberIds([...initialClientMemberIds, m.userId]);
+                            }
+                          }}
+                          className={`flex items-center justify-between p-1.5 rounded-md cursor-pointer select-none text-xs transition-colors ${
+                            isSelected ? "bg-[#05ffc4]/10 border border-[#05ffc4]/30" : "hover:bg-muted/60 border border-transparent"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="h-5 w-5 rounded-full bg-muted border border-border flex items-center justify-center text-[9px] font-bold text-zinc-300">
+                              {mName[0]?.toUpperCase() || "U"}
+                            </div>
+                            <span className="font-semibold text-[11px] text-foreground">{mName}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[9px] uppercase px-1 py-0.2 rounded bg-muted text-zinc-400 font-bold border border-border">
+                              {m.role}
+                            </span>
+                            {isSelected && <Check className="h-3 w-3 text-[#05ffc4]" />}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2 justify-end pt-2">
                 <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-foreground bg-transparent hover:bg-transparent text-xs font-bold">
                   Cancel
@@ -942,7 +1168,106 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* 2. Project/Campaign Modal */}
+      {/* 2. Assign Team Members Modal */}
+      {activeModal === "assign_members" && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-border flex justify-between items-center text-left">
+              <div className="flex flex-col">
+                <h3 className="font-extrabold text-foreground text-sm uppercase tracking-wider flex items-center gap-1.5">
+                  <UserCheck className="h-4 w-4 text-[#05ffc4]" /> Assign Team Members
+                </h3>
+                <span className="text-xs text-zinc-500 font-medium">Client: {assignModalClientName}</span>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="text-zinc-500 hover:text-zinc-300">
+                <CloseIcon className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAssignedMembers} className="p-6 flex flex-col gap-4 text-left">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Select which team members from your workspace are assigned to manage or work with this client.
+              </p>
+
+              {members.length === 0 ? (
+                <p className="text-xs text-zinc-500 italic">No other workspace team members found. Invite teammates in Team Members tab.</p>
+              ) : (
+                <div className="flex flex-col gap-2 max-h-60 overflow-y-auto pr-1">
+                  {members.map((member) => {
+                    const isSelected = assignedMembersSelection.includes(member.userId);
+                    const mName = member.userName || member.userEmail?.split("@")[0] || "Team Member";
+                    const mInitials = mName
+                      .split(" ")
+                      .map((n: string) => n[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase();
+
+                    return (
+                      <div
+                        key={member._id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setAssignedMembersSelection(assignedMembersSelection.filter(id => id !== member.userId));
+                          } else {
+                            setAssignedMembersSelection([...assignedMembersSelection, member.userId]);
+                          }
+                        }}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer select-none transition-all ${
+                          isSelected 
+                            ? "bg-[#05ffc4]/10 border-[#05ffc4]/40 shadow-xs" 
+                            : "bg-muted/20 border-border/80 hover:bg-muted/40"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          {member.pictureUrl ? (
+                            <img src={member.pictureUrl} alt={mName} className="h-8 w-8 rounded-full object-cover border border-[#05ffc4]/30" />
+                          ) : (
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-tr from-[#05ffc4]/20 to-[#00d9f5]/20 text-[#05ffc4] border border-[#05ffc4]/30 flex items-center justify-center text-xs font-black">
+                              {mInitials}
+                            </div>
+                          )}
+                          <div className="flex flex-col">
+                            <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                              {mName}
+                            </span>
+                            <span className="text-[10px] text-zinc-500">
+                              {member.userEmail || member.role}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-[9px] uppercase px-1.5 py-0.5 rounded bg-muted text-zinc-400 font-bold border border-border">
+                            {member.role}
+                          </span>
+                          <div className={`h-4 w-4 rounded border flex items-center justify-center ${
+                            isSelected ? "bg-[#05ffc4] border-[#05ffc4] text-[#0b0c0e]" : "border-zinc-600 bg-transparent"
+                          }`}>
+                            {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end pt-2 border-t border-border">
+                <Button type="button" onClick={() => setActiveModal(null)} className="text-zinc-400 hover:text-foreground bg-transparent hover:bg-transparent text-xs font-bold">
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loadingAction} className="bg-gradient-to-r from-[#00f5a0] to-[#00d9f5] text-[#0b0c0e] font-extrabold text-xs px-4 py-2 border border-[#05ffc4]/20 rounded-lg">
+                  {loadingAction && <Loader2 className="h-3 w-3 animate-spin mr-1.5" />}
+                  Save Team ({assignedMembersSelection.length})
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Project/Campaign Modal */}
       {activeModal === "project" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -1002,7 +1327,7 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* 3. Social Page Modal */}
+      {/* 4. Social Page Modal */}
       {activeModal === "page" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-background border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -1068,7 +1393,7 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* 4. Delete Client Confirmation Modal */}
+      {/* 5. Delete Client Confirmation Modal */}
       {activeModal === "delete_client" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-background border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -1126,7 +1451,7 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* 5. Delete Project Confirmation Modal */}
+      {/* 6. Delete Project Confirmation Modal */}
       {activeModal === "delete_project" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-background border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -1183,7 +1508,7 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* 6. Disconnect Page Confirmation Modal */}
+      {/* 7. Disconnect Page Confirmation Modal */}
       {activeModal === "delete_page" && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-background border border-red-900/30 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
@@ -1239,7 +1564,7 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* 7. Client Inventory Asset Valuation Modal */}
+      {/* 8. Client Inventory Asset Valuation Modal */}
       {assetModalClientId && (
         <ClientAssetModal
           isOpen={assetModalOpen}

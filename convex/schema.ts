@@ -70,6 +70,7 @@ export default defineSchema({
     name: v.string(),
     logoUrl: v.optional(v.string()),
     isActive: v.boolean(),
+    assignedMemberIds: v.optional(v.array(v.string())), // Clerk userIds of team members assigned to this client
   }).index("by_workspace", ["workspaceId"]),
 
   projects: defineTable({

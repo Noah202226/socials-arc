@@ -32,6 +32,7 @@ export const create = mutation({
     workspaceId: v.id("workspaces"),
     name: v.string(),
     logoUrl: v.optional(v.string()),
+    assignedMemberIds: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     await verifyMembership(ctx, args.workspaceId);
@@ -56,6 +57,7 @@ export const create = mutation({
       name: args.name,
       logoUrl: args.logoUrl,
       isActive: true,
+      assignedMemberIds: args.assignedMemberIds || [],
     });
 
     return await ctx.db.get(clientId);
@@ -216,4 +218,29 @@ export const remove = mutation({
     return { success: true };
   },
 });
+
+/**
+ * Updates the assigned team members for a client.
+ */
+export const updateAssignedMembers = mutation({
+  args: {
+    clientId: v.id("clients"),
+    assignedMemberIds: v.array(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const client = await ctx.db.get(args.clientId);
+    if (!client) {
+      throw new ConvexError("Client not found");
+    }
+
+    await verifyMembership(ctx, client.workspaceId);
+
+    await ctx.db.patch(args.clientId, {
+      assignedMemberIds: args.assignedMemberIds,
+    });
+
+    return await ctx.db.get(args.clientId);
+  },
+});
+
 

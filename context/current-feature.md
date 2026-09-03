@@ -1,10 +1,10 @@
-Created At: 2026-09-03T21:32:00Z
-Completed At: 2026-09-03T21:32:00Z
+Created At: 2026-09-03T21:52:00Z
+Completed At: 2026-09-03T22:06:00Z
 File Path: `file:///c:/Noa%20Files/myProjects/socials-arc/context/current-feature.md`
 
 # Current Feature
 
-Clients & Pages UI/UX Polish: Integrated Client Command Hubs
+Client Team Member Assignments & Card Display
 
 ## Status
 
@@ -12,15 +12,16 @@ Completed
 
 ## Goals
 
-1. [x] Transform the Clients & Pages page from a disconnected 2:1 layout into unified, self-contained **Client Command Hub** cards.
-2. [x] Embed **Linked Social Channels** directly into each client's card with platform branding, external `@handle ↗` links, active toggles, and disconnect buttons.
-3. [x] Embed **Active Campaigns/Projects** directly into each client's card with status dropdowns and direct links to the content board.
-4. [x] Integrate **Workspace Tasks & Action Items** visibility into client cards by linking tasks to client projects, showing open task counters and interactive task checklists with one-click completion.
-5. [x] Add an **Agency Executive KPI Bar** displaying Total Clients, Linked Channels, Running Campaigns, Open Tasks, and Inventory Valuation.
-6. [x] Add **Instant Search & Status Filtering** by client name, project title, or social media handle.
+1. [x] Update `convex/schema.ts` to add `assignedMemberIds: v.optional(v.array(v.string()))` to `clients` table.
+2. [x] Update `convex/clients.ts` with `updateAssignedMembers` mutation and support for `assignedMemberIds` in `create`.
+3. [x] Query `api.workspaces.listMembers` in `app/(dashboard)/[workspaceSlug]/clients/page.tsx`.
+4. [x] Display assigned team members and active campaign task contributors inside each client card.
+5. [x] Create a dedicated modal to assign and manage team members on a client card.
+6. [x] Allow selecting initial team members when creating a new client profile.
 
 ## History
 
+- Client Team Member Assignments & Card Display
 - Clients & Pages UI/UX Polish: Integrated Client Command Hubs
 - Workspace Currency Selection & Client Inventory Valuation Tracking implementation
 - Lead Monitoring & CRM Pipeline implementation
