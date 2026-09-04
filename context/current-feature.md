@@ -1,23 +1,24 @@
-Created At: 2026-09-03T21:52:00Z
-Completed At: 2026-09-03T22:06:00Z
+Created At: 2026-09-03T22:55:00Z
 File Path: `file:///c:/Noa%20Files/myProjects/socials-arc/context/current-feature.md`
 
 # Current Feature
 
-Client Team Member Assignments & Card Display
+Deep Client Inventories (Cloud/Hetzner VPS, Assets) & Recurring Prorated Finance (MRR & Daily Pace)
 
 ## Status
 
-Completed
+Ready for Commit & Merge
 
 ## Goals
 
-1. [x] Update `convex/schema.ts` to add `assignedMemberIds: v.optional(v.array(v.string()))` to `clients` table.
-2. [x] Update `convex/clients.ts` with `updateAssignedMembers` mutation and support for `assignedMemberIds` in `create`.
-3. [x] Query `api.workspaces.listMembers` in `app/(dashboard)/[workspaceSlug]/clients/page.tsx`.
-4. [x] Display assigned team members and active campaign task contributors inside each client card.
-5. [x] Create a dedicated modal to assign and manage team members on a client card.
-6. [x] Allow selecting initial team members when creating a new client profile.
+1. [x] Update `convex/schema.ts` to enrich `clientAssets` with cloud/server fields (`provider`, `specsOrDetails`, `renewalDate`, `recurringCost`, `costInterval`, `autoTrackExpense`, `status`).
+2. [x] Update `convex/schema.ts` to allow `transactions` to be tied directly to a `clientId` or `workspaceId` (making `pageId` optional) with indexes and `billingFrequency`.
+3. [x] Update `convex/clientAssets.ts` with enhanced asset CRUD and recurring cost calculations.
+4. [x] Update `convex/transactions.ts` with direct client attribution and normalized recurring proration (MRR, ARR, Daily Recognized Income, Daily Expense Burn, Net Daily Pace).
+5. [x] Update `components/clients/ClientAssetModal.tsx` to configure server/cloud specs (Hetzner VPS, provider, IP, renewal date, subscription costs).
+6. [x] Update `app/(dashboard)/[workspaceSlug]/clients/page.tsx` cards with MRR, Daily Pace, and Cloud Hosting expense badges.
+7. [x] Update `app/(dashboard)/[workspaceSlug]/finance/page.tsx` with Agency Normalized Recurring Run-Rate and Cloud/Hosting Burn cards.
+8. [x] Prevent blank/empty fields in client inventory modal and backend mutations (comprehensive field validation, whitespace sanitization/trimming, and inline error states).
 
 ## History
 

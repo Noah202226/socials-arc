@@ -32,7 +32,9 @@ import {
   FileText as DocIcon,
   Edit2,
   AlertTriangle,
-  Package
+  Package,
+  Activity,
+  Server
 } from "lucide-react";
 import { toast } from "sonner";
 import { deduplicateIncomingFiles } from "@/lib/file-utils";
@@ -193,15 +195,14 @@ export default function FinancePage() {
   });
 
   // Main filtered transactions list
-  const filteredTransactions = transactions.filter((t) => {
-    const page = socialPages.find(p => p._id === t.pageId);
-    if (!page) return false;
-
-    const client = clients.find(c => c._id === page.clientId);
-    if (!client) return false;
+  const filteredTransactions = (transactions || []).filter((t) => {
+    const page = t.pageId ? socialPages.find(p => p._id === t.pageId) : null;
+    const client = t.clientId 
+      ? clients.find(c => c._id === t.clientId)
+      : (page ? clients.find(c => c._id === page.clientId) : null);
 
     // Filter by client
-    if (selectedClientFilter !== "all" && page.clientId !== selectedClientFilter) return false;
+    if (selectedClientFilter !== "all" && client?._id !== selectedClientFilter) return false;
     
     // Filter by page
     if (selectedPageFilter !== "all" && t.pageId !== selectedPageFilter) return false;
@@ -213,7 +214,8 @@ export default function FinancePage() {
     const matchesSearch = 
       t.description?.toLowerCase().includes(searchQuery.toLowerCase()) || 
       getCategoryLabel(t.category).toLowerCase().includes(searchQuery.toLowerCase()) ||
-      page.handle.toLowerCase().includes(searchQuery.toLowerCase());
+      (page && page.handle.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (client && client.name.toLowerCase().includes(searchQuery.toLowerCase()));
       
     return matchesSearch;
   });
@@ -240,8 +242,13 @@ export default function FinancePage() {
   // Handle Form Submission
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!txPageId || !txCategory || !txAmount || !txCurrency || !txDate) {
+    if (!txCategory || !txAmount || !txCurrency || !txDate) {
       toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    if (!txPageId && (!txClientId || txClientId === "all")) {
+      toast.error("Please select a target client or social channel.");
       return;
     }
 
@@ -259,7 +266,10 @@ export default function FinancePage() {
       if (receiptFiles.length > 0) {
         toast.info(`Uploading ${receiptFiles.length} receipt/attachment(s)...`);
         for (const file of receiptFiles) {
-          const uploadUrl = await generateReceiptUrl({ pageId: txPageId as any });
+          const uploadUrl = await generateReceiptUrl({ 
+            workspaceId: workspace?._id, 
+            pageId: (txPageId as any) || undefined 
+          });
           const res = await fetch(uploadUrl, {
             method: "POST",
             headers: { "Content-Type": file.type },
@@ -271,8 +281,14 @@ export default function FinancePage() {
         }
       }
 
+      const resolvedClientId = txClientId !== "all" 
+        ? (txClientId as any) 
+        : (txPageId ? socialPages.find(p => p._id === txPageId)?.clientId : undefined);
+
       await createTx({
-        pageId: txPageId as any,
+        pageId: txPageId ? (txPageId as any) : undefined,
+        clientId: resolvedClientId,
+        workspaceId: workspace?._id,
         postId: txPostId ? (txPostId as any) : undefined,
         type: txType,
         category: txCategory,
@@ -282,6 +298,7 @@ export default function FinancePage() {
         description: txDescription.trim() || undefined,
         recurring: txRecurring,
         recurrenceInterval: txRecurring ? txInterval : undefined,
+        billingFrequency: txRecurring ? (txInterval === "yearly" ? "yearly" : "monthly") : "one_time",
         receiptStorageId: receiptStorageIds[0] as any,
         receiptStorageIds: receiptStorageIds as any,
       });
@@ -325,7 +342,10 @@ export default function FinancePage() {
       if (receiptFiles.length > 0) {
         toast.info(`Uploading ${receiptFiles.length} new receipt attachment(s)...`);
         for (const file of receiptFiles) {
-          const uploadUrl = await generateReceiptUrl({ pageId: txPageId as any });
+          const uploadUrl = await generateReceiptUrl({ 
+            workspaceId: workspace?._id, 
+            pageId: (txPageId as any) || undefined 
+          });
           const res = await fetch(uploadUrl, {
             method: "POST",
             headers: { "Content-Type": file.type },
@@ -342,8 +362,13 @@ export default function FinancePage() {
         ...newStorageIds,
       ];
 
+      const resolvedClientId = txClientId !== "all" 
+        ? (txClientId as any) 
+        : (txPageId ? socialPages.find(p => p._id === txPageId)?.clientId : undefined);
+
       await updateTx({
         transactionId: selectedTx._id,
+        clientId: resolvedClientId,
         postId: txPostId ? (txPostId as any) : undefined,
         category: txCategory,
         amount: Math.round(floatAmount * 100), // convert to cents integer
@@ -352,6 +377,7 @@ export default function FinancePage() {
         description: txDescription.trim() || undefined,
         recurring: txRecurring,
         recurrenceInterval: txRecurring ? txInterval : undefined,
+        billingFrequency: txRecurring ? (txInterval === "yearly" ? "yearly" : "monthly") : "one_time",
         receiptStorageId: finalStorageIds[0] as any,
         receiptStorageIds: finalStorageIds as any,
       });
@@ -472,36 +498,107 @@ export default function FinancePage() {
         </div>
       )}
 
-      {/* Inventory & Total Net Valuation Summary Card */}
+      {/* Agency Normalized Recurring Run-Rate & Server Overhead Card */}
       {netSummary?.workspaceTotals && (
-        <div className="p-5 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-card flex flex-col md:flex-row justify-between items-start md:items-center gap-4 text-left shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-              <Package className="h-5 w-5" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="p-5 rounded-2xl border border-[#05ffc4]/25 bg-gradient-to-br from-[#05ffc4]/10 via-[#00d9f5]/5 to-card flex flex-col gap-3 text-left shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-[#05ffc4]/15 border border-[#05ffc4]/30 flex items-center justify-center text-[#05ffc4] shrink-0">
+                  <Activity className="h-4 w-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black uppercase tracking-wider text-[#05ffc4] font-mono">
+                    Agency Recurring MRR & Daily Run Rate
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Accrual / normalized daily recognition of annual retainers and monthly contracts.
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 font-mono">
-                Agency Net Valuation & Inventory Rollup
-              </span>
-              <span className="text-xs text-muted-foreground">
-                Combined operating financial P&L + recorded hardware, master digital files, and stock inventory value.
-              </span>
+
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border/80 font-mono">
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Agency MRR</span>
+                <span className="text-base font-extrabold text-[#05ffc4]">
+                  {formatCurrencyCents(netSummary.workspaceTotals.monthlyRecurringRevenue, currencyCode)}/mo
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  ARR: {formatCurrencyCents(netSummary.workspaceTotals.annualRunRate, currencyCode)}
+                </span>
+              </div>
+
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Daily Recognized Pace</span>
+                <span className="text-base font-extrabold text-emerald-400">
+                  {formatCurrencyCents(netSummary.workspaceTotals.dailyRecognizedIncome, currencyCode)}/day
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  (Prorated 1/365 & 1/30)
+                </span>
+              </div>
+
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Net Daily Margin</span>
+                <span className={`text-base font-extrabold ${netSummary.workspaceTotals.dailyNetRunRate >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                  {netSummary.workspaceTotals.dailyNetRunRate >= 0 ? "+" : ""}
+                  {formatCurrencyCents(netSummary.workspaceTotals.dailyNetRunRate, currencyCode)}/day
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  after server burn
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-6 font-mono shrink-0">
-            <div className="flex flex-col text-right">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">Inventory Valuation</span>
-              <span className="text-sm font-bold text-indigo-400">
-                {formatCurrencyCents(netSummary.workspaceTotals.assetValuation, currencyCode)}
-              </span>
+          <div className="p-5 rounded-2xl border border-indigo-500/25 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-card flex flex-col gap-3 text-left shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
+                  <Package className="h-4 w-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black uppercase tracking-wider text-indigo-400 font-mono">
+                    Cloud Infrastructure & Net Valuation
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Hetzner VPS, domains, SaaS subscriptions, plus total recorded physical/digital assets.
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="h-8 w-px bg-border hidden md:block" />
-            <div className="flex flex-col text-right">
-              <span className="text-[10px] uppercase font-bold text-muted-foreground">Total Client Net Worth</span>
-              <span className={`text-base font-extrabold ${netSummary.workspaceTotals.totalClientNetWorth >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                {formatCurrencyCents(netSummary.workspaceTotals.totalClientNetWorth, currencyCode)}
-              </span>
+
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border/80 font-mono">
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Cloud/VPS Burn</span>
+                <span className="text-base font-extrabold text-amber-400">
+                  {formatCurrencyCents(netSummary.workspaceTotals.monthlyInfrastructureExpense, currencyCode)}/mo
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  {formatCurrencyCents(netSummary.workspaceTotals.dailyExpenseBurn, currencyCode)}/day
+                </span>
+              </div>
+
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Asset Valuation</span>
+                <span className="text-base font-extrabold text-indigo-400">
+                  {formatCurrencyCents(netSummary.workspaceTotals.assetValuation, currencyCode)}
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  hardware & inventory
+                </span>
+              </div>
+
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Total Client Net Worth</span>
+                <span className={`text-base font-extrabold ${netSummary.workspaceTotals.totalClientNetWorth >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                  {formatCurrencyCents(netSummary.workspaceTotals.totalClientNetWorth, currencyCode)}
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  cash + assets
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -594,10 +691,34 @@ export default function FinancePage() {
                 </tr>
               ) : (
                 filteredTransactions.map((t) => {
-                  const page = socialPages.find(p => p._id === t.pageId);
-                  const client = page ? clients.find(c => c._id === page.clientId) : null;
+                  const page = t.pageId ? socialPages.find(p => p._id === t.pageId) : null;
+                  const client = t.clientId 
+                    ? clients.find(c => c._id === t.clientId)
+                    : (page ? clients.find(c => c._id === page.clientId) : null);
                   const post = t.postId ? posts.find(p => p._id === t.postId) : null;
                   
+                  // Calculate normalized MRR proration badge for annual or recurring items
+                  let prorationBadge = null;
+                  if (t.recurring || t.billingFrequency) {
+                    const freq = t.billingFrequency || t.recurrenceInterval || "monthly";
+                    if (freq === "yearly") {
+                      const mrr = Math.round(t.amount / 12);
+                      const daily = Math.round(t.amount / 365);
+                      prorationBadge = (
+                        <span className="text-[9px] font-mono font-bold text-[#05ffc4] bg-[#05ffc4]/10 border border-[#05ffc4]/20 px-1.5 py-0.5 rounded" title="Annual contract recognized in MRR and daily run rate">
+                          MRR: +{formatCurrencyCents(mrr, t.currency)}/mo ({formatCurrencyCents(daily, t.currency)}/d)
+                        </span>
+                      );
+                    } else if (freq === "weekly") {
+                      const daily = Math.round(t.amount / 7);
+                      prorationBadge = (
+                        <span className="text-[9px] font-mono text-zinc-400 bg-muted px-1.5 py-0.5 rounded border border-border">
+                          Weekly ({formatCurrencyCents(daily, t.currency)}/d)
+                        </span>
+                      );
+                    }
+                  }
+
                   return (
                     <tr 
                       key={t._id}
@@ -608,8 +729,15 @@ export default function FinancePage() {
                       </td>
                       <td className="p-4">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">@{page?.handle || "Unknown"}</span>
-                          <span className="text-[10px] text-zinc-500 uppercase tracking-wide">{client?.name}</span>
+                          <span className="font-semibold text-foreground">
+                            {page ? `@${page.handle}` : (client ? `${client.name} (Direct Retainer/Expense)` : "Workspace Overhead")}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            {client && (
+                              <span className="text-[10px] text-zinc-500 uppercase tracking-wide">{client.name}</span>
+                            )}
+                            {prorationBadge}
+                          </div>
                         </div>
                       </td>
                       <td className="p-4">
@@ -624,7 +752,7 @@ export default function FinancePage() {
                       <td className="p-4 text-foreground max-w-[200px] truncate" title={t.description}>
                         <div className="flex items-center gap-1.5">
                           {t.recurring && (
-                            <span title={`Recurring ${t.recurrenceInterval}`} className="shrink-0 flex items-center">
+                            <span title={`Recurring ${t.recurrenceInterval || "monthly"}`} className="shrink-0 flex items-center">
                               <Repeat className="h-3 w-3 text-indigo-400" />
                             </span>
                           )}
@@ -788,7 +916,7 @@ export default function FinancePage() {
 
                   {/* Target Channel */}
                   <div className="flex flex-col gap-1.5 text-left">
-                    <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Target Social Channel *</label>
+                    <label className="text-xs font-semibold text-zinc-555 dark:text-zinc-400">Target Channel or Operating Entity</label>
                     <select 
                       value={txPageId} 
                       onChange={(e) => {
@@ -796,20 +924,16 @@ export default function FinancePage() {
                         setTxPostId(""); // Reset post association
                       }}
                       className="w-full px-3 py-2 rounded-lg border border-border bg-muted text-foreground text-sm focus:outline-none focus:border-indigo-600 cursor-pointer"
-                      required
                     >
-                      {availableModalPages.length === 0 ? (
-                        <option value="" disabled>No channels available for selected client</option>
-                      ) : (
-                        availableModalPages.map(page => {
-                          const client = clients?.find(c => c._id === page.clientId);
-                          return (
-                            <option key={page._id} value={page._id}>
-                              @{page.handle} ({page.platform}){client && txClientId === "all" ? ` — ${client.name}` : ""}
-                            </option>
-                          );
-                        })
-                      )}
+                      <option value="">Direct Client Retainer / VPS & Tool Operating Expense (No Channel)</option>
+                      {availableModalPages.map(page => {
+                        const client = clients?.find(c => c._id === page.clientId);
+                        return (
+                          <option key={page._id} value={page._id}>
+                            @{page.handle} ({page.platform}){client && txClientId === "all" ? ` — ${client.name}` : ""}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
@@ -934,17 +1058,48 @@ export default function FinancePage() {
                     </div>
 
                     {txRecurring && (
-                      <div className="flex flex-col gap-1.5 mt-2 border-t border-border pt-2">
-                        <label className="text-[10px] font-semibold text-zinc-555 dark:text-zinc-400">Interval</label>
-                        <select
-                          value={txInterval}
-                          onChange={(e: any) => setTxInterval(e.target.value)}
-                          className="px-3.5 py-1.5 rounded bg-muted border border-border text-xs text-foreground focus:outline-none focus:border-indigo-600 cursor-pointer"
-                        >
-                          <option value="weekly">Every Week</option>
-                          <option value="monthly">Every Month</option>
-                          <option value="yearly">Every Year</option>
-                        </select>
+                      <div className="flex flex-col gap-2 mt-2 border-t border-border pt-2">
+                        <div className="flex flex-col gap-1.5">
+                          <label className="text-[10px] font-semibold text-zinc-555 dark:text-zinc-400">Recurrence / Billing Interval</label>
+                          <select
+                            value={txInterval}
+                            onChange={(e: any) => setTxInterval(e.target.value)}
+                            className="px-3.5 py-1.5 rounded bg-muted border border-border text-xs text-foreground focus:outline-none focus:border-indigo-600 cursor-pointer"
+                          >
+                            <option value="monthly">Every Month (Standard Recurring)</option>
+                            <option value="yearly">Every Year / Annual Contract (Prorated Daily & Monthly)</option>
+                            <option value="weekly">Every Week</option>
+                          </select>
+                        </div>
+
+                        {txAmount && parseFloat(txAmount) > 0 && (
+                          <div className="p-2.5 rounded-lg bg-[#05ffc4]/10 border border-[#05ffc4]/20 text-xs flex flex-col gap-1 text-left font-mono">
+                            <span className="text-[10px] font-bold text-[#05ffc4] uppercase">Run-Rate Recognition Preview:</span>
+                            {txInterval === "yearly" ? (
+                              <>
+                                <div className="flex justify-between text-foreground text-[11px]">
+                                  <span>Monthly MRR Recognition:</span>
+                                  <span className="font-bold text-[#05ffc4]">+{txCurrency} {(parseFloat(txAmount) / 12).toFixed(2)}/mo</span>
+                                </div>
+                                <div className="flex justify-between text-foreground text-[11px]">
+                                  <span>Daily Recognized Run Rate:</span>
+                                  <span className="font-bold text-emerald-400">+{txCurrency} {(parseFloat(txAmount) / 365).toFixed(2)}/day</span>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex justify-between text-foreground text-[11px]">
+                                  <span>Monthly MRR Recognition:</span>
+                                  <span className="font-bold text-[#05ffc4]">+{txCurrency} {parseFloat(txAmount).toFixed(2)}/mo</span>
+                                </div>
+                                <div className="flex justify-between text-foreground text-[11px]">
+                                  <span>Daily Recognized Run Rate:</span>
+                                  <span className="font-bold text-emerald-400">+{txCurrency} {(parseFloat(txAmount) / 30).toFixed(2)}/day</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

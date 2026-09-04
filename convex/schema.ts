@@ -180,7 +180,9 @@ export default defineSchema({
   // Transactions (financial tracking, per social page)
   // ---------------------------------------------------------------------
   transactions: defineTable({
-    pageId: v.id("socialPages"),
+    pageId: v.optional(v.id("socialPages")), // optional: allows direct client retainers or workspace infrastructure expenses
+    clientId: v.optional(v.id("clients")),
+    workspaceId: v.optional(v.id("workspaces")),
     postId: v.optional(v.id("posts")), // optionally link an expense to the post it funded
     type: v.union(v.literal("income"), v.literal("expense")),
     category: v.string(), // validated against lib/finance-categories.ts at the app layer
@@ -192,6 +194,9 @@ export default defineSchema({
     recurrenceInterval: v.optional(
       v.union(v.literal("weekly"), v.literal("monthly"), v.literal("yearly")),
     ),
+    billingFrequency: v.optional(
+      v.union(v.literal("one_time"), v.literal("monthly"), v.literal("yearly")),
+    ),
     receiptStorageId: v.optional(v.id("_storage")),
     receiptStorageIds: v.optional(v.array(v.id("_storage"))),
     createdBy: v.string(), // Clerk user id
@@ -199,7 +204,9 @@ export default defineSchema({
     .index("by_page", ["pageId"])
     .index("by_page_and_date", ["pageId", "date"])
     .index("by_page_and_type", ["pageId", "type"])
-    .index("by_recurring", ["recurring"]),
+    .index("by_recurring", ["recurring"])
+    .index("by_client", ["clientId"])
+    .index("by_workspace", ["workspaceId"]),
 
   // ---------------------------------------------------------------------
   // Notifications
@@ -289,6 +296,30 @@ export default defineSchema({
     currency: v.optional(v.string()), // e.g. "PHP"
     acquisitionDate: v.optional(v.number()),
     notes: v.optional(v.string()),
+    // Hardware & Device Inventory fields:
+    serialNumber: v.optional(v.string()), // e.g. serial #, asset tag
+    assignedTo: v.optional(v.string()), // e.g. assigned member or desk location
+    condition: v.optional(
+      v.union(
+        v.literal("brand_new"),
+        v.literal("excellent"),
+        v.literal("good"),
+        v.literal("fair"),
+        v.literal("needs_repair")
+      )
+    ),
+    // Deep Cloud & Server Subscription details:
+    provider: v.optional(v.string()), // e.g. "Hetzner", "AWS", "DigitalOcean", "Cloudflare", "Namecheap"
+    specsOrDetails: v.optional(v.string()), // e.g. "CPX21 3 vCPU / 4GB RAM / 80GB NVMe - IP 168.119.x.x"
+    renewalDate: v.optional(v.number()), // next expiration or renewal timestamp
+    recurringCost: v.optional(v.number()), // integer cents for monthly/annual ongoing fee
+    costInterval: v.optional(
+      v.union(v.literal("monthly"), v.literal("yearly"), v.literal("one_time")),
+    ),
+    autoTrackExpense: v.optional(v.boolean()),
+    status: v.optional(
+      v.union(v.literal("active"), v.literal("maintenance"), v.literal("expired"), v.literal("archived")),
+    ),
     createdBy: v.string(),
   })
     .index("by_workspace", ["workspaceId"])

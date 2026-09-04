@@ -3,6 +3,8 @@ export const INCOME_CATEGORIES = [
   { id: "affiliate", label: "Affiliate Income" },
   { id: "ad_share", label: "Ad Revenue Share" },
   { id: "retainer", label: "Monthly Retainer" },
+  { id: "annual_contract", label: "Annual Contract / Retainer" },
+  { id: "hosting_services", label: "Cloud & Hosting Services" },
   { id: "other_income", label: "Other Income" }
 ] as const;
 
@@ -11,6 +13,8 @@ export const EXPENSE_CATEGORIES = [
   { id: "content_production", label: "Content Production" },
   { id: "freelancer_pay", label: "Freelancer/Contractor Pay" },
   { id: "tools_subscriptions", label: "Tools & Subscriptions" },
+  { id: "cloud_vps_hosting", label: "Cloud & VPS Hosting (Hetzner, AWS)" },
+  { id: "domain_licenses", label: "Domains & Software Licenses" },
   { id: "other_expense", label: "Other Expense" }
 ] as const;
 

@@ -38,7 +38,9 @@ import {
   UserCheck,
   UserPlus,
   Shield,
-  User
+  User,
+  Activity,
+  Server
 } from "lucide-react";
 import ClientAssetModal from "@/components/clients/ClientAssetModal";
 import { formatCurrencyCents } from "@/lib/currency";
@@ -405,7 +407,7 @@ export default function ClientsPage() {
       </div>
 
       {/* Top Agency KPI Executive Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
         <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
           <div className="flex items-center justify-between text-zinc-500">
             <span className="text-[10px] uppercase font-bold tracking-wider">Total Clients</span>
@@ -419,40 +421,57 @@ export default function ClientsPage() {
 
         <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
           <div className="flex items-center justify-between text-zinc-500">
-            <span className="text-[10px] uppercase font-bold tracking-wider">Linked Channels</span>
-            <Layers className="h-3.5 w-3.5 text-blue-400" />
+            <span className="text-[10px] uppercase font-bold tracking-wider">Agency MRR</span>
+            <Layers className="h-3.5 w-3.5 text-[#05ffc4]" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-black text-foreground">{kpiStats.totalChannelsCount}</span>
-            <span className="text-[10px] text-zinc-500 font-semibold">handles connected</span>
+            <span className="text-xl font-black text-[#05ffc4]">
+              {formatCurrencyCents(netSummary?.workspaceTotals?.monthlyRecurringRevenue || 0, currencyCode)}
+            </span>
+            <span className="text-[10px] text-zinc-500 font-semibold">/mo recurring</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
           <div className="flex items-center justify-between text-zinc-500">
-            <span className="text-[10px] uppercase font-bold tracking-wider">Campaigns</span>
-            <FolderKanban className="h-3.5 w-3.5 text-purple-400" />
+            <span className="text-[10px] uppercase font-bold tracking-wider">Daily Run Rate</span>
+            <Activity className="h-3.5 w-3.5 text-emerald-400" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-black text-foreground">{kpiStats.totalProjectsCount}</span>
-            <span className="text-[10px] text-zinc-500 font-semibold">projects running</span>
+            <span className="text-xl font-black text-emerald-400">
+              {formatCurrencyCents(netSummary?.workspaceTotals?.dailyRecognizedIncome || 0, currencyCode)}
+            </span>
+            <span className="text-[10px] text-zinc-500 font-semibold">/day pace</span>
+          </div>
+        </div>
+
+        <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
+          <div className="flex items-center justify-between text-zinc-500">
+            <span className="text-[10px] uppercase font-bold tracking-wider">Cloud & VPS Burn</span>
+            <Server className="h-3.5 w-3.5 text-amber-400" />
+          </div>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-black text-amber-400">
+              {formatCurrencyCents(netSummary?.workspaceTotals?.monthlyInfrastructureExpense || 0, currencyCode)}
+            </span>
+            <span className="text-[10px] text-zinc-500 font-semibold">/mo hosting</span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
           <div className="flex items-center justify-between text-zinc-500">
             <span className="text-[10px] uppercase font-bold tracking-wider">Open Tasks</span>
-            <CheckSquare className="h-3.5 w-3.5 text-amber-400" />
+            <CheckSquare className="h-3.5 w-3.5 text-purple-400" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-black text-amber-400">{kpiStats.totalOpenTasksCount}</span>
-            <span className="text-[10px] text-zinc-500 font-semibold">need attention</span>
+            <span className="text-xl font-black text-purple-400">{kpiStats.totalOpenTasksCount}</span>
+            <span className="text-[10px] text-zinc-500 font-semibold">pending</span>
           </div>
         </div>
 
-        <div className="col-span-2 md:col-span-4 lg:col-span-1 p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
+        <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
           <div className="flex items-center justify-between text-zinc-500">
-            <span className="text-[10px] uppercase font-bold tracking-wider">Total Inventory</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider">Inventory Value</span>
             <Package className="h-3.5 w-3.5 text-indigo-400" />
           </div>
           <div className="flex items-baseline gap-1.5">
@@ -638,19 +657,36 @@ export default function ClientsPage() {
                       </div>
                     </div>
 
-                    {/* Financial Rollup & Task Counter Badges */}
-                    <div className="grid grid-cols-3 gap-2.5 pt-1 text-left">
+                    {/* Financial Rollup & Normalized Recurring Badges */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-left">
                       <div className="bg-card/70 border border-border/80 rounded-lg p-2 flex flex-col">
-                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Inventory Value</span>
-                        <span className="text-xs font-bold font-mono text-indigo-400">
-                          {formatCurrencyCents(assetValuation, currencyCode)}
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Monthly MRR</span>
+                        <span className="text-xs font-bold font-mono text-[#05ffc4]">
+                          {formatCurrencyCents(clientSummary?.monthlyRecurringIncome || 0, currencyCode)}/mo
+                        </span>
+                        <span className="text-[9px] text-zinc-500 font-mono">
+                          {formatCurrencyCents(clientSummary?.dailyRecognizedIncome || 0, currencyCode)}/day pace
                         </span>
                       </div>
                       
                       <div className="bg-card/70 border border-border/80 rounded-lg p-2 flex flex-col">
-                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Net Valuation</span>
-                        <span className={`text-xs font-bold font-mono ${netWorth >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                          {formatCurrencyCents(netWorth, currencyCode)}
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Cloud & Tools</span>
+                        <span className="text-xs font-bold font-mono text-amber-400">
+                          {formatCurrencyCents(clientSummary?.monthlyRecurringExpense || 0, currencyCode)}/mo
+                        </span>
+                        <span className="text-[9px] text-zinc-500 font-mono">
+                          {formatCurrencyCents(clientSummary?.dailyExpenseBurn || 0, currencyCode)}/day burn
+                        </span>
+                      </div>
+
+                      <div className="bg-card/70 border border-border/80 rounded-lg p-2 flex flex-col">
+                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Daily Net Pace</span>
+                        <span className={`text-xs font-bold font-mono ${(clientSummary?.dailyNetProfit || 0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {(clientSummary?.dailyNetProfit || 0) >= 0 ? "+" : ""}
+                          {formatCurrencyCents(clientSummary?.dailyNetProfit || 0, currencyCode)}/day
+                        </span>
+                        <span className="text-[9px] text-zinc-500 font-mono">
+                          Asset Val: {formatCurrencyCents(assetValuation, currencyCode)}
                         </span>
                       </div>
 
@@ -668,6 +704,9 @@ export default function ClientsPage() {
                               <CheckCircle2 className="h-3 w-3 text-emerald-400" /> All clear
                             </>
                           )}
+                        </span>
+                        <span className="text-[9px] text-zinc-500 font-mono">
+                          Net Worth: {formatCurrencyCents(netWorth, currencyCode)}
                         </span>
                       </div>
                     </div>
@@ -1041,7 +1080,7 @@ export default function ClientsPage() {
                         }}
                         className="text-[10px] h-7 px-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg"
                       >
-                        <Package className="h-3 w-3 mr-1" /> Client Inventory ({netSummary?.summariesByClient?.[client._id]?.assetCount || 0})
+                        <Server className="h-3 w-3 mr-1 text-[#05ffc4]" /> Servers & Inventory ({netSummary?.summariesByClient?.[client._id]?.assetCount || 0})
                       </Button>
                     </div>
 

@@ -59,36 +59,102 @@ async function verifyMembershipDirect(ctx: any, workspaceId: any) {
 }
 
 /**
- * Helper to rollup transaction amounts grouped by currency.
+ * Helper to verify membership by transaction record.
+ */
+async function verifyMembershipByTransaction(ctx: any, transaction: any) {
+  if (transaction.pageId) {
+    return await verifyMembershipByPage(ctx, transaction.pageId);
+  }
+  if (transaction.clientId) {
+    const client = await ctx.db.get(transaction.clientId);
+    if (!client) throw new ConvexError("Client not found");
+    return await verifyMembershipDirect(ctx, client.workspaceId);
+  }
+  if (transaction.workspaceId) {
+    return await verifyMembershipDirect(ctx, transaction.workspaceId);
+  }
+  throw new ConvexError("Transaction has no valid workspace association");
+}
+
+/**
+ * Helper to rollup transaction amounts grouped by currency with normalized run-rate.
  */
 function calculateRollup(transactions: any[]) {
-  const summary: Record<string, { income: number; expense: number; net: number }> = {};
+  const summary: Record<string, {
+    income: number;
+    expense: number;
+    net: number;
+    // Normalized recurring run-rates:
+    mrr: number; // monthly recurring income
+    dailyIncome: number; // daily recognized income
+    monthlyExpense: number; // monthly recurring expense
+    dailyExpense: number; // daily expense burn
+    dailyNetMargin: number; // daily net pace
+  }> = {};
   
   for (const t of transactions) {
-    const cur = t.currency || "USD";
+    const cur = t.currency || "PHP";
     
     if (!summary[cur]) {
-      summary[cur] = { income: 0, expense: 0, net: 0 };
+      summary[cur] = {
+        income: 0,
+        expense: 0,
+        net: 0,
+        mrr: 0,
+        dailyIncome: 0,
+        monthlyExpense: 0,
+        dailyExpense: 0,
+        dailyNetMargin: 0,
+      };
     }
     
     if (t.type === "income") {
       summary[cur].income += t.amount;
       summary[cur].net += t.amount;
+
+      if (t.recurring || t.billingFrequency) {
+        const freq = t.billingFrequency || t.recurrenceInterval || "monthly";
+        if (freq === "yearly") {
+          summary[cur].mrr += Math.round(t.amount / 12);
+          summary[cur].dailyIncome += Math.round(t.amount / 365);
+        } else if (freq === "weekly") {
+          summary[cur].mrr += Math.round((t.amount * 52) / 12);
+          summary[cur].dailyIncome += Math.round(t.amount / 7);
+        } else {
+          summary[cur].mrr += t.amount;
+          summary[cur].dailyIncome += Math.round(t.amount / 30);
+        }
+      }
     } else if (t.type === "expense") {
       summary[cur].expense += t.amount;
       summary[cur].net -= t.amount;
+
+      if (t.recurring || t.billingFrequency) {
+        const freq = t.billingFrequency || t.recurrenceInterval || "monthly";
+        if (freq === "yearly") {
+          summary[cur].monthlyExpense += Math.round(t.amount / 12);
+          summary[cur].dailyExpense += Math.round(t.amount / 365);
+        } else {
+          summary[cur].monthlyExpense += t.amount;
+          summary[cur].dailyExpense += Math.round(t.amount / 30);
+        }
+      }
     }
+
+    summary[cur].dailyNetMargin = summary[cur].dailyIncome - summary[cur].dailyExpense;
   }
   
   return summary;
 }
 
 /**
- * Creates a new transaction entry.
+ * Creates a new transaction entry (can be tied to a social page, direct client, or workspace overhead).
  */
 export const create = mutation({
   args: {
-    pageId: v.id("socialPages"),
+    pageId: v.optional(v.id("socialPages")),
+    clientId: v.optional(v.id("clients")),
+    workspaceId: v.optional(v.id("workspaces")),
     postId: v.optional(v.id("posts")),
     type: v.union(v.literal("income"), v.literal("expense")),
     category: v.string(),
@@ -100,11 +166,34 @@ export const create = mutation({
     recurrenceInterval: v.optional(
       v.union(v.literal("weekly"), v.literal("monthly"), v.literal("yearly"))
     ),
+    billingFrequency: v.optional(
+      v.union(v.literal("one_time"), v.literal("monthly"), v.literal("yearly"))
+    ),
     receiptStorageId: v.optional(v.id("_storage")),
     receiptStorageIds: v.optional(v.array(v.id("_storage"))),
   },
   handler: async (ctx, args) => {
-    const { identity } = await verifyMembershipByPage(ctx, args.pageId);
+    let resolvedClientId = args.clientId;
+    let resolvedWorkspaceId = args.workspaceId;
+    let callerIdentity: any = null;
+
+    if (args.pageId) {
+      const { identity, page, client } = await verifyMembershipByPage(ctx, args.pageId);
+      callerIdentity = identity;
+      resolvedClientId = client._id;
+      resolvedWorkspaceId = client.workspaceId;
+    } else if (args.clientId) {
+      const client = await ctx.db.get(args.clientId);
+      if (!client) throw new ConvexError("Client not found");
+      const { identity } = await verifyMembershipDirect(ctx, client.workspaceId);
+      callerIdentity = identity;
+      resolvedWorkspaceId = client.workspaceId;
+    } else if (args.workspaceId) {
+      const { identity } = await verifyMembershipDirect(ctx, args.workspaceId);
+      callerIdentity = identity;
+    } else {
+      throw new ConvexError("Must provide at least pageId, clientId, or workspaceId");
+    }
 
     // If postId is provided, verify it belongs to the same client
     if (args.postId) {
@@ -113,9 +202,8 @@ export const create = mutation({
         throw new ConvexError("Post not found");
       }
       const postProject = await ctx.db.get(post.projectId);
-      const targetPage = await ctx.db.get(args.pageId);
-      if (postProject && targetPage && postProject.clientId !== targetPage.clientId) {
-        throw new ConvexError("Post client mismatch with target social page client");
+      if (postProject && resolvedClientId && postProject.clientId !== resolvedClientId) {
+        throw new ConvexError("Post client mismatch with target client");
       }
     }
 
@@ -124,6 +212,8 @@ export const create = mutation({
 
     const transactionId = await ctx.db.insert("transactions", {
       pageId: args.pageId,
+      clientId: resolvedClientId,
+      workspaceId: resolvedWorkspaceId,
       postId: args.postId,
       type: args.type,
       category: args.category,
@@ -133,9 +223,10 @@ export const create = mutation({
       description: args.description,
       recurring: args.recurring,
       recurrenceInterval: args.recurrenceInterval,
+      billingFrequency: args.billingFrequency,
       receiptStorageId: primaryReceiptId,
       receiptStorageIds: allReceiptIds,
-      createdBy: identity.subject,
+      createdBy: callerIdentity.subject,
     });
 
     return await ctx.db.get(transactionId);
@@ -149,6 +240,7 @@ export const update = mutation({
   args: {
     transactionId: v.id("transactions"),
     postId: v.optional(v.id("posts")),
+    clientId: v.optional(v.id("clients")),
     category: v.string(),
     amount: v.number(),
     currency: v.string(),
@@ -157,6 +249,9 @@ export const update = mutation({
     recurring: v.boolean(),
     recurrenceInterval: v.optional(
       v.union(v.literal("weekly"), v.literal("monthly"), v.literal("yearly"))
+    ),
+    billingFrequency: v.optional(
+      v.union(v.literal("one_time"), v.literal("monthly"), v.literal("yearly"))
     ),
     receiptStorageId: v.optional(v.id("_storage")),
     receiptStorageIds: v.optional(v.array(v.id("_storage"))),
@@ -167,20 +262,7 @@ export const update = mutation({
       throw new ConvexError("Transaction not found");
     }
 
-    await verifyMembershipByPage(ctx, transaction.pageId);
-
-    // If postId is provided, verify it belongs to the same client
-    if (args.postId) {
-      const post = await ctx.db.get(args.postId);
-      if (!post) {
-        throw new ConvexError("Post not found");
-      }
-      const postProject = await ctx.db.get(post.projectId);
-      const targetPage = await ctx.db.get(transaction.pageId);
-      if (postProject && targetPage && postProject.clientId !== targetPage.clientId) {
-        throw new ConvexError("Post client mismatch with target social page client");
-      }
-    }
+    await verifyMembershipByTransaction(ctx, transaction);
 
     const primaryReceiptId = args.receiptStorageId || args.receiptStorageIds?.[0];
     const allReceiptIds = args.receiptStorageIds || (args.receiptStorageId ? [args.receiptStorageId] : undefined);
@@ -204,6 +286,7 @@ export const update = mutation({
 
     await ctx.db.patch(args.transactionId, {
       postId: args.postId,
+      clientId: args.clientId !== undefined ? args.clientId : transaction.clientId,
       category: args.category,
       amount: Math.round(args.amount), // ensure integer cents
       currency: args.currency,
@@ -211,6 +294,7 @@ export const update = mutation({
       description: args.description,
       recurring: args.recurring,
       recurrenceInterval: args.recurrenceInterval,
+      billingFrequency: args.billingFrequency,
       receiptStorageId: primaryReceiptId,
       receiptStorageIds: allReceiptIds,
     });
@@ -232,7 +316,7 @@ export const deleteTransaction = mutation({
       throw new ConvexError("Transaction not found");
     }
 
-    await verifyMembershipByPage(ctx, transaction.pageId);
+    await verifyMembershipByTransaction(ctx, transaction);
 
     const storageIds = new Set<Id<"_storage">>();
     if (transaction.receiptStorageId) storageIds.add(transaction.receiptStorageId);
@@ -259,16 +343,21 @@ export const deleteTransaction = mutation({
  */
 export const generateReceiptUploadUrl = mutation({
   args: {
-    pageId: v.id("socialPages"),
+    workspaceId: v.optional(v.id("workspaces")),
+    pageId: v.optional(v.id("socialPages")),
   },
   handler: async (ctx, args) => {
-    await verifyMembershipByPage(ctx, args.pageId);
+    if (args.workspaceId) {
+      await verifyMembershipDirect(ctx, args.workspaceId);
+    } else if (args.pageId) {
+      await verifyMembershipByPage(ctx, args.pageId);
+    }
     return await ctx.storage.generateUploadUrl();
   },
 });
 
 /**
- * Lists transactions for a specific page.
+ * Lists all transactions for a specific page.
  */
 export const listByPage = query({
   args: {
@@ -281,6 +370,9 @@ export const listByPage = query({
       .query("transactions")
       .withIndex("by_page", (q) => q.eq("pageId", args.pageId))
       .collect();
+
+    // Sort by date descending
+    txs.sort((a, b) => b.date - a.date);
 
     return await Promise.all(
       txs.map(async (t) => {
@@ -304,7 +396,7 @@ export const listByPage = query({
 });
 
 /**
- * Lists all transactions in the workspace.
+ * Lists all transactions in the workspace (including direct workspace, client, and page-level transactions).
  */
 export const listByWorkspace = query({
   args: {
@@ -313,31 +405,58 @@ export const listByWorkspace = query({
   handler: async (ctx, args) => {
     await verifyMembershipDirect(ctx, args.workspaceId);
 
-    // Get all clients
+    const seenIds = new Set<string>();
+    const allTxs = [];
+
+    // 1. Transactions directly indexed by workspaceId
+    const workspaceTxs = await ctx.db
+      .query("transactions")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+
+    for (const tx of workspaceTxs) {
+      seenIds.add(tx._id);
+      allTxs.push(tx);
+    }
+
+    // 2. Get all clients in workspace
     const clients = await ctx.db
       .query("clients")
       .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
       .collect();
 
-    const clientIds = clients.map((c) => c._id);
-    const pageIds = [];
+    for (const client of clients) {
+      const clientTxs = await ctx.db
+        .query("transactions")
+        .withIndex("by_client", (q) => q.eq("clientId", client._id))
+        .collect();
 
-    // Get all pages
-    for (const clientId of clientIds) {
+      for (const tx of clientTxs) {
+        if (!seenIds.has(tx._id)) {
+          seenIds.add(tx._id);
+          allTxs.push(tx);
+        }
+      }
+
+      // 3. Get all pages for client
       const pages = await ctx.db
         .query("socialPages")
-        .withIndex("by_client", (q) => q.eq("clientId", clientId))
+        .withIndex("by_client", (q) => q.eq("clientId", client._id))
         .collect();
-      pageIds.push(...pages.map((p) => p._id));
-    }
 
-    const allTxs = [];
-    for (const pageId of pageIds) {
-      const txs = await ctx.db
-        .query("transactions")
-        .withIndex("by_page", (q) => q.eq("pageId", pageId))
-        .collect();
-      allTxs.push(...txs);
+      for (const page of pages) {
+        const pageTxs = await ctx.db
+          .query("transactions")
+          .withIndex("by_page", (q) => q.eq("pageId", page._id))
+          .collect();
+
+        for (const tx of pageTxs) {
+          if (!seenIds.has(tx._id)) {
+            seenIds.add(tx._id);
+            allTxs.push(tx);
+          }
+        }
+      }
     }
 
     // Sort by date descending
@@ -384,7 +503,7 @@ export const getPageSummary = query({
 });
 
 /**
- * Retrieves the P&L summary rollup for a specific client (sums across all pages).
+ * Retrieves the P&L summary rollup for a specific client (including direct client transactions and all pages).
  */
 export const getClientSummary = query({
   args: {
@@ -412,18 +531,104 @@ export const getClientSummary = query({
       throw new ConvexError("Unauthorized: Access denied to this workspace");
     }
 
+    const seenTxIds = new Set<string>();
+    const allTxs = [];
+
+    // Direct client transactions
+    const clientTxs = await ctx.db
+      .query("transactions")
+      .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
+      .collect();
+
+    for (const tx of clientTxs) {
+      seenTxIds.add(tx._id);
+      allTxs.push(tx);
+    }
+
+    // Social page transactions
     const pages = await ctx.db
       .query("socialPages")
       .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
       .collect();
 
-    const allTxs = [];
     for (const page of pages) {
       const txs = await ctx.db
         .query("transactions")
         .withIndex("by_page", (q) => q.eq("pageId", page._id))
         .collect();
-      allTxs.push(...txs);
+      for (const tx of txs) {
+        if (!seenTxIds.has(tx._id)) {
+          seenTxIds.add(tx._id);
+          allTxs.push(tx);
+        }
+      }
+    }
+
+    return calculateRollup(allTxs);
+  },
+});
+
+/**
+ * Retrieves the full workspace-wide rollup including MRR, ARR, and normalized daily pace.
+ */
+export const getWorkspaceSummary = query({
+  args: {
+    workspaceId: v.id("workspaces"),
+  },
+  handler: async (ctx, args) => {
+    await verifyMembershipDirect(ctx, args.workspaceId);
+
+    const seenIds = new Set<string>();
+    const allTxs = [];
+
+    // 1. Workspace-direct transactions
+    const workspaceTxs = await ctx.db
+      .query("transactions")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+
+    for (const tx of workspaceTxs) {
+      seenIds.add(tx._id);
+      allTxs.push(tx);
+    }
+
+    // 2. Client & Page transactions
+    const clients = await ctx.db
+      .query("clients")
+      .withIndex("by_workspace", (q) => q.eq("workspaceId", args.workspaceId))
+      .collect();
+
+    for (const client of clients) {
+      const clientTxs = await ctx.db
+        .query("transactions")
+        .withIndex("by_client", (q) => q.eq("clientId", client._id))
+        .collect();
+
+      for (const tx of clientTxs) {
+        if (!seenIds.has(tx._id)) {
+          seenIds.add(tx._id);
+          allTxs.push(tx);
+        }
+      }
+
+      const pages = await ctx.db
+        .query("socialPages")
+        .withIndex("by_client", (q) => q.eq("clientId", client._id))
+        .collect();
+
+      for (const page of pages) {
+        const pageTxs = await ctx.db
+          .query("transactions")
+          .withIndex("by_page", (q) => q.eq("pageId", page._id))
+          .collect();
+
+        for (const tx of pageTxs) {
+          if (!seenIds.has(tx._id)) {
+            seenIds.add(tx._id);
+            allTxs.push(tx);
+          }
+        }
+      }
     }
 
     return calculateRollup(allTxs);
@@ -455,6 +660,8 @@ export const processRecurring = mutation({
         // 1. Create a historical copy (non-recurring)
         await ctx.db.insert("transactions", {
           pageId: tx.pageId,
+          clientId: tx.clientId,
+          workspaceId: tx.workspaceId,
           postId: tx.postId,
           type: tx.type,
           category: tx.category,
@@ -463,7 +670,9 @@ export const processRecurring = mutation({
           date: currentTxDate, // historical date
           description: tx.description ? `${tx.description} (Auto-logged)` : "Auto-logged recurring item",
           recurring: false, // historical record is static
+          billingFrequency: tx.billingFrequency,
           receiptStorageId: tx.receiptStorageId,
+          receiptStorageIds: tx.receiptStorageIds,
           createdBy: tx.createdBy,
         });
 
@@ -495,4 +704,3 @@ export const processRecurring = mutation({
     return { processedCount };
   },
 });
-
