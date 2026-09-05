@@ -34,7 +34,8 @@ import {
   AlertTriangle,
   Package,
   Activity,
-  Server
+  Server,
+  ShoppingCart
 } from "lucide-react";
 import { toast } from "sonner";
 import { deduplicateIncomingFiles } from "@/lib/file-utils";
@@ -500,7 +501,7 @@ export default function FinancePage() {
 
       {/* Agency Normalized Recurring Run-Rate & Server Overhead Card */}
       {netSummary?.workspaceTotals && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           <div className="p-5 rounded-2xl border border-[#05ffc4]/25 bg-gradient-to-br from-[#05ffc4]/10 via-[#00d9f5]/5 to-card flex flex-col gap-3 text-left shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -509,10 +510,10 @@ export default function FinancePage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-black uppercase tracking-wider text-[#05ffc4] font-mono">
-                    Agency Recurring MRR & Daily Run Rate
+                    Agency Recurring MRR & Daily Pace
                   </span>
                   <span className="text-[11px] text-muted-foreground">
-                    Accrual / normalized daily recognition of annual retainers and monthly contracts.
+                    Accrual recognition of retainers and active contracts.
                   </span>
                 </div>
               </div>
@@ -530,17 +531,17 @@ export default function FinancePage() {
               </div>
 
               <div className="flex flex-col text-left">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground">Daily Recognized Pace</span>
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Daily Pace</span>
                 <span className="text-base font-extrabold text-emerald-400">
                   {formatCurrencyCents(netSummary.workspaceTotals.dailyRecognizedIncome, currencyCode)}/day
                 </span>
                 <span className="text-[9px] text-muted-foreground">
-                  (Prorated 1/365 & 1/30)
+                  (Prorated 1/365)
                 </span>
               </div>
 
               <div className="flex flex-col text-left">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground">Net Daily Margin</span>
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Net Margin</span>
                 <span className={`text-base font-extrabold ${netSummary.workspaceTotals.dailyNetRunRate >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                   {netSummary.workspaceTotals.dailyNetRunRate >= 0 ? "+" : ""}
                   {formatCurrencyCents(netSummary.workspaceTotals.dailyNetRunRate, currencyCode)}/day
@@ -560,10 +561,10 @@ export default function FinancePage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xs font-black uppercase tracking-wider text-indigo-400 font-mono">
-                    Cloud Infrastructure & Net Valuation
+                    Cloud Servers & Valuation
                   </span>
                   <span className="text-[11px] text-muted-foreground">
-                    Hetzner VPS, domains, SaaS subscriptions, plus total recorded physical/digital assets.
+                    Hetzner VPS, domains, SaaS subscriptions & asset valuations.
                   </span>
                 </div>
               </div>
@@ -571,7 +572,7 @@ export default function FinancePage() {
 
             <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border/80 font-mono">
               <div className="flex flex-col text-left">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground">Cloud/VPS Burn</span>
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Cloud Burn</span>
                 <span className="text-base font-extrabold text-amber-400">
                   {formatCurrencyCents(netSummary.workspaceTotals.monthlyInfrastructureExpense, currencyCode)}/mo
                 </span>
@@ -581,22 +582,79 @@ export default function FinancePage() {
               </div>
 
               <div className="flex flex-col text-left">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground">Asset Valuation</span>
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Asset Worth</span>
                 <span className="text-base font-extrabold text-indigo-400">
                   {formatCurrencyCents(netSummary.workspaceTotals.assetValuation, currencyCode)}
                 </span>
                 <span className="text-[9px] text-muted-foreground">
-                  hardware & inventory
+                  hardware valuation
                 </span>
               </div>
 
               <div className="flex flex-col text-left">
-                <span className="text-[9px] uppercase font-bold text-muted-foreground">Total Client Net Worth</span>
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Total Net</span>
                 <span className={`text-base font-extrabold ${netSummary.workspaceTotals.totalClientNetWorth >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                   {formatCurrencyCents(netSummary.workspaceTotals.totalClientNetWorth, currencyCode)}
                 </span>
                 <span className="text-[9px] text-muted-foreground">
-                  cash + assets
+                  cash + equipment
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: BNPL Financing Liabilities & PC Hardware */}
+          <div className="p-5 rounded-2xl border border-amber-500/25 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-card flex flex-col gap-3 text-left shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                  <ShoppingCart className="h-4 w-4" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-400 font-mono">
+                    BNPL Liabilities & Hardware
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    Shopee SPayLater, Lazada LazPayLater & PC parts inventory.
+                  </span>
+                </div>
+              </div>
+              {netSummary.workspaceTotals.dueSoonBnplCount > 0 && (
+                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 flex items-center gap-1 animate-pulse">
+                  <AlertTriangle className="h-3 w-3" />
+                  {netSummary.workspaceTotals.dueSoonBnplCount} Due Soon
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border/80 font-mono">
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Unpaid BNPL</span>
+                <span className="text-base font-extrabold text-amber-400">
+                  {formatCurrencyCents(netSummary.workspaceTotals.remainingBnplLiability, currencyCode)}
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  {netSummary.workspaceTotals.bnplActiveCount} active items
+                </span>
+              </div>
+
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">Monthly Outflow</span>
+                <span className="text-base font-extrabold text-rose-400">
+                  {formatCurrencyCents(netSummary.workspaceTotals.monthlyBnplObligation, currencyCode)}/mo
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  installment drain
+                </span>
+              </div>
+
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] uppercase font-bold text-muted-foreground">PC Parts Stock</span>
+                <span className="text-base font-extrabold text-foreground">
+                  {netSummary.workspaceTotals.hardwarePartCounts.inStock} In Stock
+                </span>
+                <span className="text-[9px] text-muted-foreground">
+                  {netSummary.workspaceTotals.hardwarePartCounts.installed} in rigs
                 </span>
               </div>
             </div>

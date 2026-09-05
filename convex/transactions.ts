@@ -396,6 +396,87 @@ export const listByPage = query({
 });
 
 /**
+ * Lists all transactions for a specific client (both direct client transactions and transactions on client's social pages).
+ */
+export const listByClient = query({
+  args: {
+    clientId: v.id("clients"),
+  },
+  handler: async (ctx, args) => {
+    const client = await ctx.db.get(args.clientId);
+    if (!client) return [];
+    await verifyMembershipDirect(ctx, client.workspaceId);
+
+    const seenIds = new Set<string>();
+    const clientTxs = [];
+
+    // Direct client transactions
+    const direct = await ctx.db
+      .query("transactions")
+      .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
+      .collect();
+
+    for (const tx of direct) {
+      seenIds.add(tx._id);
+      clientTxs.push(tx);
+    }
+
+    // Page-level transactions
+    const pages = await ctx.db
+      .query("socialPages")
+      .withIndex("by_client", (q) => q.eq("clientId", args.clientId))
+      .collect();
+
+    const pageMap = new Map<string, typeof pages[0]>();
+    for (const p of pages) {
+      pageMap.set(p._id, p);
+    }
+
+    for (const page of pages) {
+      const pageTxs = await ctx.db
+        .query("transactions")
+        .withIndex("by_page", (q) => q.eq("pageId", page._id))
+        .collect();
+
+      for (const tx of pageTxs) {
+        if (!seenIds.has(tx._id)) {
+          seenIds.add(tx._id);
+          clientTxs.push(tx);
+        }
+      }
+    }
+
+    clientTxs.sort((a, b) => b.date - a.date);
+
+    return await Promise.all(
+      clientTxs.map(async (t) => {
+        const ids = t.receiptStorageIds && t.receiptStorageIds.length > 0
+          ? t.receiptStorageIds
+          : (t.receiptStorageId ? [t.receiptStorageId] : []);
+        const rawUrls = await Promise.all(ids.map(id => ctx.storage.getUrl(id)));
+        const receiptUrls = rawUrls.filter((url): url is string => Boolean(url));
+        const receiptUrl = t.receiptStorageId 
+          ? await ctx.storage.getUrl(t.receiptStorageId) 
+          : (receiptUrls[0] || null);
+
+        const page = t.pageId ? pageMap.get(t.pageId) : null;
+
+        return {
+          ...t,
+          receiptUrl,
+          receiptUrls,
+          socialPage: page ? {
+            _id: page._id,
+            platform: page.platform,
+            handle: page.handle,
+          } : null,
+        };
+      })
+    );
+  },
+});
+
+/**
  * Lists all transactions in the workspace (including direct workspace, client, and page-level transactions).
  */
 export const listByWorkspace = query({

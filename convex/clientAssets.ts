@@ -100,6 +100,22 @@ export const getClientNetSummary = query({
       monthlyRecurringExpense: number; // integer cents (Hetzner VPS, SaaS subscriptions)
       dailyExpenseBurn: number; // integer cents / day
       dailyNetProfit: number; // integer cents / day
+      // BNPL & Hardware Build Metrics:
+      totalBnplFinanced: number; // integer cents (total financed value)
+      totalBnplPaid: number; // integer cents (installments paid to date)
+      remainingBnplLiability: number; // integer cents (outstanding BNPL debt)
+      monthlyBnplObligation: number; // integer cents / mo for active BNPL
+      bnplActiveCount: number;
+      dueSoonBnplCount: number; // due in <= 7 days
+      hardwarePartCounts: {
+        inStock: number;
+        reserved: number;
+        installed: number;
+        sold: number;
+      };
+      // Cloud Server & Transaction Metrics:
+      cloudHostingExpense: number; // integer cents (spent on Hetzner / AWS / servers)
+      transactionCount: number;
     }> = {};
 
     let globalTotalIncome = 0;
@@ -109,6 +125,19 @@ export const getClientNetSummary = query({
     let globalDailyIncome = 0;
     let globalMonthlyExpense = 0;
     let globalDailyExpense = 0;
+
+    let globalTotalBnplFinanced = 0;
+    let globalTotalBnplPaid = 0;
+    let globalRemainingBnplLiability = 0;
+    let globalMonthlyBnplObligation = 0;
+    let globalBnplActiveCount = 0;
+    let globalDueSoonBnplCount = 0;
+    const globalHardwarePartCounts = {
+      inStock: 0,
+      reserved: 0,
+      installed: 0,
+      sold: 0,
+    };
 
     for (const client of clients) {
       summaries[client._id] = {
@@ -126,6 +155,20 @@ export const getClientNetSummary = query({
         monthlyRecurringExpense: 0,
         dailyExpenseBurn: 0,
         dailyNetProfit: 0,
+        totalBnplFinanced: 0,
+        totalBnplPaid: 0,
+        remainingBnplLiability: 0,
+        monthlyBnplObligation: 0,
+        bnplActiveCount: 0,
+        dueSoonBnplCount: 0,
+        hardwarePartCounts: {
+          inStock: 0,
+          reserved: 0,
+          installed: 0,
+          sold: 0,
+        },
+        cloudHostingExpense: 0,
+        transactionCount: 0,
       };
 
       const seenTxIds = new Set<string>();
@@ -138,13 +181,26 @@ export const getClientNetSummary = query({
 
       for (const tx of directTxs) {
         seenTxIds.add(tx._id);
+        summaries[client._id].transactionCount += 1;
+
+        if (
+          tx.category === "cloud_vps_hosting" ||
+          tx.category === "hosting_services" ||
+          tx.description?.toLowerCase().includes("hetzner") ||
+          tx.description?.toLowerCase().includes("server") ||
+          tx.description?.toLowerCase().includes("vps")
+        ) {
+          summaries[client._id].cloudHostingExpense += tx.amount;
+        }
+
         if (tx.type === "income") {
           summaries[client._id].totalIncome += tx.amount;
           globalTotalIncome += tx.amount;
 
-          // Normalized proration
-          if (tx.recurring || tx.billingFrequency) {
-            const freq = tx.billingFrequency || tx.recurrenceInterval || "monthly";
+          // Normalized proration: only if recurring or periodic
+          const isRecurring = tx.recurring || (tx.billingFrequency && tx.billingFrequency !== "one_time");
+          if (isRecurring) {
+            const freq = (tx.billingFrequency && tx.billingFrequency !== "one_time" ? tx.billingFrequency : tx.recurrenceInterval) || "monthly";
             if (freq === "yearly") {
               const mrr = Math.round(tx.amount / 12);
               summaries[client._id].monthlyRecurringIncome += mrr;
@@ -162,12 +218,17 @@ export const getClientNetSummary = query({
           summaries[client._id].totalExpense += tx.amount;
           globalTotalExpense += tx.amount;
 
-          if (tx.recurring || tx.billingFrequency) {
-            const freq = tx.billingFrequency || tx.recurrenceInterval || "monthly";
+          const isRecurring = tx.recurring || (tx.billingFrequency && tx.billingFrequency !== "one_time");
+          if (isRecurring) {
+            const freq = (tx.billingFrequency && tx.billingFrequency !== "one_time" ? tx.billingFrequency : tx.recurrenceInterval) || "monthly";
             if (freq === "yearly") {
               const mExpense = Math.round(tx.amount / 12);
               summaries[client._id].monthlyRecurringExpense += mExpense;
               summaries[client._id].dailyExpenseBurn += Math.round(tx.amount / 365);
+            } else if (freq === "weekly") {
+              const mExpense = Math.round((tx.amount * 52) / 12);
+              summaries[client._id].monthlyRecurringExpense += mExpense;
+              summaries[client._id].dailyExpenseBurn += Math.round(tx.amount / 7);
             } else {
               summaries[client._id].monthlyRecurringExpense += tx.amount;
               summaries[client._id].dailyExpenseBurn += Math.round(tx.amount / 30);
@@ -191,16 +252,31 @@ export const getClientNetSummary = query({
         for (const tx of txs) {
           if (seenTxIds.has(tx._id)) continue;
           seenTxIds.add(tx._id);
+          summaries[client._id].transactionCount += 1;
+
+          if (
+            tx.category === "cloud_vps_hosting" ||
+            tx.category === "hosting_services" ||
+            tx.description?.toLowerCase().includes("hetzner") ||
+            tx.description?.toLowerCase().includes("server") ||
+            tx.description?.toLowerCase().includes("vps")
+          ) {
+            summaries[client._id].cloudHostingExpense += tx.amount;
+          }
 
           if (tx.type === "income") {
             summaries[client._id].totalIncome += tx.amount;
             globalTotalIncome += tx.amount;
 
-            if (tx.recurring || tx.billingFrequency) {
-              const freq = tx.billingFrequency || tx.recurrenceInterval || "monthly";
+            const isRecurring = tx.recurring || (tx.billingFrequency && tx.billingFrequency !== "one_time");
+            if (isRecurring) {
+              const freq = (tx.billingFrequency && tx.billingFrequency !== "one_time" ? tx.billingFrequency : tx.recurrenceInterval) || "monthly";
               if (freq === "yearly") {
                 summaries[client._id].monthlyRecurringIncome += Math.round(tx.amount / 12);
                 summaries[client._id].dailyRecognizedIncome += Math.round(tx.amount / 365);
+              } else if (freq === "weekly") {
+                summaries[client._id].monthlyRecurringIncome += Math.round((tx.amount * 52) / 12);
+                summaries[client._id].dailyRecognizedIncome += Math.round(tx.amount / 7);
               } else {
                 summaries[client._id].monthlyRecurringIncome += tx.amount;
                 summaries[client._id].dailyRecognizedIncome += Math.round(tx.amount / 30);
@@ -210,11 +286,15 @@ export const getClientNetSummary = query({
             summaries[client._id].totalExpense += tx.amount;
             globalTotalExpense += tx.amount;
 
-            if (tx.recurring || tx.billingFrequency) {
-              const freq = tx.billingFrequency || tx.recurrenceInterval || "monthly";
+            const isRecurring = tx.recurring || (tx.billingFrequency && tx.billingFrequency !== "one_time");
+            if (isRecurring) {
+              const freq = (tx.billingFrequency && tx.billingFrequency !== "one_time" ? tx.billingFrequency : tx.recurrenceInterval) || "monthly";
               if (freq === "yearly") {
                 summaries[client._id].monthlyRecurringExpense += Math.round(tx.amount / 12);
                 summaries[client._id].dailyExpenseBurn += Math.round(tx.amount / 365);
+              } else if (freq === "weekly") {
+                summaries[client._id].monthlyRecurringExpense += Math.round((tx.amount * 52) / 12);
+                summaries[client._id].dailyExpenseBurn += Math.round(tx.amount / 7);
               } else {
                 summaries[client._id].monthlyRecurringExpense += tx.amount;
                 summaries[client._id].dailyExpenseBurn += Math.round(tx.amount / 30);
@@ -233,6 +313,9 @@ export const getClientNetSummary = query({
         .collect();
 
       summaries[client._id].assetCount = assets.length;
+      const now = Date.now();
+      const sevenDaysFromNow = now + 7 * 24 * 60 * 60 * 1000;
+
       for (const asset of assets) {
         summaries[client._id].assetValuation += asset.totalValue;
         globalAssetValuation += asset.totalValue;
@@ -250,6 +333,54 @@ export const getClientNetSummary = query({
           } else {
             summaries[client._id].monthlyRecurringExpense += asset.recurringCost;
             summaries[client._id].dailyExpenseBurn += Math.round(asset.recurringCost / 30);
+          }
+        }
+
+        // BNPL Financing tracking
+        if (asset.paymentMethod === "bnpl") {
+          const financed = asset.bnplTotalFinanced || asset.totalValue;
+          const installmentsPaid = asset.bnplInstallmentsPaid || 0;
+          const monthly = asset.bnplMonthlyInstallment || 0;
+          const downpayment = asset.bnplDownpayment || 0;
+          const paid = (installmentsPaid * monthly) + downpayment;
+          const remaining = Math.max(0, financed - paid);
+
+          summaries[client._id].totalBnplFinanced += financed;
+          summaries[client._id].totalBnplPaid += paid;
+          summaries[client._id].remainingBnplLiability += remaining;
+
+          globalTotalBnplFinanced += financed;
+          globalTotalBnplPaid += paid;
+          globalRemainingBnplLiability += remaining;
+
+          if (asset.bnplStatus !== "fully_paid" && remaining > 0) {
+            summaries[client._id].monthlyBnplObligation += monthly;
+            summaries[client._id].bnplActiveCount += 1;
+            globalMonthlyBnplObligation += monthly;
+            globalBnplActiveCount += 1;
+
+            if (asset.bnplNextDueDate && asset.bnplNextDueDate <= sevenDaysFromNow) {
+              summaries[client._id].dueSoonBnplCount += 1;
+              globalDueSoonBnplCount += 1;
+            }
+          }
+        }
+
+        // Hardware Part Build Tracking
+        if (asset.category === "hardware" || asset.partType) {
+          const bStatus = asset.buildStatus || "in_stock";
+          if (bStatus === "in_stock") {
+            summaries[client._id].hardwarePartCounts.inStock += asset.quantity;
+            globalHardwarePartCounts.inStock += asset.quantity;
+          } else if (bStatus === "reserved") {
+            summaries[client._id].hardwarePartCounts.reserved += asset.quantity;
+            globalHardwarePartCounts.reserved += asset.quantity;
+          } else if (bStatus === "installed_in_pc") {
+            summaries[client._id].hardwarePartCounts.installed += asset.quantity;
+            globalHardwarePartCounts.installed += asset.quantity;
+          } else if (bStatus === "sold") {
+            summaries[client._id].hardwarePartCounts.sold += asset.quantity;
+            globalHardwarePartCounts.sold += asset.quantity;
           }
         }
       }
@@ -282,6 +413,14 @@ export const getClientNetSummary = query({
         monthlyInfrastructureExpense: globalMonthlyExpense,
         dailyExpenseBurn: globalDailyExpense,
         dailyNetRunRate: globalDailyNet,
+        // BNPL & Hardware Overview:
+        totalBnplFinanced: globalTotalBnplFinanced,
+        totalBnplPaid: globalTotalBnplPaid,
+        remainingBnplLiability: globalRemainingBnplLiability,
+        monthlyBnplObligation: globalMonthlyBnplObligation,
+        bnplActiveCount: globalBnplActiveCount,
+        dueSoonBnplCount: globalDueSoonBnplCount,
+        hardwarePartCounts: globalHardwarePartCounts,
       },
     };
   },
@@ -319,6 +458,43 @@ export const create = mutation({
     costInterval: v.optional(v.union(v.literal("monthly"), v.literal("yearly"), v.literal("one_time"))),
     autoTrackExpense: v.optional(v.boolean()),
     status: v.optional(v.union(v.literal("active"), v.literal("maintenance"), v.literal("expired"), v.literal("archived"))),
+    // Payment & BNPL fields
+    paymentMethod: v.optional(v.union(v.literal("cash"), v.literal("bnpl"), v.literal("credit_card"), v.literal("other"))),
+    bnplProvider: v.optional(v.string()),
+    bnplOrderNumber: v.optional(v.string()),
+    bnplTotalFinanced: v.optional(v.number()),
+    bnplDownpayment: v.optional(v.number()),
+    bnplMonthlyInstallment: v.optional(v.number()),
+    bnplTotalInstallments: v.optional(v.number()),
+    bnplInstallmentsPaid: v.optional(v.number()),
+    bnplDueDay: v.optional(v.number()),
+    bnplNextDueDate: v.optional(v.number()),
+    bnplStatus: v.optional(v.union(v.literal("active"), v.literal("fully_paid"))),
+    // PC Component & Build fields
+    partType: v.optional(
+      v.union(
+        v.literal("gpu"),
+        v.literal("cpu"),
+        v.literal("motherboard"),
+        v.literal("ram"),
+        v.literal("storage"),
+        v.literal("psu"),
+        v.literal("case"),
+        v.literal("cooling"),
+        v.literal("peripheral"),
+        v.literal("complete_pc"),
+        v.literal("other")
+      )
+    ),
+    buildStatus: v.optional(
+      v.union(
+        v.literal("in_stock"),
+        v.literal("reserved"),
+        v.literal("installed_in_pc"),
+        v.literal("sold")
+      )
+    ),
+    targetProjectId: v.optional(v.id("projects")),
   },
   handler: async (ctx, args) => {
     const { identity } = await verifyMembership(ctx, args.workspaceId);
@@ -355,6 +531,20 @@ export const create = mutation({
     const cleanProvider = args.provider?.trim() || undefined;
     const cleanSpecs = args.specsOrDetails?.trim() || undefined;
 
+    // BNPL sanitization
+    const isBnpl = args.paymentMethod === "bnpl";
+    const cleanBnplProvider = isBnpl ? (args.bnplProvider?.trim() || "Shopee SPayLater") : undefined;
+    const cleanBnplOrderNumber = isBnpl ? (args.bnplOrderNumber?.trim() || undefined) : undefined;
+    const totalFinanced = isBnpl ? (args.bnplTotalFinanced ? Math.round(args.bnplTotalFinanced) : totalValCents) : undefined;
+    const downpayment = isBnpl ? (args.bnplDownpayment ? Math.round(args.bnplDownpayment) : 0) : undefined;
+    const monthlyInstallment = isBnpl ? (args.bnplMonthlyInstallment ? Math.round(args.bnplMonthlyInstallment) : 0) : undefined;
+    const totalInstallments = isBnpl ? (args.bnplTotalInstallments ? Math.max(1, Math.round(args.bnplTotalInstallments)) : 1) : undefined;
+    const installmentsPaid = isBnpl ? (args.bnplInstallmentsPaid ? Math.max(0, Math.round(args.bnplInstallmentsPaid)) : 0) : undefined;
+    const dueDay = isBnpl && args.bnplDueDay ? Math.min(31, Math.max(1, Math.round(args.bnplDueDay))) : undefined;
+    const bnplStatus = isBnpl
+      ? (args.bnplStatus || (installmentsPaid !== undefined && totalInstallments !== undefined && installmentsPaid >= totalInstallments ? "fully_paid" : "active"))
+      : undefined;
+
     const assetId = await ctx.db.insert("clientAssets", {
       workspaceId: args.workspaceId,
       clientId: args.clientId,
@@ -376,6 +566,22 @@ export const create = mutation({
       costInterval: args.costInterval || (args.recurringCost ? "monthly" : undefined),
       autoTrackExpense: args.autoTrackExpense ?? false,
       status: args.status || "active",
+      // BNPL fields
+      paymentMethod: args.paymentMethod || "cash",
+      bnplProvider: cleanBnplProvider,
+      bnplOrderNumber: cleanBnplOrderNumber,
+      bnplTotalFinanced: totalFinanced,
+      bnplDownpayment: downpayment,
+      bnplMonthlyInstallment: monthlyInstallment,
+      bnplTotalInstallments: totalInstallments,
+      bnplInstallmentsPaid: installmentsPaid,
+      bnplDueDay: dueDay,
+      bnplNextDueDate: args.bnplNextDueDate,
+      bnplStatus: bnplStatus,
+      // PC Component fields
+      partType: args.partType,
+      buildStatus: args.buildStatus || (args.category === "hardware" ? "in_stock" : undefined),
+      targetProjectId: args.targetProjectId,
       createdBy: identity.subject,
     });
 
@@ -414,6 +620,43 @@ export const update = mutation({
     costInterval: v.optional(v.union(v.literal("monthly"), v.literal("yearly"), v.literal("one_time"))),
     autoTrackExpense: v.optional(v.boolean()),
     status: v.optional(v.union(v.literal("active"), v.literal("maintenance"), v.literal("expired"), v.literal("archived"))),
+    // Payment & BNPL fields
+    paymentMethod: v.optional(v.union(v.literal("cash"), v.literal("bnpl"), v.literal("credit_card"), v.literal("other"))),
+    bnplProvider: v.optional(v.string()),
+    bnplOrderNumber: v.optional(v.string()),
+    bnplTotalFinanced: v.optional(v.number()),
+    bnplDownpayment: v.optional(v.number()),
+    bnplMonthlyInstallment: v.optional(v.number()),
+    bnplTotalInstallments: v.optional(v.number()),
+    bnplInstallmentsPaid: v.optional(v.number()),
+    bnplDueDay: v.optional(v.number()),
+    bnplNextDueDate: v.optional(v.number()),
+    bnplStatus: v.optional(v.union(v.literal("active"), v.literal("fully_paid"))),
+    // PC Component & Build fields
+    partType: v.optional(
+      v.union(
+        v.literal("gpu"),
+        v.literal("cpu"),
+        v.literal("motherboard"),
+        v.literal("ram"),
+        v.literal("storage"),
+        v.literal("psu"),
+        v.literal("case"),
+        v.literal("cooling"),
+        v.literal("peripheral"),
+        v.literal("complete_pc"),
+        v.literal("other")
+      )
+    ),
+    buildStatus: v.optional(
+      v.union(
+        v.literal("in_stock"),
+        v.literal("reserved"),
+        v.literal("installed_in_pc"),
+        v.literal("sold")
+      )
+    ),
+    targetProjectId: v.optional(v.id("projects")),
   },
   handler: async (ctx, args) => {
     const asset = await ctx.db.get(args.assetId);
@@ -442,6 +685,17 @@ export const update = mutation({
     const unitValCents = Math.max(0, Math.round(args.unitValue));
     const totalValCents = qty * unitValCents;
 
+    const isBnpl = args.paymentMethod === "bnpl";
+    const totalInstallments = isBnpl
+      ? (args.bnplTotalInstallments !== undefined ? Math.max(1, Math.round(args.bnplTotalInstallments)) : asset.bnplTotalInstallments)
+      : undefined;
+    const installmentsPaid = isBnpl
+      ? (args.bnplInstallmentsPaid !== undefined ? Math.max(0, Math.round(args.bnplInstallmentsPaid)) : asset.bnplInstallmentsPaid)
+      : undefined;
+    const bnplStatus = isBnpl
+      ? (args.bnplStatus || (installmentsPaid !== undefined && totalInstallments !== undefined && installmentsPaid >= totalInstallments ? "fully_paid" : "active"))
+      : undefined;
+
     await ctx.db.patch(args.assetId, {
       name: trimmedName,
       category: args.category,
@@ -461,9 +715,103 @@ export const update = mutation({
       costInterval: args.costInterval !== undefined ? args.costInterval : asset.costInterval,
       autoTrackExpense: args.autoTrackExpense !== undefined ? args.autoTrackExpense : asset.autoTrackExpense,
       status: args.status !== undefined ? args.status : asset.status,
+      // BNPL fields
+      paymentMethod: args.paymentMethod !== undefined ? args.paymentMethod : asset.paymentMethod,
+      bnplProvider: isBnpl ? (args.bnplProvider !== undefined ? args.bnplProvider.trim() || undefined : asset.bnplProvider) : undefined,
+      bnplOrderNumber: isBnpl ? (args.bnplOrderNumber !== undefined ? args.bnplOrderNumber.trim() || undefined : asset.bnplOrderNumber) : undefined,
+      bnplTotalFinanced: isBnpl ? (args.bnplTotalFinanced !== undefined ? Math.round(args.bnplTotalFinanced) : (asset.bnplTotalFinanced || totalValCents)) : undefined,
+      bnplDownpayment: isBnpl ? (args.bnplDownpayment !== undefined ? Math.round(args.bnplDownpayment) : asset.bnplDownpayment) : undefined,
+      bnplMonthlyInstallment: isBnpl ? (args.bnplMonthlyInstallment !== undefined ? Math.round(args.bnplMonthlyInstallment) : asset.bnplMonthlyInstallment) : undefined,
+      bnplTotalInstallments: totalInstallments,
+      bnplInstallmentsPaid: installmentsPaid,
+      bnplDueDay: isBnpl ? (args.bnplDueDay !== undefined ? Math.min(31, Math.max(1, Math.round(args.bnplDueDay))) : asset.bnplDueDay) : undefined,
+      bnplNextDueDate: isBnpl ? (args.bnplNextDueDate !== undefined ? args.bnplNextDueDate : asset.bnplNextDueDate) : undefined,
+      bnplStatus: bnplStatus,
+      // PC Component fields
+      partType: args.partType !== undefined ? args.partType : asset.partType,
+      buildStatus: args.buildStatus !== undefined ? args.buildStatus : asset.buildStatus,
+      targetProjectId: args.targetProjectId !== undefined ? args.targetProjectId : asset.targetProjectId,
     });
 
     return await ctx.db.get(args.assetId);
+  },
+});
+
+/**
+ * Records a BNPL monthly installment repayment, increments installments paid count,
+ * advances the next due date, and optionally creates an expense transaction in the finance ledger.
+ */
+export const recordBnplPayment = mutation({
+  args: {
+    assetId: v.id("clientAssets"),
+    paidAmount: v.optional(v.number()), // integer cents, defaults to asset.bnplMonthlyInstallment
+    paymentDate: v.optional(v.number()),
+    autoCreateExpense: v.optional(v.boolean()), // default true
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const asset = await ctx.db.get(args.assetId);
+    if (!asset) throw new ConvexError("Asset not found");
+
+    const { identity } = await verifyMembership(ctx, asset.workspaceId);
+
+    if (asset.paymentMethod !== "bnpl") {
+      throw new ConvexError("This asset is not configured as a BNPL installment purchase");
+    }
+
+    const totalInstallments = asset.bnplTotalInstallments || 1;
+    const currentPaid = asset.bnplInstallmentsPaid || 0;
+    const newPaid = currentPaid + 1;
+    const isFullyPaid = newPaid >= totalInstallments;
+    const installmentAmount = args.paidAmount ?? (asset.bnplMonthlyInstallment || 0);
+
+    // Calculate next due date: advance by 1 month
+    let nextDueDate = asset.bnplNextDueDate;
+    if (nextDueDate && !isFullyPaid) {
+      const d = new Date(nextDueDate);
+      d.setMonth(d.getMonth() + 1);
+      nextDueDate = d.getTime();
+    } else if (isFullyPaid) {
+      nextDueDate = undefined;
+    }
+
+    await ctx.db.patch(args.assetId, {
+      bnplInstallmentsPaid: newPaid,
+      bnplStatus: isFullyPaid ? "fully_paid" : "active",
+      bnplNextDueDate: nextDueDate,
+    });
+
+    // Automatically create a corresponding transaction in the finance ledger if requested
+    let createdTxId = undefined;
+    const shouldCreateExpense = args.autoCreateExpense ?? true;
+    if (shouldCreateExpense && installmentAmount > 0) {
+      const providerName = asset.bnplProvider || "BNPL";
+      const orderRef = asset.bnplOrderNumber ? ` [Order: ${asset.bnplOrderNumber}]` : "";
+      const noteSuffix = args.notes ? ` - Note: ${args.notes}` : "";
+      const txDesc = `BNPL Installment (${newPaid}/${totalInstallments}) for ${asset.name} via ${providerName}${orderRef}${noteSuffix}`;
+
+      createdTxId = await ctx.db.insert("transactions", {
+        workspaceId: asset.workspaceId,
+        clientId: asset.clientId,
+        type: "expense",
+        category: "hardware",
+        amount: Math.round(installmentAmount),
+        currency: asset.currency || "PHP",
+        date: args.paymentDate || Date.now(),
+        description: txDesc,
+        recurring: false,
+        billingFrequency: "monthly",
+        createdBy: identity.subject,
+      });
+    }
+
+    return {
+      success: true,
+      newInstallmentsPaid: newPaid,
+      isFullyPaid,
+      nextDueDate,
+      createdTransactionId: createdTxId,
+    };
   },
 });
 

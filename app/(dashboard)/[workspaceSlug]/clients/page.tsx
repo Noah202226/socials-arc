@@ -40,9 +40,12 @@ import {
   Shield,
   User,
   Activity,
-  Server
+  Server,
+  ShoppingCart,
+  DollarSign
 } from "lucide-react";
 import ClientAssetModal from "@/components/clients/ClientAssetModal";
+import ClientTransactionModal from "@/components/clients/ClientTransactionModal";
 import { formatCurrencyCents } from "@/lib/currency";
 
 // Platform helper config
@@ -109,6 +112,11 @@ export default function ClientsPage() {
   const [assetModalOpen, setAssetModalOpen] = useState(false);
   const [assetModalClientId, setAssetModalClientId] = useState<any>(null);
   const [assetModalClientName, setAssetModalClientName] = useState("");
+
+  // Client Direct Transactions Modal state (Hetzner, Cloud VPS, Invoices, Retainers)
+  const [txModalOpen, setTxModalOpen] = useState(false);
+  const [txModalClientId, setTxModalClientId] = useState<any>(null);
+  const [txModalClientName, setTxModalClientName] = useState("");
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -471,7 +479,7 @@ export default function ClientsPage() {
 
         <div className="p-3.5 rounded-xl border border-border bg-card/60 backdrop-blur-xs flex flex-col gap-1 shadow-xs">
           <div className="flex items-center justify-between text-zinc-500">
-            <span className="text-[10px] uppercase font-bold tracking-wider">Inventory Value</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider">Inventory & Parts</span>
             <Package className="h-3.5 w-3.5 text-indigo-400" />
           </div>
           <div className="flex items-baseline gap-1.5">
@@ -479,6 +487,11 @@ export default function ClientsPage() {
               {formatCurrencyCents(kpiStats.totalValuation, currencyCode)}
             </span>
           </div>
+          {(netSummary?.workspaceTotals?.remainingBnplLiability || 0) > 0 && (
+            <span className="text-[9px] text-amber-400 font-mono font-bold flex items-center gap-1">
+              <ShoppingCart className="h-2.5 w-2.5" /> BNPL Debt: {formatCurrencyCents(netSummary?.workspaceTotals?.remainingBnplLiability || 0, currencyCode)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -669,13 +682,28 @@ export default function ClientsPage() {
                         </span>
                       </div>
                       
-                      <div className="bg-card/70 border border-border/80 rounded-lg p-2 flex flex-col">
-                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Cloud & Tools</span>
+                      <div 
+                        onClick={() => {
+                          setTxModalClientId(client._id);
+                          setTxModalClientName(client.name);
+                          setTxModalOpen(true);
+                        }}
+                        className="bg-card/70 border border-border/80 hover:border-amber-500/40 rounded-lg p-2 flex flex-col cursor-pointer transition-colors group"
+                        title="Click to log or inspect Hetzner / Cloud Server transactions"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] text-zinc-500 group-hover:text-amber-400 font-bold uppercase tracking-wider">Cloud & Servers</span>
+                          <DollarSign className="h-2.5 w-2.5 text-amber-500/60 group-hover:text-amber-400" />
+                        </div>
                         <span className="text-xs font-bold font-mono text-amber-400">
                           {formatCurrencyCents(clientSummary?.monthlyRecurringExpense || 0, currencyCode)}/mo
                         </span>
-                        <span className="text-[9px] text-zinc-500 font-mono">
-                          {formatCurrencyCents(clientSummary?.dailyExpenseBurn || 0, currencyCode)}/day burn
+                        <span className="text-[9px] text-zinc-500 font-mono truncate">
+                          {(clientSummary?.cloudHostingExpense || 0) > 0 ? (
+                            <span className="text-cyan-400 font-semibold">Hetzner: {formatCurrencyCents(clientSummary?.cloudHostingExpense || 0, currencyCode)}</span>
+                          ) : (
+                            `${formatCurrencyCents(clientSummary?.dailyExpenseBurn || 0, currencyCode)}/day burn`
+                          )}
                         </span>
                       </div>
 
@@ -685,8 +713,8 @@ export default function ClientsPage() {
                           {(clientSummary?.dailyNetProfit || 0) >= 0 ? "+" : ""}
                           {formatCurrencyCents(clientSummary?.dailyNetProfit || 0, currencyCode)}/day
                         </span>
-                        <span className="text-[9px] text-zinc-500 font-mono">
-                          Asset Val: {formatCurrencyCents(assetValuation, currencyCode)}
+                        <span className="text-[9px] text-zinc-500 font-mono truncate">
+                          Net: {(clientSummary?.financialNet || 0) >= 0 ? "+" : ""}{formatCurrencyCents(clientSummary?.financialNet || 0, currencyCode)}
                         </span>
                       </div>
 
@@ -705,7 +733,7 @@ export default function ClientsPage() {
                             </>
                           )}
                         </span>
-                        <span className="text-[9px] text-zinc-500 font-mono">
+                        <span className="text-[9px] text-zinc-500 font-mono truncate">
                           Net Worth: {formatCurrencyCents(netWorth, currencyCode)}
                         </span>
                       </div>
@@ -1070,7 +1098,7 @@ export default function ClientsPage() {
 
                   {/* Card Bottom Toolbar */}
                   <div className="p-3.5 bg-muted/20 border-t border-border/80 flex items-center justify-between gap-2 flex-wrap">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <Button 
                         size="sm" 
                         onClick={() => {
@@ -1080,8 +1108,32 @@ export default function ClientsPage() {
                         }}
                         className="text-[10px] h-7 px-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg"
                       >
-                        <Server className="h-3 w-3 mr-1 text-[#05ffc4]" /> Servers & Inventory ({netSummary?.summariesByClient?.[client._id]?.assetCount || 0})
+                        <Server className="h-3 w-3 mr-1 text-[#05ffc4]" /> Equipment & Parts ({clientSummary?.assetCount || 0})
                       </Button>
+
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setTxModalClientId(client._id);
+                          setTxModalClientName(client.name);
+                          setTxModalOpen(true);
+                        }}
+                        className="text-[10px] h-7 px-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-bold rounded-lg transition-colors"
+                      >
+                        <DollarSign className="h-3 w-3 mr-1 text-emerald-400" /> + Transaction {clientSummary?.transactionCount ? `(${clientSummary.transactionCount})` : ""}
+                      </Button>
+
+                      {(clientSummary?.cloudHostingExpense || 0) > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 font-mono font-bold flex items-center gap-1" title="Recorded Hetzner & Cloud Hosting Server Expenses">
+                          <Server className="h-2.5 w-2.5" /> Hetzner: {formatCurrencyCents(clientSummary?.cloudHostingExpense || 0, currencyCode)}
+                        </span>
+                      )}
+
+                      {(clientSummary?.remainingBnplLiability || 0) > 0 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/25 font-mono font-bold flex items-center gap-1">
+                          <ShoppingCart className="h-2.5 w-2.5" /> BNPL: {formatCurrencyCents(clientSummary?.remainingBnplLiability || 0, currencyCode)}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5">
@@ -1611,6 +1663,18 @@ export default function ClientsPage() {
           workspaceId={workspace._id}
           clientId={assetModalClientId}
           clientName={assetModalClientName}
+          currencyCode={currencyCode}
+        />
+      )}
+
+      {/* 9. Client Direct Transactions & Cloud Server / Hetzner Modal */}
+      {txModalClientId && (
+        <ClientTransactionModal
+          isOpen={txModalOpen}
+          onClose={() => setTxModalOpen(false)}
+          workspaceId={workspace._id}
+          clientId={txModalClientId}
+          clientName={txModalClientName}
           currencyCode={currencyCode}
         />
       )}

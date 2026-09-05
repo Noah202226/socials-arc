@@ -320,9 +320,61 @@ export default defineSchema({
     status: v.optional(
       v.union(v.literal("active"), v.literal("maintenance"), v.literal("expired"), v.literal("archived")),
     ),
+
+    // Payment & Financing Method (Cash vs BNPL Apps like Shopee SPayLater / Lazada LazPayLater)
+    paymentMethod: v.optional(
+      v.union(
+        v.literal("cash"),
+        v.literal("bnpl"),
+        v.literal("credit_card"),
+        v.literal("other")
+      )
+    ),
+    bnplProvider: v.optional(v.string()), // e.g. "Shopee SPayLater", "Lazada LazPayLater", "Billease", "Maya PayLater"
+    bnplOrderNumber: v.optional(v.string()), // Order / Tracking ID from Shopee or Lazada
+    bnplTotalFinanced: v.optional(v.number()), // Total financed amount in integer cents
+    bnplDownpayment: v.optional(v.number()), // Downpayment paid at purchase in integer cents
+    bnplMonthlyInstallment: v.optional(v.number()), // Monthly due amount in integer cents
+    bnplTotalInstallments: v.optional(v.number()), // Total months (e.g. 3, 6, 12)
+    bnplInstallmentsPaid: v.optional(v.number()), // Number of installments paid to date
+    bnplDueDay: v.optional(v.number()), // Day of month payment is due (1-31)
+    bnplNextDueDate: v.optional(v.number()), // Timestamp of next installment due
+    bnplStatus: v.optional(
+      v.union(v.literal("active"), v.literal("fully_paid"))
+    ),
+
+    // PC Component & Custom Build Allocation
+    partType: v.optional(
+      v.union(
+        v.literal("gpu"),
+        v.literal("cpu"),
+        v.literal("motherboard"),
+        v.literal("ram"),
+        v.literal("storage"),
+        v.literal("psu"),
+        v.literal("case"),
+        v.literal("cooling"),
+        v.literal("peripheral"),
+        v.literal("complete_pc"),
+        v.literal("other")
+      )
+    ),
+    buildStatus: v.optional(
+      v.union(
+        v.literal("in_stock"),
+        v.literal("reserved"),
+        v.literal("installed_in_pc"),
+        v.literal("sold")
+      )
+    ),
+    targetProjectId: v.optional(v.id("projects")), // Link to client's custom PC build campaign/project
+
     createdBy: v.string(),
   })
     .index("by_workspace", ["workspaceId"])
     .index("by_client", ["clientId"])
-    .index("by_client_and_category", ["clientId", "category"]),
+    .index("by_client_and_category", ["clientId", "category"])
+    .index("by_workspace_and_payment_method", ["workspaceId", "paymentMethod"])
+    .index("by_workspace_and_build_status", ["workspaceId", "buildStatus"])
+    .index("by_project", ["targetProjectId"]),
 });
