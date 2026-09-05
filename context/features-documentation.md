@@ -204,4 +204,24 @@ Enables social media outreach managers and agency team members to input prospect
 * **Automatic Activity Logging**: Updating a lead status automatically creates a `leadActivities` record recording `previousStatus` and `newStatus` with timestamp and author name.
 * **Dual View**: Supports toggleable Table view and Pipeline Kanban board view for lead management and outreach tracking.
 
+---
+
+## 🏢 11. Client Customer Subscribers & Annual Renewal Payment Tracker
+### Overview
+Enables agencies and client software products (e.g., Cliniqly dental clinic SaaS) to track their downstream customer accounts and subscribers. Manages customer subscriptions across annual, monthly, and quarterly billing cycles, automated countdowns to renewal dates, one-click payment recording with automatic date advancement, inline subscriber editing, and real-time ARR/MRR financial rollups.
+
+### Key Files
+* **Database Schema**: [schema.ts](file:///c:/Noa%20Files/myProjects/socials-arc/convex/schema.ts) (`clientSubscribers` table with indexes `by_client`, `by_client_and_status`, `by_client_and_due_date`, `by_workspace_and_due_date`)
+* **Backend Queries & Mutations**: [clientSubscribers.ts](file:///c:/Noa%20Files/myProjects/socials-arc/convex/clientSubscribers.ts) (`listByClient`, `create`, `update`, `recordPayment`, `remove`, `generateReceiptUploadUrl`)
+* **Financial Rollup Engine**: [clientAssets.ts](file:///c:/Noa%20Files/myProjects/socials-arc/convex/clientAssets.ts) (`getClientNetSummary` computing `subscribersARR`, `subscribersMRR`, `dueSoonCount`, `overdueCount`)
+* **Command Modal**: [ClientSubscribersModal.tsx](file:///c:/Noa%20Files/myProjects/socials-arc/components/clients/ClientSubscribersModal.tsx)
+* **Client Hub Integration**: [page.tsx](file:///c:/Noa%20Files/myProjects/socials-arc/app/%28dashboard%29/%5BworkspaceSlug%5D/clients/page.tsx)
+
+### Key Rules & Architecture
+* **Integer Cents Rule**: Subscription amounts (`amount`) are strictly stored as integer cents (e.g., ₱35,000.00 = 3500000 cents).
+* **Automatic Renewal Advancement**: Recording a renewal payment automatically calculates and advances the `nextPaymentDueDate` (+1 year for annual, +1 month for monthly, +3 months for quarterly) and marks status as `paid`.
+* **Zero Double-Counting (Deduplicated MRR)**: When subscription payments are recorded into the client's financial ledger, they are excluded from generic recurring proration to prevent double-counting with active subscriber profiles.
+* **Inline Editing**: Allows modifying customer names, doctors/contacts, plan names, billing cycles, pricing, notes, and renewal dates at any time without validation errors.
+* **Client Card Badges**: Shows `Monthly MRR` alongside `ARR: ₱X,XXX.XX (X subs)` and dynamic countdown badges (`Paid`, `Due in X days`, `Overdue by X days`).
+
 
