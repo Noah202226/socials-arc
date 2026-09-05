@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import ClientAssetModal from "@/components/clients/ClientAssetModal";
 import ClientTransactionModal from "@/components/clients/ClientTransactionModal";
+import ClientSubscribersModal from "@/components/clients/ClientSubscribersModal";
 import { formatCurrencyCents } from "@/lib/currency";
 
 // Platform helper config
@@ -117,6 +118,11 @@ export default function ClientsPage() {
   const [txModalOpen, setTxModalOpen] = useState(false);
   const [txModalClientId, setTxModalClientId] = useState<any>(null);
   const [txModalClientName, setTxModalClientName] = useState("");
+
+  // Customer Subscribers Modal state (Cliniqly Clinic Subscriptions, Annual Renewals)
+  const [subscribersModalOpen, setSubscribersModalOpen] = useState(false);
+  const [subscribersModalClientId, setSubscribersModalClientId] = useState<any>(null);
+  const [subscribersModalClientName, setSubscribersModalClientName] = useState("");
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -672,13 +678,41 @@ export default function ClientsPage() {
 
                     {/* Financial Rollup & Normalized Recurring Badges */}
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-left">
-                      <div className="bg-card/70 border border-border/80 rounded-lg p-2 flex flex-col">
-                        <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider">Monthly MRR</span>
+                      <div 
+                        onClick={() => {
+                          if ((clientSummary?.subscriberCount || 0) > 0) {
+                            setSubscribersModalClientId(client._id);
+                            setSubscribersModalClientName(client.name);
+                            setSubscribersModalOpen(true);
+                          }
+                        }}
+                        className={`bg-card/70 border border-border/80 rounded-lg p-2 flex flex-col ${(clientSummary?.subscriberCount || 0) > 0 ? "cursor-pointer hover:border-indigo-500/40 transition-colors group" : ""}`}
+                        title={(clientSummary?.subscriberCount || 0) > 0 ? "Click to view customer subscribers & annual renewals" : undefined}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[9px] font-bold uppercase tracking-wider ${(clientSummary?.subscriberCount || 0) > 0 ? "text-zinc-500 group-hover:text-indigo-400" : "text-zinc-500"}`}>
+                            Monthly MRR
+                          </span>
+                          {(clientSummary?.subscriberCount || 0) > 0 && (
+                            <Users className="h-2.5 w-2.5 text-indigo-400" />
+                          )}
+                        </div>
                         <span className="text-xs font-bold font-mono text-[#05ffc4]">
-                          {formatCurrencyCents(clientSummary?.monthlyRecurringIncome || 0, currencyCode)}/mo
+                          {formatCurrencyCents(
+                            (clientSummary?.subscribersMRR || 0) > 0
+                              ? Math.max(clientSummary?.subscribersMRR || 0, clientSummary?.monthlyRecurringIncome || 0)
+                              : (clientSummary?.monthlyRecurringIncome || 0),
+                            currencyCode
+                          )}/mo
                         </span>
-                        <span className="text-[9px] text-zinc-500 font-mono">
-                          {formatCurrencyCents(clientSummary?.dailyRecognizedIncome || 0, currencyCode)}/day pace
+                        <span className="text-[9px] text-zinc-500 font-mono truncate">
+                          {(clientSummary?.subscribersARR || 0) > 0 ? (
+                            <span className="text-indigo-400 font-semibold">
+                              ARR: {formatCurrencyCents(clientSummary?.subscribersARR || 0, currencyCode)} ({clientSummary?.subscriberCount} {clientSummary?.subscriberCount === 1 ? "sub" : "subs"})
+                            </span>
+                          ) : (
+                            `${formatCurrencyCents(clientSummary?.dailyRecognizedIncome || 0, currencyCode)}/day pace`
+                          )}
                         </span>
                       </div>
                       
@@ -1099,6 +1133,39 @@ export default function ClientsPage() {
                   {/* Card Bottom Toolbar */}
                   <div className="p-3.5 bg-muted/20 border-t border-border/80 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-2 flex-wrap">
+                      {/* Customer Subscribers (e.g. Cliniqly Annual Clinic Licenses) */}
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setSubscribersModalClientId(client._id);
+                          setSubscribersModalClientName(client.name);
+                          setSubscribersModalOpen(true);
+                        }}
+                        className="text-[10px] h-7 px-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg transition-colors flex items-center gap-1.5"
+                      >
+                        <Users className="h-3 w-3 text-indigo-400" /> Subscribers ({clientSummary?.subscriberCount || 0})
+                        {(clientSummary?.subscribersARR || 0) > 0 && (
+                          <span className="text-[9px] text-[#05ffc4] font-mono font-bold">
+                            • {formatCurrencyCents(clientSummary?.subscribersARR || 0, currencyCode)}/yr
+                          </span>
+                        )}
+                      </Button>
+
+                      {((clientSummary?.subscribersDueSoonCount || 0) + (clientSummary?.subscribersOverdueCount || 0)) > 0 && (
+                        <span 
+                          onClick={() => {
+                            setSubscribersModalClientId(client._id);
+                            setSubscribersModalClientName(client.name);
+                            setSubscribersModalOpen(true);
+                          }}
+                          className="text-[10px] px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/30 font-mono font-bold flex items-center gap-1 cursor-pointer hover:bg-amber-500/20 transition-colors"
+                          title="Customer subscribers with annual renewals due soon or overdue"
+                        >
+                          <Clock className="h-2.5 w-2.5 text-amber-400" />
+                          {(clientSummary?.subscribersDueSoonCount || 0) + (clientSummary?.subscribersOverdueCount || 0)} renewal{((clientSummary?.subscribersDueSoonCount || 0) + (clientSummary?.subscribersOverdueCount || 0)) > 1 ? "s" : ""} due
+                        </span>
+                      )}
+
                       <Button 
                         size="sm" 
                         onClick={() => {
@@ -1106,7 +1173,7 @@ export default function ClientsPage() {
                           setAssetModalClientName(client.name);
                           setAssetModalOpen(true);
                         }}
-                        className="text-[10px] h-7 px-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 font-bold rounded-lg"
+                        className="text-[10px] h-7 px-2.5 bg-zinc-800/60 hover:bg-zinc-800 border border-border text-zinc-300 font-bold rounded-lg"
                       >
                         <Server className="h-3 w-3 mr-1 text-[#05ffc4]" /> Equipment & Parts ({clientSummary?.assetCount || 0})
                       </Button>
@@ -1675,6 +1742,18 @@ export default function ClientsPage() {
           workspaceId={workspace._id}
           clientId={txModalClientId}
           clientName={txModalClientName}
+          currencyCode={currencyCode}
+        />
+      )}
+
+      {/* 10. Client Customer Subscribers & Annual Renewals Modal */}
+      {subscribersModalClientId && (
+        <ClientSubscribersModal
+          isOpen={subscribersModalOpen}
+          onClose={() => setSubscribersModalOpen(false)}
+          workspaceId={workspace._id}
+          clientId={subscribersModalClientId}
+          clientName={subscribersModalClientName}
           currencyCode={currencyCode}
         />
       )}

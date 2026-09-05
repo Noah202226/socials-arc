@@ -3,22 +3,25 @@ File Path: `file:///c:/Noa%20Files/myProjects/socials-arc/context/current-featur
 
 # Current Feature
 
-Client-Level Financial Transactions & Hetzner/Cloud Server Billing Tracker with Real-Time Card Summaries
+Client Customer Subscribers & Annual Renewal Payment Tracker (e.g. Cliniqly's Dental Clinic Customers)
 
 ## Status
 
-Ready for Review & Merge
+Ready for Review & Testing
 
 ## Goals
 
-1. [x] Add client-level transaction query `api.transactions.listByClient` in `convex/transactions.ts` supporting direct client transactions and client page transactions sorted by date.
-2. [x] Update `convex/clientAssets.ts` `getClientNetSummary` to calculate `cloudHostingExpense` (filtering for `cloud_vps_hosting`, `hosting_services`, or descriptions with "hetzner"/"server"/"vps") and `transactionCount`.
-3. [x] Refine recurring proration in `convex/clientAssets.ts` so `one_time` transactions are strictly excluded from monthly MRR and daily burn paces.
-4. [x] Create modern `components/clients/ClientTransactionModal.tsx` with presets for Hetzner Cloud VPS (CPX21), AWS Infrastructure, Domain & SSL Renewal, Tools & SaaS Licenses, and Client Retainers, plus transaction history and receipt attachments.
-5. [x] Wire `ClientTransactionModal` into `app/(dashboard)/[workspaceSlug]/clients/page.tsx`, add `+ Transaction` button to client card action bar, and display Hetzner/Cloud Hosting expenses and daily net burn directly on the client card.
-6. [x] Validate with `npx tsc --noEmit` and verify end-to-end in browser with real transaction logging and card summary updates.
+1. [x] Add `clientSubscribers` table to `convex/schema.ts` with indexes `by_client`, `by_client_and_status`, `by_client_and_due_date`, and `by_workspace_and_due_date`.
+2. [x] Create `convex/clientSubscribers.ts` with queries (`listByClient`) and mutations (`create`, `update`, `recordPayment`, `remove`) including automatic +1 year / +1 month renewal date advancement, ledger income transaction creation, and editing support.
+3. [x] Extend `convex/clientAssets.ts` `getClientNetSummary` to calculate subscriber rollups (`subscriberCount`, `subscribersARR`, `subscribersMRR`, `renewalsDueSoonCount`, `renewalsOverdueCount`).
+4. [x] Build `components/clients/ClientSubscribersModal.tsx` with top KPI ribbon (Total Subscribers, ARR, MRR, Paid Up, Due Soon), filterable subscriber directory with countdown badges, quick "Record Annual Payment" action, and add new subscriber form.
+5. [x] Add inline "Edit" modal for modifying subscriber information (clinic name, doctor/contact, phone, email, plan, pricing, renewal due date, and notes).
+6. [x] Wire `ClientSubscribersModal` into `app/(dashboard)/[workspaceSlug]/clients/page.tsx`, adding the `Subscribers` button with ARR badges to client cards.
+7. [x] Validate with `npx tsc --noEmit` and verify end-to-end in the browser with Cliniqly's dental clinic customers.
 
 ## History
+
+- Client-Level Financial Transactions & Hetzner/Cloud Server Billing Tracker with Real-Time Card Summaries
 
 - Deep Client Inventories (Cloud/Hetzner VPS, Assets) & Recurring Prorated Finance (MRR & Daily Pace)
 - Client Team Member Assignments & Card Display

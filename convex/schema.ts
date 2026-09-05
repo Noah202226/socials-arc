@@ -368,7 +368,6 @@ export default defineSchema({
       )
     ),
     targetProjectId: v.optional(v.id("projects")), // Link to client's custom PC build campaign/project
-
     createdBy: v.string(),
   })
     .index("by_workspace", ["workspaceId"])
@@ -377,4 +376,40 @@ export default defineSchema({
     .index("by_workspace_and_payment_method", ["workspaceId", "paymentMethod"])
     .index("by_workspace_and_build_status", ["workspaceId", "buildStatus"])
     .index("by_project", ["targetProjectId"]),
+
+  // ---------------------------------------------------------------------
+  // Client Customer Subscribers (e.g. Cliniqly's Dental Clinic Customers)
+  // ---------------------------------------------------------------------
+  clientSubscribers: defineTable({
+    clientId: v.id("clients"), // e.g. Cliniqly
+    workspaceId: v.id("workspaces"),
+    customerName: v.string(), // e.g. "Dr. Santos Dental Clinic", "Apex Orthodontics"
+    contactPerson: v.optional(v.string()), // e.g. "Dr. Maria Santos"
+    contactEmail: v.optional(v.string()),
+    contactPhone: v.optional(v.string()),
+    planName: v.string(), // e.g. "Cliniqly Cloud Pro (Annual)", "Basic Clinic License"
+    billingCycle: v.union(v.literal("annual"), v.literal("monthly"), v.literal("quarterly")),
+    amount: v.number(), // integer cents (e.g. 3500000 for ₱35,000)
+    currency: v.string(), // "PHP", "USD"
+    paymentStatus: v.union(
+      v.literal("paid"),
+      v.literal("due_soon"),
+      v.literal("overdue"),
+      v.literal("unpaid")
+    ),
+    status: v.union(v.literal("active"), v.literal("paused"), v.literal("canceled")),
+    startDate: v.number(), // timestamp
+    lastPaymentDate: v.optional(v.number()), // timestamp when last payment was made
+    lastPaymentAmount: v.optional(v.number()), // integer cents
+    nextPaymentDueDate: v.number(), // timestamp when next subscription payment is due
+    paymentMethod: v.optional(v.string()), // "Bank Transfer", "GCash", "Check", "Credit Card"
+    notes: v.optional(v.string()),
+    receiptStorageId: v.optional(v.id("_storage")),
+    createdBy: v.string(),
+  })
+    .index("by_workspace", ["workspaceId"])
+    .index("by_client", ["clientId"])
+    .index("by_client_and_status", ["clientId", "status"])
+    .index("by_client_and_due_date", ["clientId", "nextPaymentDueDate"])
+    .index("by_workspace_and_due_date", ["workspaceId", "nextPaymentDueDate"]),
 });

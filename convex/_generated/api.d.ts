@@ -10,6 +10,7 @@
 
 import type * as assets from "../assets.js";
 import type * as clientAssets from "../clientAssets.js";
+import type * as clientSubscribers from "../clientSubscribers.js";
 import type * as clients from "../clients.js";
 import type * as comments from "../comments.js";
 import type * as crons from "../crons.js";
@@ -33,6 +34,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   assets: typeof assets;
   clientAssets: typeof clientAssets;
+  clientSubscribers: typeof clientSubscribers;
   clients: typeof clients;
   comments: typeof comments;
   crons: typeof crons;
